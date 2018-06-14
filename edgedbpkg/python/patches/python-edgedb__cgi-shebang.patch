@@ -1,0 +1,22 @@
+From cc6f739243629b535fc0ea012367366768a20475 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Tue, 31 Jul 2018 11:54:15 -0400
+Subject: [PATCH] Fix cgi.py shebang
+
+---
+ Lib/cgi.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Lib/cgi.py b/Lib/cgi.py
+index f82cc6c8bd..dc114957a6 100755
+--- a/Lib/cgi.py
++++ b/Lib/cgi.py
+@@ -1,4 +1,4 @@
+-#! /usr/local/bin/python
++#! /usr/bin/env python3
+ 
+ # NOTE: the above "/usr/local/bin/python" is NOT a mistake.  It is
+ # intentionally NOT "/usr/bin/env python".  On many systems
+-- 
+2.17.1
+

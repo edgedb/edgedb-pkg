@@ -1,0 +1,87 @@
+stages:
+  - prepare
+  - build
+  - test
+  - publish
+
+.debian: &debian
+  PLATFORM: "debian"
+
+
+prepare:images:
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin containers.magicstack.net
+
+  stage: prepare
+
+  script:
+    - integration/build-images.sh
+
+  tags:
+    - docker-in-docker
+
+
+.build: &build
+  tags:
+    - magiclamp
+
+  stage: build
+
+  cache:
+    paths:
+      - $HOME/.cache
+
+  artifacts:
+    paths:
+      - artifacts
+
+  script:
+    - integration/${PLATFORM}/build.sh
+
+
+.test: &test
+  tags:
+    - magiclamp
+
+  stage: test
+
+  script:
+    - integration/${PLATFORM}/test.sh
+
+
+.publish: &publish
+  tags:
+    - magiclamp
+
+  stage: publish
+
+  script:
+    - integration/${PLATFORM}/publish.sh
+
+
+build:ubuntu-bionic:
+  variables:
+    <<: [*debian]
+  image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
+  dependencies:
+    - prepare:images
+  <<: [*build]
+
+
+test:ubuntu-bionic:
+  variables:
+    <<: [*debian]
+  image: containers.magicstack.net/magicstack/edgedb-pkg/systemd:ubuntu-bionic
+  dependencies:
+    - build:ubuntu-bionic
+  <<: [*test]
+
+
+publish:ubuntu-bionic:
+  variables:
+    <<: [*debian]
+  image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
+  dependencies:
+    - build:ubuntu-bionic
+    - test:ubuntu-bionic
+  <<: [*publish]

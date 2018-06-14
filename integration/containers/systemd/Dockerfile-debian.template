@@ -1,0 +1,13 @@
+FROM debian:%%PLACEHOLDER%%
+
+ENV container docker
+
+STOPSIGNAL SIGRTMIN+3
+
+RUN apt-get update && apt-get install -y --no-install-recommends systemd \
+	&& rm -rf /var/lib/apt/lists/*
+
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]

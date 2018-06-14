@@ -1,0 +1,6 @@
+{bindir}/*
+{libdir}/lib*
+{libdir}/pkgconfig/*
+{libdir}/postgresql/pgxs/**
+{includedir}/**/*.h
+{datadir}/doc/postgresql/**

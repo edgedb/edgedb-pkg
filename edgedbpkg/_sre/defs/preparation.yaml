@@ -1,0 +1,24 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ensure-cephfs-structure
+spec:
+  template:
+    spec:
+      containers:
+      - name: ensure-cephfs-structure
+        image: alpine
+        command: ["mkdir", "-p", "/cephfs/packages/apt"]
+        volumeMounts:
+        - name: cephfs
+          mountPath: /cephfs
+      restartPolicy: Never
+      volumes:
+      - name: cephfs
+        flexVolume:
+          driver: ceph.rook.io/rook
+          fsType: ceph
+          options:
+            fsName: cephfs
+            clusterNamespace: rook-ceph

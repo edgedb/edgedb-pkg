@@ -1,0 +1,24 @@
+From fc95f5d96eb1ce836c8f13872204400dcbd0b299 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Tue, 17 Jul 2018 17:17:19 -0400
+Subject: [PATCH] Use environment marker to constrain the typing dependency
+
+---
+ setup.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/setup.py b/setup.py
+index 0536c28..788fef4 100644
+--- a/setup.py
++++ b/setup.py
+@@ -50,6 +50,6 @@ setup(
+         'test': tests_require,
+     },
+     install_requires=[
+-        'typing', 'six'
++        'typing>=3.6.4;python_version<"3.6"', 'six'
+     ],
+     tests_require=tests_require, )
+-- 
+2.17.1
+

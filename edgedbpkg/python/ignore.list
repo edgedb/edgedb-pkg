@@ -1,0 +1,3 @@
+{bindir}/*
+{includedir}/python*/*.h
+{datadir}/man/man*/*

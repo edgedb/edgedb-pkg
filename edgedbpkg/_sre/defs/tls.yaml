@@ -1,0 +1,19 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: "<hostname-ident>-tls-cert"
+  namespace: default
+spec:
+  secretName: "<hostname-ident>-tls-cert"
+  issuerRef:
+    name: letsencrypt-<env>
+    kind: ClusterIssuer
+  commonName: <hostname>
+  dnsNames:
+  - <hostname>
+  acme:
+    config:
+    - dns01:
+        provider: clouddns
+      domains:
+        - <hostname>
