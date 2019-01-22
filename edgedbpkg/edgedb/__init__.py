@@ -28,12 +28,12 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        'postgresql-edgedb (==10.4)',
+        'postgresql-edgedb (== 11.1)',
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version='10.4'),
-        python_bundle.Python(version='3.7.0'),
+        postgresql.PostgreSQL(version='11.1'),
+        python_bundle.Python(version='3.7.2'),
     ]
 
     def get_bdist_wheel_command(self, build) -> list:
@@ -125,6 +125,5 @@ class EdgeDB(packages.BundledPythonPackage):
 
         return [
             bindir / 'edgedb-server',
-            bindir / 'edgedb-ctl',
             bindir / 'edgedb'
         ]

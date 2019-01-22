@@ -15,6 +15,7 @@
 {datadir}/postgresql/tsearch_data/*
 {datadir}/postgresql/*.sql
 {datadir}/postgresql/postgres.bki
+{datadir}/postgresql/errcodes.txt
 {datadir}/postgresql/sql_features.txt
 {datadir}/postgresql/*description
 {datadir}/postgresql/*.sample

@@ -12,15 +12,9 @@ class PostgreSQL(packages.BundledPackage):
     title = "PostgreSQL"
     name = 'postgresql-edgedb'
 
-    _pftp = "https://ftp.postgresql.org/pub/source/v{version}/"
-
-    sources = [
-        {
-            'url': _pftp + 'postgresql-{version}.tar.bz2',
-            'csum_url': _pftp + 'postgresql-{version}.tar.bz2.sha256',
-            'csum_algo': 'sha256',
-        }
-    ]
+    sources = (
+        "git+https://github.com/edgedb/postgres.git@edge_11",
+    )
 
     artifact_build_requirements = [
         'bison',
