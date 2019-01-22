@@ -69,7 +69,6 @@ RUN set -ex; \
 	\
 	python get-pip.py \
 		--disable-pip-version-check \
-		--no-cache-dir \
 		"pip==$PYTHON_PIP_VERSION" \
 	; \
 	pip --version; \

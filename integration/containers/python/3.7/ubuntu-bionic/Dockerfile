@@ -68,7 +68,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 18.1
+ENV PYTHON_PIP_VERSION 19.0
 
 RUN set -ex; \
 	\
@@ -76,7 +76,6 @@ RUN set -ex; \
 	\
 	python get-pip.py \
 		--disable-pip-version-check \
-		--no-cache-dir \
 		"pip==$PYTHON_PIP_VERSION" \
 	; \
 	pip --version; \
