@@ -31,6 +31,6 @@ for version_dir in "${DIR}"/*; do
 
 		image="${CI_REGISTRY_IMAGE}/python:${VERSION}-${tag}"
 		docker build -t "${image}" "${variant_dir}"
-		# docker push "${image}"
+		docker push "${image}"
 	done
 done
