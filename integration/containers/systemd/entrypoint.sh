@@ -1,5 +1,7 @@
 #!/bin/sh
 
+env >/usr/local/env.txt
+
 cat >/usr/local/bin/script.sh <<EOF
 set -e
 
@@ -22,6 +24,7 @@ After=network.target
 
 [Service]
 Type=oneshot
+EnvironmentFile=/usr/local/env.txt
 ExecStart=/bin/bash /usr/local/bin/script.sh
 StandardOutput=journal+console
 StandardError=inherit

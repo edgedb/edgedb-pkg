@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends systemd \
 
 RUN echo '#!/bin/sh\n\
 \n\
+env >/usr/local/env.txt\n\
+\n\
 cat >/usr/local/bin/script.sh <<EOF\n\
 set -e\n\
 \n\
@@ -37,6 +39,7 @@ After=network.target\n\
 \n\
 [Service]\n\
 Type=oneshot\n\
+EnvironmentFile=/usr/local/env.txt\n\
 ExecStart=/bin/bash /usr/local/bin/script.sh\n\
 StandardOutput=journal+console\n\
 StandardError=inherit\n\
