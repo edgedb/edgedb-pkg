@@ -13,9 +13,9 @@ STOPSIGNAL SIGRTMIN+3
 RUN apt-get update && apt-get install -y --no-install-recommends systemd \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN echo '#!/bin/sh\n\
+RUN echo '#!/bin/bash\n\
 \n\
-env >/usr/local/env.txt\n\
+env -0 | while IFS="=" read -r -d "" n v; do printf "%s=\"%s\"\\n" "$n" "$v"; done >/usr/local/env.txt\n\
 \n\
 cat >/usr/local/bin/script.sh <<EOF\n\
 set -e\n\

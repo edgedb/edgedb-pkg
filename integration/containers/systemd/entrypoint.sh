@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-env >/usr/local/env.txt
+env -0 | while IFS="=" read -r -d "" n v; do printf "%s=\"%s\"\\n" "$n" "$v"; done >/usr/local/env.txt
 
 cat >/usr/local/bin/script.sh <<EOF
 set -e

@@ -5,7 +5,7 @@ from poetry import packages as poetry_pkg
 from metapkg import packages
 from metapkg.packages import python
 
-from edgedbpkg import postgresql, python as python_bundle
+from edgedbpkg import postgresql, python as python_bundle, edgedbpy
 
 
 python.set_python_runtime_dependency(poetry_pkg.Dependency(
@@ -24,16 +24,26 @@ class EdgeDB(packages.BundledPythonPackage):
     url = 'https://edgedb.com/'
 
     sources = (
-        "git+https://github.com/edgedb/edgedb.git",
+        {
+            "url": "git+https://github.com/edgedb/edgedb.git",
+            "extras": {
+                # We obtain postgres from the fork repo directly,
+                # so there's no need to clone it as a submodule.
+                "exclude-submodules": ["postgres"],
+                "clone-depth": 0,
+            },
+        },
     )
 
     artifact_requirements = [
         'postgresql-edgedb (== 11.1)',
+        'edgedb',
     ]
 
     bundle_deps = [
         postgresql.PostgreSQL(version='11.1'),
         python_bundle.Python(version='3.7.2'),
+        edgedbpy.EdgeDBPython(version='0.0.1'),
     ]
 
     def get_bdist_wheel_command(self, build) -> list:

@@ -10,7 +10,7 @@ stages:
 
 prepare:images:
   before_script:
-    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin containers.magicstack.net
+    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
   stage: prepare
 
