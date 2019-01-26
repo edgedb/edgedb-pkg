@@ -1,5 +1,11 @@
 #!/bin/bash
 
+set -e
+
+mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
+echo "${DPUT_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
+chmod 400 "${HOME}/.ssh/id_ed25519"
+
 set -ex
 
 export DEBIAN_FRONTEND=noninteractive
