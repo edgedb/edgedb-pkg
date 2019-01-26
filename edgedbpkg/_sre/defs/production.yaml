@@ -108,16 +108,17 @@ spec:
 
       - name: "reprepro"
         image: "gcr.io/edgedb-infra/aptrepo:latest"
+        imagePullPolicy: Always
         resources:
           requests:
             cpu: "50m"
-        imagePullPolicy: Always
         volumeMounts:
         - name: apt-repo
           mountPath: /var/lib/repos
 
       - name: "sshd"
-        image: panubo/sshd:latest
+        image: "gcr.io/edgedb-infra/packages-incoming:latest"
+        imagePullPolicy: Always
         resources:
           requests:
             cpu: "50m"
