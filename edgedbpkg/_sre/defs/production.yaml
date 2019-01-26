@@ -87,6 +87,9 @@ spec:
       containers:
       - name: "nginx"
         image: "nginx:latest"
+        resources:
+          requests:
+            cpu: "50m"
         readinessProbe:
           httpGet:
             path: /__healthz
@@ -105,6 +108,9 @@ spec:
 
       - name: "reprepro"
         image: "gcr.io/edgedb-infra/aptrepo:latest"
+        resources:
+          requests:
+            cpu: "50m"
         imagePullPolicy: Always
         volumeMounts:
         - name: apt-repo
@@ -112,6 +118,9 @@ spec:
 
       - name: "sshd"
         image: panubo/sshd:latest
+        resources:
+          requests:
+            cpu: "50m"
         env:
         - name: DEBUG
           value: "true"
@@ -158,12 +167,12 @@ spec:
         configMap:
           name: "<service-name>-nginx-conf"
       - name: authorized-keys
-        defaultMode: 0400
         secret:
+          defaultMode: 0400
           secretName: <service-name>-ssh-authorized-keys
       - name: host-keys
-        defaultMode: 0400
         secret:
+          defaultMode: 0400
           secretName: <service-name>-ssh-host-keys
 ---
 
