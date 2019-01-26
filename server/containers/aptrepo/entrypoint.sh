@@ -6,6 +6,7 @@ set -e
 
 DAEMON=sshd
 
+chown reprepro:reprepro "${REPREPRO_BASE_DIR}"
 
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
@@ -39,6 +40,14 @@ if [ -e "/etc/ssh/sshd_config" ]; then
     cat "/etc/ssh/sshd_config" >> "/etc/ssh.default/sshd_config"
 fi
 
+# Conditional blocks go last
+cat "/etc/ssh.default/sshd_config_conditional" >> \
+    "/etc/ssh.default/sshd_config"
+
+echo REPREPRO_BASE_DIR=${REPREPRO_BASE_DIR} >> /etc/environment
+echo REPREPRO_CONFIG_DIR=${REPREPRO_CONFIG_DIR} >> /etc/environment
+
+
 stop() {
     echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
     # Get PID
@@ -53,6 +62,11 @@ stop() {
 
 echo "Running $@"
 if [ "$(basename $1)" == "$DAEMON" ]; then
+    if [ "$DEBUG" == 'true' ]; then
+        echo "sshd_config"
+        echo "-----------"
+        cat "/etc/ssh.default/sshd_config"
+    fi
     trap stop SIGINT SIGTERM
     $@ &
     pid="$!"

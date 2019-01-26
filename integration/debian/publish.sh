@@ -22,11 +22,12 @@ apt-get install -y dput python3-paramiko
 cat <<EOF >/tmp/dput.cf
 [edgedb-prod]
 fqdn                    = upload-packages.prod.edgedatabase.net
+incoming                = /incoming
 login                   = uploader
 allow_dcut              = 1
 method                  = sftp
 allow_unsigned_uploads  = 1
-post_upload_command     = post_upload_command="ssh reprepro@upload-packages.prod.edgedatabase.net -- /usr/bin/reprepro processincoming"
+post_upload_command     = post_upload_command="ssh reprepro@upload-packages.prod.edgedatabase.net -- /usr/bin/reprepro processincoming main"
 EOF
 
 dput -d -d -c /tmp/dput.cf edgedb-prod artifacts/*.changes

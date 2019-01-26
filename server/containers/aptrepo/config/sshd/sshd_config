@@ -4,18 +4,4 @@ PasswordAuthentication no
 Subsystem sftp /usr/lib/openssh/sftp-server
 AcceptEnv LANG LC_*
 PrintMotd no
-
-Match Group uploaders
-        ChrootDirectory /var/tmp/incoming/
-        ForceCommand internal-sftp
-        AllowTcpForwarding no
-        PermitTunnel no
-        X11Forwarding no
-        AuthorizedKeysFile /etc/ssh/authorized_keys/uploaders
-
-Match Group reprepro
-        ForceCommand /usr/bin/reprepro processincoming
-        AllowTcpForwarding no
-        PermitTunnel no
-        X11Forwarding no
-        AuthorizedKeysFile /etc/ssh/authorized_keys/uploaders
+UsePAM yes

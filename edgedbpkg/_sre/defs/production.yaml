@@ -111,7 +111,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: DEBUG
-          value: ""
+          value: "true"
         resources:
           requests:
             cpu: "50m"
@@ -166,7 +166,7 @@ spec:
           secretName: <service-name>-ssh-root-authorized-keys
       - name: uploader-authorized-keys
         secret:
-          defaultMode: 0400
+          defaultMode: 0444
           secretName: <service-name>-ssh-uploader-authorized-keys
       - name: host-keys
         secret:

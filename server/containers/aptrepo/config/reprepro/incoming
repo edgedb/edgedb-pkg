@@ -1,3 +1,4 @@
 Name: main
-IncomingDir: /var/tmp/incoming/
+IncomingDir: /var/spool/reprepro/incoming/
+TempDir: /var/tmp/incoming-staging/
 Allow: stable>stretch
