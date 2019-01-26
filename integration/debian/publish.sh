@@ -13,4 +13,5 @@ dput -d -d artifacts/*.changes \
     --override "full_upload_log=true" \
     --override "incoming=/data/apt/incoming/" \
     --override "login=root" \
+    --override "allow_unsigned_uploads=true" \
     --override 'post_upload_command="ssh -p2222 root@upload-packages.prod.edgedatabase.net -- reprepro --verbose processincoming"'

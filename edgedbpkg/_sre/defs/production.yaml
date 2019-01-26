@@ -172,8 +172,7 @@ kind: Service
 metadata:
   name: "<service-name>"
   annotations:
-    beta.cloud.google.com/backend-config: |
-      '{"ports": {"80":"<service-name>-backend-config"}}'
+    beta.cloud.google.com/backend-config: '{"ports": {"80":"<service-name>-backend-config"}}'
 
 spec:
   type: NodePort
