@@ -7,7 +7,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
             reprepro \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY config/* /etc/reprepro/
 COPY entrypoint.sh /entrypoint.sh

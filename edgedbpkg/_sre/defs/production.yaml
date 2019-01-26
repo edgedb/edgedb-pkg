@@ -105,6 +105,7 @@ spec:
 
       - name: "reprepro"
         image: "gcr.io/edgedb-infra/aptrepo:latest"
+        imagePullPolicy: Always
         volumeMounts:
         - name: apt-repo
           mountPath: /var/lib/repos
