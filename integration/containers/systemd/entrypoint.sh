@@ -12,6 +12,8 @@ function finish() {
 trap finish 0
 
 ${@}
+
+echo "Script done: $?"
 EOF
 
 chmod +x /usr/local/bin/script.sh

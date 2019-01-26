@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: "<service-name>"
 ---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -54,6 +55,7 @@ data:
        }
     }
 ---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -63,8 +65,8 @@ metadata:
 data:
   sshd_config: |
     StrictModes no;
-
 ---
+
 apiVersion: "extensions/v1beta1"
 kind: "Deployment"
 metadata:
@@ -98,7 +100,7 @@ spec:
           mountPath: /srv/www/packages
           readOnly: true
         - name: nginx-conf
-          mountPath: /etc/nginx # mount nginx-conf volumn to /etc/nginx
+          mountPath: /etc/nginx
           readOnly: true
 
       - name: "reprepro"
@@ -140,7 +142,7 @@ spec:
           driver: ceph.rook.io/rook
           fsType: ceph
           options:
-            fsName: cephfs # name of the filesystem specified in the filesystem CRD.
+            fsName: cephfs
             clusterNamespace: rook-ceph
             path: /packages/apt/
       - name: repo-root
@@ -148,7 +150,7 @@ spec:
           driver: ceph.rook.io/rook
           fsType: ceph
           options:
-            fsName: cephfs # name of the filesystem specified in the filesystem CRD.
+            fsName: cephfs
             clusterNamespace: rook-ceph
             path: /packages/
       - name: nginx-conf
@@ -162,26 +164,15 @@ spec:
         defaultMode: 0400
         secret:
           secretName: <service-name>-ssh-host-keys
-          # items:
-          #   - key: ssh_host_dsa_key
-          #     path: ssh_host_dsa_key
-          #     mode: 400
-          #   - key: ssh_host_rsa_key
-          #     path: ssh_host_rsa_key
-          #     mode: 400
-          #   - key: ssh_host_ecdsa_key
-          #     path: ssh_host_ecdsa_key
-          #     mode: 400
-          #   - key: ssh_host_ed25519_key
-          #     path: ssh_host_ed25519_key
-          #     mode: 400
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
   name: "<service-name>"
   annotations:
-    beta.cloud.google.com/backend-config: '{"ports": {"80":"<service-name>-backend-config"}}'
+    beta.cloud.google.com/backend-config: |
+      '{"ports": {"80":"<service-name>-backend-config"}}'
 
 spec:
   type: NodePort
@@ -192,8 +183,8 @@ spec:
     name: http-port
     port: 80
     targetPort: 80
-
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -209,8 +200,8 @@ spec:
     name: ssh-port
     port: 2222
     targetPort: 22
-
 ---
+
 apiVersion: cloud.google.com/v1beta1
 kind: BackendConfig
 metadata:

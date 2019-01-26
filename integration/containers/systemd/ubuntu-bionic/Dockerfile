@@ -27,6 +27,8 @@ function finish() {\n\
 trap finish 0\n\
 \n\
 ${@}\n\
+\n\
+echo "Script done: $?"\n\
 EOF\n\
 \n\
 chmod +x /usr/local/bin/script.sh\n\

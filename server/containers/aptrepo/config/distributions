@@ -1,0 +1,8 @@
+Origin: EdgeDB Open Source Project
+Label: EdgeDB
+Suite: stable
+Codename: stretch
+Architectures: amd64
+Components: main
+Description: EdgeDB Package Repository for Debian Stretch
+Log: /dev/stderr

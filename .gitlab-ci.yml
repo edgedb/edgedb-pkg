@@ -4,13 +4,66 @@ stages:
   - test
   - publish
 
-.debian: &debian
-  PLATFORM: "debian"
 
+# Google Cloud SDK image, used to auth with and push to the
+# gcloud docker registry.  Used by the package server image build job.
+prepare:gcloud-sdk-image:
+  stage: prepare
 
-prepare:images:
+  except:
+    variables:
+      - $BUILD == "integration"
+
   before_script:
-    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - |
+        echo $CI_JOB_TOKEN | \
+        docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+
+  script:
+    - |
+        docker build \
+            -t ${CI_REGISTRY_IMAGE}/gcloud:latest \
+            -f .gitlab/Dockerfile.dind-gcloud \
+            .gitlab/ \
+        && docker push ${CI_REGISTRY_IMAGE}/gcloud:latest
+  tags:
+    - docker-in-docker
+
+
+# Build the package server image used in the package service cluster.
+build:server:
+  stage: build
+
+  dependencies:
+    - prepare:gcloud-sdk-image
+
+  except:
+    variables:
+      - $BUILD == "integration"
+
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+
+  image: containers.magicstack.net/magicstack/edgedb-pkg-server/gcloud:latest
+
+  services:
+    - docker:dind
+
+  script:
+    - server/build-images.sh
+
+  tags:
+    - docker-in-docker
+
+
+# This step builds the integration docker images
+# used for the BUILD=integration jobs that actually
+# build, test and publish the packages.
+prepare:integration-images:
+  before_script:
+    - |
+        echo $CI_JOB_TOKEN | \
+        docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
   stage: prepare
 
@@ -21,10 +74,24 @@ prepare:images:
     - docker-in-docker
 
 
+.debian: &debian
+  PLATFORM: "debian"
+
+
+.integration:
+  only:
+    variables:
+      - $BUILD == "integration"
+
+  dependencies:
+    - prepare:integration-images
+
+
 .build: &build
   tags:
     - magiclamp
 
+  extends: .integration
   stage: build
 
   cache:
@@ -43,6 +110,7 @@ prepare:images:
   tags:
     - magiclamp
 
+  extends: .integration
   stage: test
 
   script:
@@ -53,6 +121,7 @@ prepare:images:
   tags:
     - magiclamp
 
+  extends: .integration
   stage: publish
 
   script:
@@ -63,9 +132,7 @@ build:ubuntu-bionic:
   variables:
     <<: [*debian]
   image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
-  dependencies:
-    - prepare:images
-  <<: [*build]
+  extends: .build
 
 
 test:ubuntu-bionic:
@@ -74,7 +141,7 @@ test:ubuntu-bionic:
   image: containers.magicstack.net/magicstack/edgedb-pkg/systemd:ubuntu-bionic
   dependencies:
     - build:ubuntu-bionic
-  <<: [*test]
+  extends: .test
 
 
 publish:ubuntu-bionic:
@@ -84,4 +151,4 @@ publish:ubuntu-bionic:
   dependencies:
     - build:ubuntu-bionic
     - test:ubuntu-bionic
-  <<: [*publish]
+  extends: .publish
