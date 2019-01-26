@@ -13,7 +13,12 @@ class PostgreSQL(packages.BundledPackage):
     name = 'postgresql-edgedb'
 
     sources = (
-        "git+https://github.com/edgedb/postgres.git@edge_11",
+        {
+            'url': 'git+https://github.com/edgedb/postgres.git',
+            'extras': {
+                'branch': 'edge_11',
+            },
+        },
     )
 
     artifact_build_requirements = [
