@@ -9,15 +9,17 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash \
-    && addgroup --system --gid 700 reprepro \
-    && adduser --system --uid 700 --gid 700 \
+    && addgroup --gid 999 reprepro \
+    && adduser --uid 999 --gid 999 \
                --home $REPREPRO_BASE_DIR --no-create-home reprepro \
     && addgroup uploaders \
+    && addgroup incoming \
     && adduser --ingroup uploaders \
                --home $REPREPRO_INCOMING_DIR --no-create-home uploader \
-    && adduser reprepro uploaders \
+    && adduser reprepro incoming \
+    && adduser uploader incoming \
     && mkdir -p $REPREPRO_INCOMING_DIR \
-    && chown reprepro:uploaders $REPREPRO_INCOMING_DIR \
+    && chown reprepro:incoming $REPREPRO_INCOMING_DIR \
     && chmod g+ws $REPREPRO_INCOMING_DIR \
     && mkdir -p $REPREPRO_INCOMING_TMP_DIR \
     && chown reprepro:reprepro $REPREPRO_INCOMING_TMP_DIR \

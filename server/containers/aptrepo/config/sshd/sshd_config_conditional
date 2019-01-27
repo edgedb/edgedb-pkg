@@ -1,13 +1,13 @@
-Match Group uploaders
-        ChrootDirectory /var/spool/reprepro/
-        ForceCommand internal-sftp
+Match Group reprepro
+        ForceCommand /usr/bin/reprepro processincoming main
         AllowTcpForwarding no
         PermitTunnel no
         X11Forwarding no
         AuthorizedKeysFile /etc/ssh/authorized_keys/uploaders
 
-Match Group reprepro
-        ForceCommand /usr/bin/reprepro processincoming main
+Match Group uploaders
+        ChrootDirectory /var/spool/reprepro/
+        ForceCommand internal-sftp
         AllowTcpForwarding no
         PermitTunnel no
         X11Forwarding no
