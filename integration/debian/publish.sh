@@ -14,11 +14,6 @@ EOF
 
 set -ex
 
-export DEBIAN_FRONTEND=noninteractive
-
-apt-get update
-apt-get install -y dput python3-paramiko
-
 cat <<EOF >/tmp/dput.cf
 [edgedb-prod]
 fqdn                    = upload-packages.prod.edgedatabase.net

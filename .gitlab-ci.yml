@@ -123,7 +123,6 @@ prepare:integration-images:
 
   extends: .integration
   stage: publish
-
   script:
     - integration/${PLATFORM}/publish.sh
 
@@ -147,7 +146,7 @@ test:ubuntu-bionic:
 publish:ubuntu-bionic:
   variables:
     <<: [*debian]
-  image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
+  image: containers.magicstack.net/magicstack/edgedb-pkg/upload:debian
   dependencies:
     - build:ubuntu-bionic
     - test:ubuntu-bionic

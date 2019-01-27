@@ -1,0 +1,13 @@
+FROM ubuntu:bionic
+
+COPY dput.patch /tmp/dput.patch
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        patch python3-paramiko dput openssh-client \
+    && patch -d /usr/share/dput -p1 </tmp/dput.patch \
+    && rm /tmp/dput.patch \
+    && apt-get remove -y patch \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
