@@ -5,6 +5,7 @@ Codename: stretch
 Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Debian Stretch
+SignWith: E138877137A71D0C
 
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
@@ -13,3 +14,4 @@ Codename: bionic
 Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Ubuntu 18.04
+SignWith: E138877137A71D0C

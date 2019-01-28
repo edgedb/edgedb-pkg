@@ -42,7 +42,7 @@ fi
 
 if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
-        gpg --import "${path}"
+        gosu reprepro:reprepro gpg --import "${path}"
     done < <(find "/root/gpg-keys/" -name '*.asc' -print0)
 fi
 

@@ -10,8 +10,7 @@ RUN apt-get update \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash inoticoming gosu gnupg \
     && addgroup --gid 999 reprepro \
-    && adduser --uid 999 --gid 999 \
-               --home $REPREPRO_BASE_DIR --no-create-home reprepro \
+    && adduser --uid 999 --gid 999 reprepro \
     && addgroup uploaders \
     && addgroup incoming \
     && adduser --ingroup uploaders \
@@ -29,6 +28,7 @@ RUN apt-get update \
 
 COPY config/reprepro/* /etc/reprepro/
 COPY config/sshd/* /etc/ssh.default/
+COPY conifg/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 22

@@ -70,7 +70,7 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             )
         )
 
-        signing_key = self.platform.get_secret(
+        signing_key = env.platform.get_secret(
             'edgedb-release-signing-key',
             keyname='gpg-keys-high')
 
@@ -86,7 +86,7 @@ class PubPackagesServiceInstance(services.ServiceInstance):
                     data:
                         edgedb-signing.asc: {signing_keydata}
                     metadata:
-                        name: edgedb-release-signing-key
+                        name: {self.name}-gpg-keys
                 ''')
             )
         )
