@@ -2,7 +2,7 @@ Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
 Codename: stretch
-Architectures: amd64
+Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Debian Stretch
 Log: /dev/stderr
@@ -11,7 +11,7 @@ Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
 Codename: bionic
-Architectures: amd64
+Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Ubuntu 18.04
 Log: /dev/stderr
