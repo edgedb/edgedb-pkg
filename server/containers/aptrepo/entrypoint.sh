@@ -77,7 +77,7 @@ if [ "$(basename $1)" == "$DAEMON" ]; then
             "${REPREPRO_INCOMING_DIR}" \
             --suffix '.changes' \
             --chdir "${REPREPRO_INCOMING_DIR}" \
-            reprepro -v -v --waitforlock 100 processincoming local {} \;
+            reprepro -v -v --waitforlock 100 processincoming main {} \;
 else
     exec "$@"
 fi
