@@ -1,4 +1,4 @@
 Name: main
 IncomingDir: /var/spool/reprepro/incoming/
 TempDir: /var/tmp/incoming-staging/
-Allow: stable>stretch
+Allow: stable>stretch stable>bionic
