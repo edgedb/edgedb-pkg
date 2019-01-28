@@ -71,7 +71,13 @@ if [ "$(basename $1)" == "$DAEMON" ]; then
     $@ &
     pid="$!"
     mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
-    wait "${pid}" && exit $?
+
+    gosu reprepro:reprepro \
+        inoticoming --initialsearch --foreground \
+            "${REPREPRO_INCOMING_DIR}" \
+            --suffix '.changes' \
+            --chdir "${REPREPRO_INCOMING_DIR}" \
+            reprepro -v -v --waitforlock 100 processincoming local {} \;
 else
     exec "$@"
 fi

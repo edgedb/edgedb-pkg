@@ -25,7 +25,3 @@ allow_unsigned_uploads  = 1
 EOF
 
 dput -d -d -c /tmp/dput.cf edgedb-prod artifacts/*.changes
-# Do not use the post_upload_command since that seems to ignore
-# erroneous exit.
-ssh reprepro@upload-packages.prod.edgedatabase.net \
-    /usr/bin/reprepro processincoming main

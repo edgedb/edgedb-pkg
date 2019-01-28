@@ -8,7 +8,7 @@ ENV REPREPRO_INCOMING_TMP_DIR=/var/tmp/incoming-staging/
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
-            reprepro openssh-server bash \
+            reprepro openssh-server bash inoticoming gosu \
     && addgroup --gid 999 reprepro \
     && adduser --uid 999 --gid 999 \
                --home $REPREPRO_BASE_DIR --no-create-home reprepro \
