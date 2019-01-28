@@ -133,7 +133,7 @@ spec:
           mountPath: /root/.ssh/
         - name: gpg-keys
           readOnly: true
-          mountPath: /home/reprepro/gpg-keys/
+          mountPath: /root/gpg-keys/
         - name: uploader-authorized-keys
           readOnly: true
           mountPath: /etc/ssh/authorized_keys/

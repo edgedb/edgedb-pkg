@@ -40,10 +40,10 @@ if [ -e "/etc/ssh/sshd_config" ]; then
     cat "/etc/ssh/sshd_config" >> "/etc/ssh.default/sshd_config"
 fi
 
-if [ -e "/home/reprepro/gpg-keys/" ]; then
+if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
-        gosu reprepro:reprepro gpg --import "${path}"
-    done < <(find "/home/reprepro/gpg-keys/" -name '*.asc' -print0)
+        cat "${path}" | gosu reprepro:reprepro gpg --import
+    done < <(find "/root/gpg-keys/" -name '*.asc' -print0)
 fi
 
 # Conditional blocks go last
