@@ -31,6 +31,10 @@ COPY config/sshd/* /etc/ssh.default/
 COPY config/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
 
+RUN chown -R reprepro:reprepro /home/reprepro/.gnupg \
+    && chmod 700 /home/reprepro/.gnupg \
+    && chmod 600 /home/reprepro/.gnupg/*
+
 EXPOSE 22
 
 VOLUME $REPREPRO_BASE_DIR
