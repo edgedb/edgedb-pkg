@@ -28,7 +28,7 @@ RUN apt-get update \
 
 COPY config/reprepro/* /etc/reprepro/
 COPY config/sshd/* /etc/ssh.default/
-COPY conifg/gnupg/* /home/reprepro/.gnupg/
+COPY config/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 22
