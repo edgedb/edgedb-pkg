@@ -131,6 +131,9 @@ spec:
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
+        - name: gpg-keys
+          readOnly: true
+          mountPath: /root/gpg-keys/
         - name: uploader-authorized-keys
           readOnly: true
           mountPath: /etc/ssh/authorized_keys/
@@ -172,6 +175,10 @@ spec:
         secret:
           defaultMode: 0400
           secretName: <service-name>-ssh-host-keys
+      - name: gpg-keys
+        secret:
+          defaultMode: 0400
+          secretName: <service-name>-gpg-keys
 ---
 
 apiVersion: v1

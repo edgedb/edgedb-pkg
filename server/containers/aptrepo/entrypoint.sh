@@ -40,6 +40,12 @@ if [ -e "/etc/ssh/sshd_config" ]; then
     cat "/etc/ssh/sshd_config" >> "/etc/ssh.default/sshd_config"
 fi
 
+if [ -e "/root/gpg-keys/" ]; then
+    while IFS= read -r -d '' path; do
+        gpg --import "${path}"
+    done < <(find "/root/gpg-keys/" -name '*.asc' -print0)
+fi
+
 # Conditional blocks go last
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"

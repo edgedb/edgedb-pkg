@@ -6,7 +6,9 @@
 ##
 
 
+import base64
 import pathlib
+import textwrap
 
 from edbsre import resources
 from edbsre.lib import services
@@ -65,6 +67,27 @@ class PubPackagesServiceInstance(services.ServiceInstance):
                 ip_address_name=f'{self.name}-upload',
                 region=env.region,
                 dns_name=f'upload-{self.hostname}',
+            )
+        )
+
+        signing_key = self.platform.get_secret(
+            'edgedb-release-signing-key',
+            keyname='gpg-keys-high')
+
+        signing_keydata = base64.b64encode(signing_key).decode()
+
+        self.add_required_resource(
+            k8s_platform.K8SResource(
+                name=f'{self.name}-gpg-keys',
+                definition=textwrap.dedent(f'''\
+                    apiVersion: v1
+                    type: Opaque
+                    kind: Secret
+                    data:
+                        edgedb-signing.asc: {signing_keydata}
+                    metadata:
+                        name: edgedb-release-signing-key
+                ''')
             )
         )
 
