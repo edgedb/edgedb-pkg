@@ -91,6 +91,27 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             )
         )
 
+        signing_public_key = env.platform.get_secret(
+            'edgedb-release-signing-public-key',
+            keyname='gpg-keys-high')
+
+        signing_public_keydata = base64.b64encode(signing_public_key).decode()
+
+        self.add_required_resource(
+            k8s_platform.K8SResource(
+                name=f'{self.name}-gpg-pub-keys',
+                definition=textwrap.dedent(f'''\
+                    apiVersion: v1
+                    type: Opaque
+                    kind: Secret
+                    data:
+                        edgedb.asc: {signing_public_keydata}
+                    metadata:
+                        name: {self.name}-gpg-pub-keys
+                ''')
+            )
+        )
+
         for fn in ('preparation.yaml', 'production.yaml', 'tls.yaml',
                    'ingress.yaml'):
             with open(defs / fn) as f:

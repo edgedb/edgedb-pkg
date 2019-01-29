@@ -46,11 +46,24 @@ data:
           }
 
           location / {
-              if ($http_x_forwarded_proto != "https") {
-                 return 307 https://$host$request_uri;
-              }
-              root /srv/www/packages;
-              autoindex on;
+            if ($http_x_forwarded_proto != "https") {
+              return 307 https://$host$request_uri;
+            }
+            root /srv/www/packages;
+            autoindex on;
+          }
+
+          location /keys {
+            if ($http_x_forwarded_proto != "https") {
+              return 307 https://$host$request_uri;
+            }
+            root /srv/www/;
+            autoindex on;
+          }
+
+          location /apt/db {
+            deny all;
+            return 403;
           }
        }
     }
@@ -104,6 +117,9 @@ spec:
           readOnly: true
         - name: nginx-conf
           mountPath: /etc/nginx
+          readOnly: true
+        - name: gpg-pub-keys
+          mountPath: /srv/www/keys
           readOnly: true
 
       - name: "reprepro"
@@ -179,6 +195,10 @@ spec:
         secret:
           defaultMode: 0400
           secretName: <service-name>-gpg-keys
+      - name: gpg-pub-keys
+        secret:
+          defaultMode: 0444
+          secretName: <service-name>-gpg-pub-keys
 ---
 
 apiVersion: v1
