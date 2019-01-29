@@ -4,21 +4,22 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM centos:7
+FROM buildpack-deps:bionic
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
 
 # http://bugs.python.org/issue19846
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG en_US.UTF-8
+ENV LANG C.UTF-8
 
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-RUN yum install -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-    xz-devel libffi-devel git
+# extra dependencies (over what buildpack-deps already includes)
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
+	apt-get install -y --no-install-recommends \
+# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
+		libssl-dev \
+		tk-dev \
+	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
 ENV PYTHON_VERSION 3.7.2
@@ -28,6 +29,7 @@ RUN set -ex \
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& export GNUPGHOME="$(mktemp -d)" \
+	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
@@ -37,7 +39,7 @@ RUN set -ex \
 	&& rm python.tar.xz \
 	\
 	&& cd /usr/src/python \
-	&& gnuArch="$(gcc -dumpmachine)" \
+	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
 	&& ./configure \
 		--build="$gnuArch" \
 		--enable-loadable-sqlite-extensions \
@@ -67,7 +69,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 19.0
+ENV PYTHON_PIP_VERSION 19.0.1
 
 RUN set -ex; \
 	\

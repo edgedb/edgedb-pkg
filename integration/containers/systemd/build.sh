@@ -16,7 +16,7 @@ for variant_dir in "${DIR}"/*; do
     fi
 
     variant=$(basename "${variant_dir}")
-    image="${CI_REGISTRY_IMAGE}/systemd:${variant}"
+    image="${CI_REGISTRY_IMAGE}/test:${variant}"
     docker build -t "${image}" "${variant_dir}"
     docker push "${image}"
 done

@@ -26,12 +26,7 @@ declare -A gpgKeys=(
 
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
-versions=( "$@" )
-if [ ${#versions[@]} -eq 0 ]; then
-	versions=( */ )
-fi
-versions=( "${versions[@]%/}" )
-
+version="3.7"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | jq -r .info.version)"
 
 generated_warning() {
@@ -45,159 +40,98 @@ generated_warning() {
 	EOH
 }
 
-travisEnv=
-appveyorEnv=
-for version in "${versions[@]}"; do
-	rcVersion="${version%-rc}"
-	rcGrepV='-v'
-	if [ "$rcVersion" != "$version" ]; then
-		rcGrepV=
+rcVersion="${version%-rc}"
+rcGrepV='-v'
+if [ "$rcVersion" != "$version" ]; then
+	rcGrepV=
+fi
+
+possibles=( $(
+	{
+		git ls-remote --tags https://github.com/python/cpython.git "refs/tags/v${rcVersion}.*" \
+			| sed -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
+			| grep $rcGrepV -E -- '[a-zA-Z]+' \
+			|| :
+
+		# this page has a very aggressive varnish cache in front of it, which is why we also scrape tags from GitHub
+		curl -fsSL 'https://www.python.org/ftp/python/' \
+			| grep '<a href="'"$rcVersion." \
+			| sed -r 's!.*<a href="([^"/]+)/?".*!\1!' \
+			| grep $rcGrepV -E -- '[a-zA-Z]+' \
+			|| :
+	} | sort -ruV
+) )
+fullVersion=
+declare -A impossible=()
+for possible in "${possibles[@]}"; do
+	rcPossible="${possible%[a-z]*}"
+
+	# varnish is great until it isn't
+	if wget -q -O /dev/null -o /dev/null --spider "https://www.python.org/ftp/python/$rcPossible/Python-$possible.tar.xz"; then
+		fullVersion="$possible"
+		break
 	fi
 
-	possibles=( $(
-		{
-			git ls-remote --tags https://github.com/python/cpython.git "refs/tags/v${rcVersion}.*" \
-				| sed -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
-				| grep $rcGrepV -E -- '[a-zA-Z]+' \
-				|| :
-
-			# this page has a very aggressive varnish cache in front of it, which is why we also scrape tags from GitHub
-			curl -fsSL 'https://www.python.org/ftp/python/' \
-				| grep '<a href="'"$rcVersion." \
-				| sed -r 's!.*<a href="([^"/]+)/?".*!\1!' \
-				| grep $rcGrepV -E -- '[a-zA-Z]+' \
-				|| :
-		} | sort -ruV
+	if [ -n "${impossible[$rcPossible]:-}" ]; then
+		continue
+	fi
+	impossible[$rcPossible]=1
+	possibleVersions=( $(
+		wget -qO- -o /dev/null "https://www.python.org/ftp/python/$rcPossible/" \
+			| grep '<a href="Python-'"$rcVersion"'.*\.tar\.xz"' \
+			| sed -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
+			| grep $rcGrepV -E -- '[a-zA-Z]+' \
+			| sort -rV \
+			|| true
 	) )
-	fullVersion=
-	declare -A impossible=()
-	for possible in "${possibles[@]}"; do
-		rcPossible="${possible%[a-z]*}"
-
-		# varnish is great until it isn't
-		if wget -q -O /dev/null -o /dev/null --spider "https://www.python.org/ftp/python/$rcPossible/Python-$possible.tar.xz"; then
-			fullVersion="$possible"
-			break
-		fi
-
-		if [ -n "${impossible[$rcPossible]:-}" ]; then
-			continue
-		fi
-		impossible[$rcPossible]=1
-		possibleVersions=( $(
-			wget -qO- -o /dev/null "https://www.python.org/ftp/python/$rcPossible/" \
-				| grep '<a href="Python-'"$rcVersion"'.*\.tar\.xz"' \
-				| sed -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
-				| grep $rcGrepV -E -- '[a-zA-Z]+' \
-				| sort -rV \
-				|| true
-		) )
-		if [ "${#possibleVersions[@]}" -gt 0 ]; then
-			fullVersion="${possibleVersions[0]}"
-			break
-		fi
-	done
-
-	if [ -z "$fullVersion" ]; then
-		{
-			echo
-			echo
-			echo "  error: cannot find $version (alpha/beta/rc?)"
-			echo
-			echo
-		} >&2
-		exit 1
+	if [ "${#possibleVersions[@]}" -gt 0 ]; then
+		fullVersion="${possibleVersions[0]}"
+		break
 	fi
-
-	echo "$version: $fullVersion"
-
-	for v in \
-		stretch \
-		ubuntu-bionic \
-		centos-7 \
-	; do
-		dir="$version/$v"
-		variant="$(basename "$v")"
-
-		[ -d "$dir" ] || continue
-
-		case "$variant" in
-			slim) template="$variant"; tag="$(basename "$(dirname "$dir")")" ;;
-			windowsservercore-*) template='windowsservercore'; tag="${variant#*-}" ;;
-			alpine*) template='alpine'; tag="${variant#alpine}" ;;
-			ubuntu*) template='ubuntu'; tag="${variant#*-}" ;;
-			centos*) template='centos'; tag="${variant}" ;;
-			*) template='debian'; tag="$variant" ;;
-		esac
-		if [ "$variant" = 'slim' ]; then
-			# use "debian:*-slim" variants for "python:*-slim" variants
-			tag+='-slim'
-		fi
-		template="Dockerfile-${template}.template"
-
-		if [[ "$version" == 2.* ]]; then
-			fail=1
-			for newVersion in "${versions[@]}"; do
-				[[ "$newVersion" == 3.* ]] || continue
-				[ -f "$newVersion/$v/Dockerfile" ] || continue
-				echo "  TODO: vimdiff $newVersion/$v/Dockerfile $version/$v/Dockerfile"
-				fail=
-				break
-			done
-			[ -z "$fail" ] || { echo >&2 "error: cannot find a suitable version for 'vimdiff' on '$version/$v/Dockerfile'"; exit 1; }
-		else
-			{ generated_warning; cat "$template"; } > "$dir/Dockerfile"
-		fi
-
-		sed -ri \
-			-e 's/^(ENV GPG_KEY) .*/\1 '"${gpgKeys[$version]:-${gpgKeys[$rcVersion]}}"'/' \
-			-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
-			-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
-			-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
-			-e 's/^(FROM python):.*/\1:'"$version-$tag"'/' \
-			-e 's!^(FROM (debian|buildpack-deps|alpine|microsoft/[^:]+)):.*!\1:'"$tag"'!' \
-			-e 's!^(FROM centos):.*!\1:'"${tag#*-}"'!' \
-			"$dir/Dockerfile"
-
-		case "$variant" in
-			wheezy) sed -ri -e 's/dpkg-architecture --query /dpkg-architecture -q/g' "$dir/Dockerfile" ;;
-		esac
-
-		case "$version/$v" in
-			# https://bugs.python.org/issue32598 (Python 3.7.0b1+)
-			# TL;DR: Python 3.7+ uses OpenSSL functionality which LibreSSL 2.6.x in Alpine 3.7 doesn't implement
-			# Python 3.5 on Alpine 3.8 needs OpenSSL too
-			3.7*/alpine3.7 | 3.5*/alpine3.8)
-				sed -ri -e 's/libressl/openssl/g' "$dir/Dockerfile"
-				;;& # (3.5*/alpine* needs to match the next block too)
-			# Libraries to build the nis module only available in Alpine 3.7+.
-			# Also require this patch https://bugs.python.org/issue32521 only available in Python 2.7, 3.6+.
-			3.4*/alpine* | 3.5*/alpine* | */alpine3.6)
-				sed -ri -e '/libnsl-dev/d' -e '/libtirpc-dev/d' "$dir/Dockerfile"
-				;;
-			3.4/stretch*)
-				sed -ri -e 's/libssl-dev/libssl1.0-dev/g' "$dir/Dockerfile"
-				;;
-			*/slim) ;;
-			*/stretch | */jessie | */wheezy)
-				sed -ri -e '/libssl-dev/d' "$dir/Dockerfile"
-				;;
-		esac
-
-		case "$v" in
-			windows/*-1709) ;; # no AppVeyor support for 1709 yet: https://github.com/appveyor/ci/issues/1885
-			windows/*)
-				appveyorEnv='\n    - version: '"$version"'\n      variant: '"$variant$appveyorEnv"
-				;;
-			*)
-				travisEnv='\n  - VERSION='"$version VARIANT=$v$travisEnv"
-				;;
-		esac
-	done
 done
 
-travis="$(awk -v 'RS=\n\n' '$1 == "env:" { $0 = "env:'"$travisEnv"'" } { printf "%s%s", $0, RS }' .travis.yml)"
-echo "$travis" > .travis.yml
+if [ -z "$fullVersion" ]; then
+	{
+		echo
+		echo
+		echo "  error: cannot find $version (alpha/beta/rc?)"
+		echo
+		echo
+	} >&2
+	exit 1
+fi
 
-appveyor="$(awk -v 'RS=\n\n' '$1 == "environment:" { $0 = "environment:\n  matrix:'"$appveyorEnv"'" } { printf "%s%s", $0, RS }' .appveyor.yml)"
-echo "$appveyor" > .appveyor.yml
+echo "$version: $fullVersion"
+
+while IFS= read -r -d '' v; do
+	dir="$v"
+	variant="$(basename "$v")"
+
+	[ -d "$dir" ] || continue
+
+	case "$variant" in
+		ubuntu*) template='ubuntu'; tag="${variant}" ;;
+		centos*) template='centos'; tag="${variant}" ;;
+		debian*) template='debian'; tag="${variant}" ;;
+	esac
+
+	template="Dockerfile-${template}.template"
+
+	{ generated_warning; cat "$template"; } > "$dir/Dockerfile"
+
+	sed -ri \
+		-e 's/^(ENV GPG_KEY) .*/\1 '"${gpgKeys[$version]:-${gpgKeys[$rcVersion]}}"'/' \
+		-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
+		-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
+		-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
+		-e 's!^(FROM (buildpack-deps)):.*!\1:'"${variant#*-}"'!' \
+		-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
+		"$dir/Dockerfile"
+
+	case "$version/$v" in
+		*/stretch)
+			sed -ri -e '/libssl-dev/d' "$dir/Dockerfile"
+			;;
+	esac
+
+done < <(find . -maxdepth 1 -type d -name '*-*' -print0)

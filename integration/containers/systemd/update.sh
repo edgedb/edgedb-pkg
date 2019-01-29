@@ -21,15 +21,9 @@ entrypoint_cmd="RUN echo '${entrypoint}' >/usr/local/bin/entrypoint.sh"
 tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
 echo "${entrypoint_cmd}" >"${tmp}"
 
-for v in \
-	debian-stretch \
-	ubuntu-xenial \
-	ubuntu-bionic \
-; do
+while IFS= read -r -d '' v; do
 	dir="${v}"
 	variant="$(basename "${v}")"
-
-	[ -d "$dir" ] || continue
 
 	case "$variant" in
 		ubuntu*) template='ubuntu'; tag="${variant}" ;;
@@ -45,6 +39,7 @@ for v in \
 		"$dir/Dockerfile"
 
 	awk -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${dir}/Dockerfile"
-done
+
+done < <(find . -maxdepth 1 -type d -name '*-*' -print0)
 
 rm "${tmp}"

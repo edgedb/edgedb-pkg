@@ -80,6 +80,7 @@ prepare:integration-images:
 
 .bionic: &bionic
   DISTRO: "bionic"
+  DISTRO_FULL: "ubuntu-bionic"
 
 
 .integration:
@@ -144,14 +145,14 @@ prepare:integration-images:
 build:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
+  image: ${CI_REGISTRY_IMAGE}/build:${DISTRO_FULL}
   extends: .build
 
 
 test:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: containers.magicstack.net/magicstack/edgedb-pkg/systemd:ubuntu-bionic
+  image: ${CI_REGISTRY_IMAGE}/test:${DISTRO_FULL}
   dependencies:
     - build:ubuntu-bionic
   extends: .test
@@ -160,8 +161,11 @@ test:ubuntu-bionic:
 publish:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: containers.magicstack.net/magicstack/edgedb-pkg/upload:debian
+  image: ${CI_REGISTRY_IMAGE}/upload:${PLATFORM}
   dependencies:
+    # Must depend on both test AND build so that the
+    # package artifacts are passed accordingly.
+    - build:ubuntu-bionic
     - test:ubuntu-bionic
   extends: .publish
 

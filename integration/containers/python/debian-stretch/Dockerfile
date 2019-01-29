@@ -15,6 +15,8 @@ ENV LANG C.UTF-8
 
 # extra dependencies (over what buildpack-deps already includes)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
+		libssl-dev \
 		tk-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
@@ -66,7 +68,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 19.0
+ENV PYTHON_PIP_VERSION 19.0.1
 
 RUN set -ex; \
 	\
