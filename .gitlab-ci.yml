@@ -3,6 +3,7 @@ stages:
   - build
   - test
   - publish
+  - test-published
 
 
 # Google Cloud SDK image, used to auth with and push to the
@@ -77,6 +78,9 @@ prepare:integration-images:
 .debian: &debian
   PLATFORM: "debian"
 
+.bionic: &bionic
+  DISTRO: "bionic"
+
 
 .integration:
   only:
@@ -127,16 +131,26 @@ prepare:integration-images:
     - integration/${PLATFORM}/publish.sh
 
 
+.test-published: &test-published
+  tags:
+    - magiclamp
+
+  extends: .integration
+  stage: test-published
+  script:
+    - integration/${PLATFORM}/test-published.sh
+
+
 build:ubuntu-bionic:
   variables:
-    <<: [*debian]
+    <<: [*debian, *bionic]
   image: containers.magicstack.net/magicstack/edgedb-pkg/python:3.7-bionic
   extends: .build
 
 
 test:ubuntu-bionic:
   variables:
-    <<: [*debian]
+    <<: [*debian, *bionic]
   image: containers.magicstack.net/magicstack/edgedb-pkg/systemd:ubuntu-bionic
   dependencies:
     - build:ubuntu-bionic
@@ -145,9 +159,17 @@ test:ubuntu-bionic:
 
 publish:ubuntu-bionic:
   variables:
-    <<: [*debian]
+    <<: [*debian, *bionic]
   image: containers.magicstack.net/magicstack/edgedb-pkg/upload:debian
   dependencies:
-    - build:ubuntu-bionic
     - test:ubuntu-bionic
   extends: .publish
+
+
+test-published:ubuntu-bionic:
+  variables:
+    <<: [*debian, *bionic]
+  image: ubuntu:bionic
+  dependencies:
+    - publish:ubuntu-bionic
+  extends: .test-published
