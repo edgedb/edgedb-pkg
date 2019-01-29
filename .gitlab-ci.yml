@@ -45,7 +45,7 @@ build:server:
   variables:
     DOCKER_HOST: tcp://docker:2375/
 
-  image: containers.magicstack.net/magicstack/edgedb-pkg-server/gcloud:latest
+  image: ${CI_REGISTRY_IMAGE}/gcloud:latest
 
   services:
     - docker:dind
