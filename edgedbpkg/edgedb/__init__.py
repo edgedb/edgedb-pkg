@@ -37,6 +37,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     artifact_requirements = [
         'postgresql-edgedb (== 11.1)',
+        'ncurses-term',
         'edgedb',
     ]
 
