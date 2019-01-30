@@ -1,5 +1,5 @@
 Match Group uploaders
-        ChrootDirectory /var/spool/reprepro/
+        ChrootDirectory /var/spool/repo/
         ForceCommand internal-sftp
         AllowTcpForwarding no
         PermitTunnel no

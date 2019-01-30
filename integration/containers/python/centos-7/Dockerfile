@@ -18,16 +18,20 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-    xz-devel libffi-devel git
+	curl-devel xz-devel libffi-devel gettext rsync
 
 ENV GPG_KEY 0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D
 ENV PYTHON_VERSION 3.7.2
+ENV GIT_VERSION 2.20.1
 
 RUN set -ex \
 	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
+	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
 	&& export GNUPGHOME="$(mktemp -d)" \
+	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
@@ -35,6 +39,9 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
+	&& mkdir -p /usr/src/git \
+	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
+	&& rm git.tar.xz \
 	\
 	&& cd /usr/src/python \
 	&& gnuArch="$(gcc -dumpmachine)" \
@@ -57,7 +64,12 @@ RUN set -ex \
 		\) -exec rm -rf '{}' + \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version
+	&& python3 --version \
+	&& cd /usr/src/git \
+	&& make prefix=/usr/local V=1 -j $(nproc) all \
+	&& make prefix=/usr/local install \
+	&& rm -rf /usr/src/git \
+	&& git --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \

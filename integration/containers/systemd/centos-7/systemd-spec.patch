@@ -1,0 +1,12 @@
+diff --git a/systemd.spec b/systemd.spec
+index 2e4d29c..f9c2f36 100644
+--- a/systemd.spec
++++ b/systemd.spec
+@@ -703,6 +703,7 @@ Patch0661: 0661-cryptsetup-generator-introduce-basic-keydev-support.patch
+ Patch0662: 0662-cryptsetup-generator-don-t-return-error-if-target-di.patch
+ Patch0663: 0663-cryptsetup-generator-allow-whitespace-characters-in-.patch
+ Patch0664: 0664-Make-sure-the-mount-units-pulled-by-RequiresMountsFo.patch
++Patch0700: 0700-containers-systemd-exits-with-non-zero-code.patch
+ 
+ %global num_patches %{lua: c=0; for i,p in ipairs(patches) do c=c+1; end; print(c);}
+ 

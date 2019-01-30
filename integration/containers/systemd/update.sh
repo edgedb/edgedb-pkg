@@ -16,7 +16,7 @@ generated_warning() {
 }
 
 entrypoint="$(cat entrypoint.sh | sed -r -e 's/^(.*)$/\1\\n\\/g')"
-entrypoint_cmd="RUN echo '${entrypoint}' >/usr/local/bin/entrypoint.sh"
+entrypoint_cmd="RUN echo -e '${entrypoint}' >/usr/local/bin/entrypoint.sh"
 
 tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
 echo "${entrypoint_cmd}" >"${tmp}"
@@ -28,6 +28,8 @@ while IFS= read -r -d '' v; do
 	case "$variant" in
 		ubuntu*) template='ubuntu'; tag="${variant}" ;;
 		debian*) template='debian'; tag="${variant}" ;;
+		centos*) template='centos'; tag="${variant}" ;;
+		*) echo "Unsupported variant: ${variant}" >@2; exit 1 ;;
 	esac
 
 	template="Dockerfile-${template}.template"

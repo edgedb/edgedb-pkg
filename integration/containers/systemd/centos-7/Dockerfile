@@ -4,14 +4,36 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM ubuntu:xenial
+FROM centos:7
 
 ENV container docker
 
 STOPSIGNAL SIGRTMIN+3
 
-RUN apt-get update && apt-get install -y --no-install-recommends systemd \
-	&& rm -rf /var/lib/apt/lists/*
+COPY systemd-spec.patch /tmp/
+COPY systemd-patches/* /tmp/systemd-patches/
+
+RUN set -ex \
+	&& yum install -y wget rpm-build redhat-rpm-config yum-utils git \
+	&& mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
+	&& echo '%_topdir /tmp/rpmbuild' > ~/.rpmmacros \
+	&& wget -O systemd.src.rpm "http://vault.centos.org/7.6.1810/os/Source/SPackages/systemd-219-62.el7.src.rpm" \
+	&& yum-builddep -y systemd.src.rpm \
+	&& rpm -i systemd.src.rpm \
+	&& rm -f systemd.src.rpm \
+	&& cd /tmp/rpmbuild/SPECS \
+	&& git apply /tmp/systemd-spec.patch \
+	&& cp /tmp/systemd-patches/*.patch /tmp/rpmbuild/SOURCES \
+	&& rm -rf /tmp/systemd-spec.patch \
+	&& rm -rf /tmp/systemd-patches \
+	&& rpmbuild -ba /tmp/rpmbuild/SPECS/systemd.spec \
+	&& yum history undo -y last || true \
+	&& yum history undo -y last-2 || true \
+	&& rpm -e --nodeps systemd \
+	&& yum install -y /tmp/rpmbuild/RPMS/x86_64/systemd-219-*.el7.x86_64.rpm \
+	&& rm -rf /tmp/rpmbuild \
+	&& rm ~/.rpmmacros \
+	&& yum clean all
 
 RUN echo -e '#!/bin/bash\n\
 \n\

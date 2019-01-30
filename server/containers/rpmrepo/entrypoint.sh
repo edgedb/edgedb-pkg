@@ -4,9 +4,7 @@ set -e
 
 [ "$DEBUG" == 'true' ] && set -x
 
-DAEMON=sshd
-
-chown reprepro:reprepro "${REPREPRO_BASE_DIR}"
+chown repomgr:repomgr "${REPO_BASE_DIR}"
 
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
@@ -36,13 +34,9 @@ if [ "$DEBUG" == 'true' ]; then
     echo "LogLevel DEBUG2" >> "/etc/ssh.default/sshd_config"
 fi
 
-if [ -e "/etc/ssh/sshd_config" ]; then
-    cat "/etc/ssh/sshd_config" >> "/etc/ssh.default/sshd_config"
-fi
-
 if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
-        cat "${path}" | gosu reprepro:reprepro gpg --import
+        cat "${path}" | gosu repomgr:repomgr gpg --import
     done < <(find "/root/gpg-keys/" -name '*.asc' -print0)
 fi
 
@@ -54,14 +48,16 @@ fi
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"
 
-echo REPREPRO_BASE_DIR=${REPREPRO_BASE_DIR} >> /etc/environment
-echo REPREPRO_CONFIG_DIR=${REPREPRO_CONFIG_DIR} >> /etc/environment
+echo REPO_BASE_DIR=${REPO_BASE_DIR} >> /etc/environment
+echo REPO_CONFIG_DIR=${REPO_CONFIG_DIR} >> /etc/environment
 
 
-stop() {
-    echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
+stopdaemon() {
+    local pid
+
+    echo "Received SIGINT or SIGTERM. Shutting down $1"
     # Get PID
-    pid=$(cat /var/run/$DAEMON/$DAEMON.pid)
+    pid=$(cat /var/run/$1/$1.pid)
     # Set TERM
     kill -SIGTERM "${pid}"
     # Wait for exit
@@ -70,24 +66,36 @@ stop() {
     echo "Done."
 }
 
+startdaemon() {
+    local daemon=$1
+    local pid
+    local status
+
+    shift
+    $@ &
+    status=$?
+    pid="$!"
+    mkdir -p /var/run/$daemon && echo "${pid}" > /var/run/$daemon/$daemon.pid
+    return $status
+}
+
+stop() {
+    stopdaemon sshd
+    stopdaemon incrond
+}
+
 echo "Running $@"
-if [ "$(basename $1)" == "$DAEMON" ]; then
+if [ "$(basename $1)" == "sshd" ]; then
     if [ "$DEBUG" == 'true' ]; then
         echo "sshd_config"
         echo "-----------"
         cat "/etc/ssh.default/sshd_config"
     fi
     trap stop SIGINT SIGTERM
-    $@ &
-    pid="$!"
-    mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
+    startdaemon sshd $@
+    startdaemon incrond incrond -n
 
-    gosu reprepro:reprepro \
-        inoticoming --initialsearch --foreground \
-            "${REPREPRO_INCOMING_DIR}" \
-            --suffix '.changes' \
-            --chdir "${REPREPRO_INCOMING_DIR}" \
-            reprepro -v -v --waitforlock 100 processincoming main {} \;
+    wait $(cat /var/run/sshd/sshd.pid)
 else
     exec "$@"
 fi

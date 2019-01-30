@@ -128,17 +128,19 @@ spec:
         env:
         - name: DEBUG
           value: ""
+        - name: PORT
+          value: 2222
         resources:
           requests:
             cpu: "50m"
         readinessProbe:
           tcpSocket:
-            port: 22
+            port: 2222
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           tcpSocket:
-            port: 22
+            port: 2222
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
@@ -157,7 +159,46 @@ spec:
           readOnly: true
           mountPath: /etc/ssh/
         ports:
-        - containerPort: 22
+        - containerPort: 2222
+
+      - name: "rpmrepo"
+        image: "gcr.io/edgedb-infra/rpmrepo:latest"
+        imagePullPolicy: Always
+        env:
+        - name: DEBUG
+          value: ""
+        - name: PORT
+          value: 2223
+        resources:
+          requests:
+            cpu: "50m"
+        readinessProbe:
+          tcpSocket:
+            port: 2223
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2223
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - name: rpm-repo
+          mountPath: /var/lib/repos
+        - name: root-authorized-keys
+          readOnly: true
+          mountPath: /root/.ssh/
+        - name: gpg-keys
+          readOnly: true
+          mountPath: /root/gpg-keys/
+        - name: uploader-authorized-keys
+          readOnly: true
+          mountPath: /etc/ssh/authorized_keys/
+        - name: host-keys
+          readOnly: true
+          mountPath: /etc/ssh/
+        ports:
+        - containerPort: 2223
 
       volumes:
       - name: apt-repo
@@ -168,6 +209,14 @@ spec:
             fsName: cephfs
             clusterNamespace: rook-ceph
             path: /packages/apt/
+      - name: rpm-repo
+        flexVolume:
+          driver: ceph.rook.io/rook
+          fsType: ceph
+          options:
+            fsName: cephfs
+            clusterNamespace: rook-ceph
+            path: /packages/rpm/
       - name: repo-root
         flexVolume:
           driver: ceph.rook.io/rook
@@ -231,9 +280,13 @@ spec:
     app: "<service-name>"
   ports:
   - protocol: TCP
-    name: ssh-port
+    name: deb-ssh-port
     port: 2222
-    targetPort: 22
+    targetPort: 2222
+  - protocol: TCP
+    name: rpm-ssh-port
+    port: 2223
+    targetPort: 2223
 ---
 
 apiVersion: cloud.google.com/v1beta1

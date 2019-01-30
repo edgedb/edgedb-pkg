@@ -13,12 +13,14 @@ STOPSIGNAL SIGRTMIN+3
 RUN apt-get update && apt-get install -y --no-install-recommends systemd \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN echo '#!/bin/bash\n\
+RUN echo -e '#!/bin/bash\n\
+\n\
+set -Exeuo pipefail\n\
 \n\
 env -0 | while IFS="=" read -r -d "" n v; do printf "%s=\"%s\"\\n" "$n" "$v"; done >/usr/local/env.txt\n\
 \n\
 cat >/usr/local/bin/script.sh <<EOF\n\
-set -e\n\
+set -xeuo pipefail\n\
 \n\
 function finish() {\n\
     /bin/systemctl exit \$?\n\
@@ -55,4 +57,4 @@ exec /lib/systemd/systemd --unit=script.service\n\' >/usr/local/bin/entrypoint.s
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

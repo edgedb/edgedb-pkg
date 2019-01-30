@@ -1,0 +1,454 @@
+From aa4e1d7a56a60d5d04f1c048306396b7e3c964c6 Mon Sep 17 00:00:00 2001
+From: Alban Crequy <alban.crequy@gmail.com>
+Date: Fri, 18 Sep 2015 13:37:34 +0200
+Subject: [PATCH] containers: systemd exits with non-zero code
+
+When a systemd service running in a container exits with a non-zero
+code, it can be useful to terminate the container immediately and get
+the exit code back to the host, when systemd-nspawn returns. This was
+not possible to do. This patch adds the following to make it possible:
+
+- Add a read-only "ExitCode" property on PID 1's "Manager" bus object.
+  By default, it is 0 so the behaviour stays the same as previously.
+- Add a method "SetExitCode" on the same object. The method fails when
+  called on baremetal: it is only allowed in containers or in user
+  session.
+- Add support in systemctl to call "systemctl exit 42". It reuses the
+  existing code for user session.
+- Add exit.target and systemd-exit.service to the system instance.
+- Change main() to actually call systemd-shutdown to exit() with the
+  correct value.
+- Add verb 'exit' in systemd-shutdown with parameter --exit-code
+- Update systemctl manpage.
+
+I used the following to test it:
+
+| $ sudo rkt --debug --insecure-skip-verify run \
+|            --mds-register=false --local docker://busybox \
+|            --exec=/bin/chroot -- /proc/1/root \
+|            systemctl --force exit 42
+| ...
+| Container rkt-895a0cba-5c66-4fa5-831c-e3f8ddc5810d failed with error code 42.
+| $ echo $?
+| 42
+
+Fixes https://github.com/systemd/systemd/issues/1290
+---
+ Makefile.am                   |  3 +++
+ man/systemd.special.xml       | 20 ++++++++++++++++++++
+ src/core/dbus-manager.c       | 33 ++++++++++++++++++++++++++++++---
+ src/core/main.c               | 21 ++++++++++++++-------
+ src/core/manager.h            |  5 +++++
+ src/core/shutdown.c           | 22 ++++++++++++++++++++++
+ src/systemctl/systemctl.c     | 30 ++++++++++++++++++++++++++++--
+ units/.gitignore              |  1 +
+ units/exit.target             | 17 +++++++++++++++++
+ units/systemd-exit.service.in | 17 +++++++++++++++++
+ 10 files changed, 157 insertions(+), 12 deletions(-)
+ create mode 100644 units/exit.target
+ create mode 100644 units/systemd-exit.service.in
+
+diff --git a/Makefile.am b/Makefile.am
+index 40ebbe98e..b1acaeb29 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -465,6 +465,7 @@ dist_systemunit_DATA = \
+ 	units/getty-pre.target \
+ 	units/halt.target \
+ 	units/kexec.target \
++	units/exit.target \
+ 	units/local-fs.target \
+ 	units/local-fs-pre.target \
+ 	units/initrd.target \
+@@ -543,6 +544,7 @@ nodist_systemunit_DATA = \
+ 	units/systemd-poweroff.service \
+ 	units/systemd-reboot.service \
+ 	units/systemd-kexec.service \
++	units/systemd-exit.service \
+ 	units/systemd-fsck@.service \
+ 	units/systemd-fsck-root.service \
+ 	units/systemd-machine-id-commit.service \
+@@ -595,6 +597,7 @@ EXTRA_DIST += \
+ 	units/systemd-poweroff.service.in \
+ 	units/systemd-reboot.service.in \
+ 	units/systemd-kexec.service.in \
++	units/systemd-exit.service.in \
+ 	units/user/systemd-exit.service.in \
+ 	units/systemd-fsck@.service.in \
+ 	units/systemd-fsck-root.service.in \
+diff --git a/man/systemd.special.xml b/man/systemd.special.xml
+index e04f08bd3..00f3c4b24 100644
+--- a/man/systemd.special.xml
++++ b/man/systemd.special.xml
+@@ -200,6 +200,26 @@
+           </para>
+         </listitem>
+       </varlistentry>
++      <varlistentry>
++        <term><filename>exit.target</filename></term>
++        <listitem>
++          <para>A special service unit for shutting down the system or
++          user service manager. It also works in containers and is
++          equivalent to <filename>poweroff.target</filename> on
++          non-container systems.</para>
++
++          <para>Applications wanting to terminate the user service
++          manager should start this unit. If systemd receives
++          <constant>SIGTERM</constant> or <constant>SIGINT</constant>
++          when running as user service daemon, it will start this
++          unit.</para>
++
++          <para>Normally, this pulls in
++          <filename>shutdown.target</filename> which in turn should be
++          conflicted by all units that want to be shut down on user
++          service manager exit.</para>
++        </listitem>
++      </varlistentry>
+       <varlistentry>
+         <term><filename>final.target</filename></term>
+         <listitem>
+diff --git a/src/core/dbus-manager.c b/src/core/dbus-manager.c
+index 1766163b3..d841834be 100644
+--- a/src/core/dbus-manager.c
++++ b/src/core/dbus-manager.c
+@@ -1250,9 +1250,10 @@ static int method_exit(sd_bus *bus, sd_bus_message *message, void *userdata, sd_
+         if (r < 0)
+                 return r;
+ 
+-        if (m->running_as == SYSTEMD_SYSTEM)
+-                return sd_bus_error_setf(error, SD_BUS_ERROR_NOT_SUPPORTED, "Exit is only supported for user service managers.");
+-
++        /* Exit() (in contrast to SetExitCode()) is actually allowed even if
++         * we are running on the host. It will fall back on reboot() in
++         * systemd-shutdown if it cannot do the exit() because it isn't a
++         * container. */
+         m->exit_code = MANAGER_EXIT;
+ 
+         return sd_bus_reply_method_return(message, NULL);
+@@ -1490,6 +1491,30 @@ static int method_unset_and_set_environment(sd_bus *bus, sd_bus_message *message
+         return sd_bus_reply_method_return(message, NULL);
+ }
+ 
++static int method_set_exit_code(sd_bus *bus, sd_bus_message *message, void *userdata, sd_bus_error *error) {
++        uint8_t code;
++        Manager *m = userdata;
++        int r;
++
++        assert(message);
++        assert(m);
++
++        r = mac_selinux_access_check(message, "exit", error);
++        if (r < 0)
++                return r;
++
++        r = sd_bus_message_read_basic(message, 'y', &code);
++        if (r < 0)
++                return r;
++
++        if (m->running_as == SYSTEMD_SYSTEM && detect_container(NULL) <= 0)
++                return sd_bus_error_setf(error, SD_BUS_ERROR_NOT_SUPPORTED, "ExitCode can only be set for user service managers or in containers.");
++
++        m->return_value = code;
++
++        return sd_bus_reply_method_return(message, NULL);
++}
++
+ static int method_list_unit_files(sd_bus *bus, sd_bus_message *message, void *userdata, sd_bus_error *error) {
+         _cleanup_bus_message_unref_ sd_bus_message *reply = NULL;
+         Manager *m = userdata;
+@@ -2087,6 +2112,7 @@ const sd_bus_vtable bus_manager_vtable[] = {
+         SD_BUS_PROPERTY("DefaultLimitRTPRIO", "t", bus_property_get_rlimit, offsetof(Manager, rlimit[RLIMIT_RTPRIO]), SD_BUS_VTABLE_PROPERTY_CONST),
+         SD_BUS_PROPERTY("DefaultLimitRTTIME", "t", bus_property_get_rlimit, offsetof(Manager, rlimit[RLIMIT_RTTIME]), SD_BUS_VTABLE_PROPERTY_CONST),
+         SD_BUS_PROPERTY("DefaultTasksMax", "t", NULL, offsetof(Manager, default_tasks_max), SD_BUS_VTABLE_PROPERTY_CONST),
++        SD_BUS_PROPERTY("ExitCode", "y", bus_property_get_unsigned, offsetof(Manager, return_value), 0),
+ 
+         SD_BUS_METHOD("GetUnit", "s", "o", method_get_unit, SD_BUS_VTABLE_UNPRIVILEGED),
+         SD_BUS_METHOD("GetUnitByPID", "u", "o", method_get_unit_by_pid, SD_BUS_VTABLE_UNPRIVILEGED),
+@@ -2142,6 +2168,7 @@ const sd_bus_vtable bus_manager_vtable[] = {
+         SD_BUS_METHOD("PresetAllUnitFiles", "sbb", "a(sss)", method_preset_all_unit_files, SD_BUS_VTABLE_UNPRIVILEGED),
+         SD_BUS_METHOD("AddDependencyUnitFiles", "asssbb", "a(sss)", method_add_dependency_unit_files, SD_BUS_VTABLE_UNPRIVILEGED),
+         SD_BUS_METHOD("GetUnitFileLinks", "sb", "as", method_get_unit_file_links, SD_BUS_VTABLE_UNPRIVILEGED),
++        SD_BUS_METHOD("SetExitCode", "y", NULL, method_set_exit_code, SD_BUS_VTABLE_UNPRIVILEGED),
+ 
+         SD_BUS_SIGNAL("UnitNew", "so", 0),
+         SD_BUS_SIGNAL("UnitRemoved", "so", 0),
+diff --git a/src/core/main.c b/src/core/main.c
+index 5554ef468..377c9bf7d 100644
+--- a/src/core/main.c
++++ b/src/core/main.c
+@@ -1236,6 +1236,7 @@ int main(int argc, char *argv[]) {
+         char *switch_root_dir = NULL, *switch_root_init = NULL;
+         struct rlimit saved_rlimit_nofile = RLIMIT_MAKE_CONST(0);
+         const char *error_message = NULL;
++        uint8_t shutdown_exit_code = 0;
+ 
+ #ifdef HAVE_SYSV_COMPAT
+         if (getpid() != 1 && strstr(program_invocation_short_name, "init")) {
+@@ -1779,11 +1780,6 @@ int main(int argc, char *argv[]) {
+ 
+                 switch (m->exit_code) {
+ 
+-                case MANAGER_EXIT:
+-                        retval = EXIT_SUCCESS;
+-                        log_debug("Exit.");
+-                        goto finish;
+-
+                 case MANAGER_RELOAD:
+                         log_info("Reloading.");
+                         r = manager_reload(m);
+@@ -1818,11 +1814,13 @@ int main(int argc, char *argv[]) {
+                         log_notice("Switching root.");
+                         goto finish;
+ 
++                case MANAGER_EXIT:
+                 case MANAGER_REBOOT:
+                 case MANAGER_POWEROFF:
+                 case MANAGER_HALT:
+                 case MANAGER_KEXEC: {
+                         static const char * const table[_MANAGER_EXIT_CODE_MAX] = {
++                                [MANAGER_EXIT] = "exit",
+                                 [MANAGER_REBOOT] = "reboot",
+                                 [MANAGER_POWEROFF] = "poweroff",
+                                 [MANAGER_HALT] = "halt",
+@@ -1844,8 +1842,10 @@ int main(int argc, char *argv[]) {
+ finish:
+         pager_close();
+ 
+-        if (m)
++        if (m) {
+                 arg_shutdown_watchdog = m->shutdown_watchdog;
++                shutdown_exit_code = m->return_value;
++        }
+         m = manager_free(m);
+ 
+         for (j = 0; j < ELEMENTSOF(arg_default_rlimit); j++) {
+@@ -1997,7 +1997,8 @@ finish:
+ 
+         if (shutdown_verb) {
+                 char log_level[DECIMAL_STR_MAX(int) + 1];
+-                const char* command_line[9] = {
++                char exit_code[DECIMAL_STR_MAX(uint8_t) + 1];
++                const char* command_line[11] = {
+                         SYSTEMD_SHUTDOWN_BINARY_PATH,
+                         shutdown_verb,
+                         "--log-level", log_level,
+@@ -2034,6 +2035,12 @@ finish:
+                 if (log_get_show_location())
+                         command_line[pos++] = "--log-location";
+ 
++                if (streq(shutdown_verb, "exit")) {
++                        command_line[pos++] = "--exit-code";
++                        command_line[pos++] = exit_code;
++                        xsprintf(exit_code, "%d", shutdown_exit_code);
++                }
++
+                 assert(pos < ELEMENTSOF(command_line));
+ 
+                 if (arm_reboot_watchdog && arg_shutdown_watchdog > 0) {
+diff --git a/src/core/manager.h b/src/core/manager.h
+index b0e4cad1f..59bb6f19b 100644
+--- a/src/core/manager.h
++++ b/src/core/manager.h
+@@ -250,6 +250,11 @@ struct Manager {
+ 
+         bool test_run:1;
+ 
++        /* If non-zero, exit with the following value when the systemd
++         * process terminate. Useful for containers: systemd-nspawn could get
++         * the return value. */
++        uint8_t return_value;
++
+         ShowStatus show_status;
+         bool confirm_spawn;
+         bool no_console_output;
+diff --git a/src/core/shutdown.c b/src/core/shutdown.c
+index 0b0a54a7d..7c40baa35 100644
+--- a/src/core/shutdown.c
++++ b/src/core/shutdown.c
+@@ -57,6 +57,7 @@
+ #define SYNC_TIMEOUT_USEC (10*USEC_PER_SEC)
+ 
+ static char* arg_verb;
++static uint8_t arg_exit_code;
+ 
+ static int parse_argv(int argc, char *argv[]) {
+         enum {
+@@ -64,6 +65,7 @@ static int parse_argv(int argc, char *argv[]) {
+                 ARG_LOG_TARGET,
+                 ARG_LOG_COLOR,
+                 ARG_LOG_LOCATION,
++                ARG_EXIT_CODE,
+         };
+ 
+         static const struct option options[] = {
+@@ -71,6 +73,7 @@ static int parse_argv(int argc, char *argv[]) {
+                 { "log-target",    required_argument, NULL, ARG_LOG_TARGET   },
+                 { "log-color",     optional_argument, NULL, ARG_LOG_COLOR    },
+                 { "log-location",  optional_argument, NULL, ARG_LOG_LOCATION },
++                { "exit-code",     required_argument, NULL, ARG_EXIT_CODE    },
+                 {}
+         };
+ 
+@@ -119,6 +122,13 @@ static int parse_argv(int argc, char *argv[]) {
+ 
+                         break;
+ 
++                case ARG_EXIT_CODE:
++                        r = safe_atou8(optarg, &arg_exit_code);
++                        if (r < 0)
++                                log_error("Failed to parse exit code %s, ignoring", optarg);
++
++                        break;
++
+                 case '\001':
+                         if (!arg_verb)
+                                 arg_verb = optarg;
+@@ -288,6 +298,8 @@ int main(int argc, char *argv[]) {
+                 cmd = RB_HALT_SYSTEM;
+         else if (streq(arg_verb, "kexec"))
+                 cmd = LINUX_REBOOT_CMD_KEXEC;
++        else if (streq(arg_verb, "exit"))
++                cmd = 0; /* ignored, just checking that arg_verb is valid */
+         else {
+                 r = -EINVAL;
+                 log_error("Unknown action '%s'.", arg_verb);
+@@ -451,6 +463,16 @@ int main(int argc, char *argv[]) {
+         if (!in_container)
+                 sync_with_progress();
+ 
++        if (streq(arg_verb, "exit")) {
++                if (in_container)
++                        exit(arg_exit_code);
++                else {
++                        /* We cannot exit() on the host, fallback on another
++                         * method. */
++                        cmd = RB_POWER_OFF;
++                }
++        }
++
+         switch (cmd) {
+ 
+         case LINUX_REBOOT_CMD_KEXEC:
+diff --git a/src/systemctl/systemctl.c b/src/systemctl/systemctl.c
+index b1862b567..85f95cf05 100644
+--- a/src/systemctl/systemctl.c
++++ b/src/systemctl/systemctl.c
+@@ -2983,6 +2983,7 @@ static int check_inhibitors(sd_bus *bus, enum action a) {
+ }
+ 
+ static int start_special(sd_bus *bus, char **args) {
++        _cleanup_bus_error_free_ sd_bus_error error = SD_BUS_ERROR_NULL;
+         enum action a;
+         int r;
+ 
+@@ -3003,6 +3004,31 @@ static int start_special(sd_bus *bus, char **args) {
+                 r = update_reboot_param_file(args[1]);
+                 if (r < 0)
+                         return r;
++        } else if (a == ACTION_EXIT && strv_length(args) > 1) {
++                /* If the exit code is not given on the command line, don't
++                 * reset it to zero: just keep it as it might have been set
++                 * previously. */
++                uint8_t code = 0;
++
++                r = safe_atou8(args[1], &code);
++                if (r < 0) {
++                        log_error("Invalid exit code.");
++                        return -EINVAL;
++                }
++
++                r = sd_bus_call_method(
++                                bus,
++                                "org.freedesktop.systemd1",
++                                "/org/freedesktop/systemd1",
++                                "org.freedesktop.systemd1.Manager",
++                                "SetExitCode",
++                                &error,
++                                NULL,
++                                "y", code);
++                if (r < 0) {
++                        log_error("Failed to execute operation: %s", bus_error_message(&error, r));
++                        return r;
++                }
+         }
+ 
+         if (arg_force >= 2 &&
+@@ -6365,7 +6391,7 @@ static void systemctl_help(void) {
+                "  poweroff                        Shut down and power-off the system\n"
+                "  reboot [ARG]                    Shut down and reboot the system\n"
+                "  kexec                           Shut down and reboot the system with kexec\n"
+-               "  exit                            Request user instance exit\n"
++               "  exit [EXIT_CODE]                Request user instance or container exit\n"
+                "  switch-root ROOT [INIT]         Change to a different root file system\n"
+                "  suspend                         Suspend the system\n"
+                "  hibernate                       Hibernate the system\n"
+@@ -7336,7 +7362,7 @@ static int systemctl_main(sd_bus *bus, int argc, char *argv[], int bus_error) {
+                 { "default",               EQUAL, 1, start_special     },
+                 { "rescue",                EQUAL, 1, start_special     },
+                 { "emergency",             EQUAL, 1, start_special     },
+-                { "exit",                  EQUAL, 1, start_special     },
++                { "exit",                  LESS,  2, start_special     },
+                 { "reset-failed",          MORE,  1, reset_failed      },
+                 { "enable",                MORE,  2, enable_unit,      NOBUS },
+                 { "disable",               MORE,  2, enable_unit,      NOBUS },
+diff --git a/units/.gitignore b/units/.gitignore
+index 48c8f7217..d79f89c0b 100644
+--- a/units/.gitignore
++++ b/units/.gitignore
+@@ -28,6 +28,7 @@
+ /systemd-fsck@.service
+ /systemd-machine-id-commit.service
+ /systemd-halt.service
++/systemd-exit.service
+ /systemd-hibernate.service
+ /systemd-hostnamed.service
+ /systemd-hybrid-sleep.service
+diff --git a/units/exit.target b/units/exit.target
+new file mode 100644
+index 000000000..f5f953d11
+--- /dev/null
++++ b/units/exit.target
+@@ -0,0 +1,17 @@
++#  This file is part of systemd.
++#
++#  systemd is free software; you can redistribute it and/or modify it
++#  under the terms of the GNU Lesser General Public License as published by
++#  the Free Software Foundation; either version 2.1 of the License, or
++#  (at your option) any later version.
++
++[Unit]
++Description=Exit the container
++Documentation=man:systemd.special(7)
++DefaultDependencies=no
++Requires=systemd-exit.service
++After=systemd-exit.service
++AllowIsolate=yes
++
++[Install]
++Alias=ctrl-alt-del.target
+diff --git a/units/systemd-exit.service.in b/units/systemd-exit.service.in
+new file mode 100644
+index 000000000..2dbfb36b4
+--- /dev/null
++++ b/units/systemd-exit.service.in
+@@ -0,0 +1,17 @@
++#  This file is part of systemd.
++#
++#  systemd is free software; you can redistribute it and/or modify it
++#  under the terms of the GNU Lesser General Public License as published by
++#  the Free Software Foundation; either version 2.1 of the License, or
++#  (at your option) any later version.
++
++[Unit]
++Description=Exit the Session
++Documentation=man:systemd.special(7)
++DefaultDependencies=no
++Requires=shutdown.target
++After=shutdown.target
++
++[Service]
++Type=oneshot
++ExecStart=@SYSTEMCTL@ --force exit
+-- 
+2.19.2
+

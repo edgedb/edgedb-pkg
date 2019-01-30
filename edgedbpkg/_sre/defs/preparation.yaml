@@ -9,7 +9,7 @@ spec:
       containers:
       - name: ensure-cephfs-structure
         image: alpine
-        command: ["mkdir", "-p", "/cephfs/packages/apt"]
+        command: ["mkdir", "-p", "/cephfs/packages/apt", "/cephfs/packages/rpm"]
         volumeMounts:
         - name: cephfs
           mountPath: /cephfs

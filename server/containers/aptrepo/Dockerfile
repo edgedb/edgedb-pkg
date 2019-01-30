@@ -9,8 +9,8 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash inoticoming gosu gnupg \
-    && addgroup --gid 999 reprepro \
-    && adduser --uid 999 --gid 999 reprepro \
+    && addgroup --gid 2000 reprepro \
+    && adduser --uid 2000 --gid 2000 reprepro \
     && addgroup uploaders \
     && addgroup incoming \
     && adduser --ingroup uploaders \
