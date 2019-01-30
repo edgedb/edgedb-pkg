@@ -42,6 +42,8 @@ fi
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"
+else
+    echo "Port 22" >> "/etc/ssh.default/sshd_config"
 fi
 
 # Conditional blocks go last
