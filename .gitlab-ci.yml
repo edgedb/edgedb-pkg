@@ -78,9 +78,19 @@ prepare:integration-images:
 .debian: &debian
   PLATFORM: "debian"
 
+
+.redhat: &redhat
+  PLATFORM: "redhat"
+
+
 .bionic: &bionic
   DISTRO: "bionic"
   DISTRO_FULL: "ubuntu-bionic"
+
+
+.rhel7: &rhel7
+  DISTRO: "rhel7"
+  DISTRO_FULL: "rhel7"
 
 
 .integration:
@@ -98,6 +108,8 @@ prepare:integration-images:
 
   extends: .integration
   stage: build
+
+  image: ${CI_REGISTRY_IMAGE}/build:${DISTRO_FULL}
 
   cache:
     paths:
@@ -118,6 +130,8 @@ prepare:integration-images:
   extends: .integration
   stage: test
 
+  image: ${CI_REGISTRY_IMAGE}/test:${DISTRO_FULL}
+
   script:
     - integration/${PLATFORM}/test.sh
 
@@ -126,6 +140,7 @@ prepare:integration-images:
   tags:
     - magiclamp
 
+  image: ${CI_REGISTRY_IMAGE}/upload:${PLATFORM}
   extends: .integration
   stage: publish
   script:
@@ -142,17 +157,22 @@ prepare:integration-images:
     - integration/${PLATFORM}/test-published.sh
 
 
+#
+# CONCRETE PIPLINES
+#
+
+
+# Ubuntu 18.04
+
 build:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: ${CI_REGISTRY_IMAGE}/build:${DISTRO_FULL}
   extends: .build
 
 
 test:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: ${CI_REGISTRY_IMAGE}/test:${DISTRO_FULL}
   dependencies:
     - build:ubuntu-bionic
   extends: .test
@@ -161,7 +181,6 @@ test:ubuntu-bionic:
 publish:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: ${CI_REGISTRY_IMAGE}/upload:${PLATFORM}
   dependencies:
     # Must depend on both test AND build so that the
     # package artifacts are passed accordingly.
@@ -176,4 +195,40 @@ test-published:ubuntu-bionic:
   image: ubuntu:bionic
   dependencies:
     - publish:ubuntu-bionic
+  extends: .test-published
+
+
+# RHEL 7
+
+build:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  extends: .build
+
+
+test:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  dependencies:
+    - build:rhel-7
+  extends: .test
+
+
+publish:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  dependencies:
+    # Must depend on both test AND build so that the
+    # package artifacts are passed accordingly.
+    - build:rhel-7
+    - test:rhel-7
+  extends: .publish
+
+
+test-published:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  image: centos:7
+  dependencies:
+    - publish:rhel-7
   extends: .test-published

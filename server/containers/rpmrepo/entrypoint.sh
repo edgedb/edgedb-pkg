@@ -36,8 +36,8 @@ fi
 
 if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
-        cat "${path}" | gosu repomgr:repomgr gpg --import
-    done < <(find "/root/gpg-keys/" -name '*.asc' -print0)
+        cat "${path}" | sudo -u repomgr gpg --import
+    done < <(find "/root/gpg-keys/" -maxdepth 1 -name '*.asc' -print0)
 fi
 
 if [ -n "${PORT}" ]; then
