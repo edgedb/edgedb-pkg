@@ -89,8 +89,8 @@ prepare:integration-images:
 
 
 .rhel7: &rhel7
-  DISTRO: "rhel7"
-  DISTRO_FULL: "rhel7"
+  DISTRO: "centos-7"
+  DISTRO_FULL: "centos-7"
 
 
 .integration:
