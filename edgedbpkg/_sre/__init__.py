@@ -70,6 +70,38 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             )
         )
 
+        k8s_hostkeys = {}
+        host_keys = env.platform.list_secrets('^edgedb-pkgserver-host-key.*')
+        for host_key in host_keys:
+            host_key_data = env.platform.get_secret(
+                host_key,
+                keyname='storage-host-auth',
+            )
+            _, _, kt = host_key.rpartition('-')
+            keyname = f'ssh_host_{kt}_key'
+            k8s_hostkeys[keyname] = base64.b64encode(host_key_data).decode()
+
+        if k8s_hostkeys:
+            self.add_required_resource(
+                k8s_platform.K8SResource(
+                    name=f'{self.name}-ssh-host-keys',
+                    definition=textwrap.dedent(f'''\
+                        apiVersion: v1
+                        type: Opaque
+                        kind: Secret
+                        data:
+                            {{data}}
+                        metadata:
+                            name: {self.name}-ssh-host-keys
+                    ''').format(
+                        data=textwrap.indent(
+                            '\n'.join(f'{k}: {v}'
+                                      for k, v in k8s_hostkeys.items()),
+                            '    '),
+                    ),
+                ),
+            )
+
         signing_key = env.platform.get_secret(
             'edgedb-release-signing-key',
             keyname='gpg-keys-high')

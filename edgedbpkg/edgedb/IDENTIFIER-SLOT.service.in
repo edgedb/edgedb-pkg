@@ -10,7 +10,7 @@ Type=notify
 User=edgedb
 Group=edgedb
 
-Environment=EDGEDATA=/var/lib/edgedb/@@{version}/data/
+Environment=EDGEDATA=@@{localstatedir}/lib/edgedb/@@{slot}/data/
 RuntimeDirectory=%N
 
 ExecStart=@@{bindir}/edgedb-server -D ${EDGEDATA} --runstate-dir=%t/%N

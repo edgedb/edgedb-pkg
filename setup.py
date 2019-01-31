@@ -1,7 +1,7 @@
-from setuptools import setup
+import setuptools
 
 
-setup(
+setuptools.setup(
     setup_requires=[
         'setuptools_scm',
     ],

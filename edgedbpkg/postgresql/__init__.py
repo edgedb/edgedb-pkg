@@ -4,7 +4,7 @@ import textwrap
 
 from metapkg import packages
 
-from edgedbpkg import openssl
+from edgedbpkg import icu, openssl
 
 
 class PostgreSQL(packages.BundledPackage):
@@ -24,27 +24,30 @@ class PostgreSQL(packages.BundledPackage):
     artifact_build_requirements = [
         'bison',
         'flex',
-        'icu',
-        'libxml2',
-        'libxslt',
+        'systemd-dev ; extra == "capability-systemd"',
+    ]
+
+    artifact_requirements = [
+        'icu (>=50)',
         'openssl (>=1.0.2)',
         'pam',
         'uuid',
         'zlib',
-        'systemd-dev ; extra == "capability-systemd"',
     ]
 
     bundle_deps = [
-        openssl.OpenSSL(version='1.0.2o')
+        openssl.OpenSSL(version='1.0.2o'),
+        icu.ICU(version='60.2'),
     ]
 
     def get_configure_script(self, build) -> str:
         extra_version = ''
 
         system = platform.system()
-        if system.endswith('BSD') or system == 'Darwin':
+        if system.endswith('BSD'):
             uuid_lib = 'bsd'
-        elif system == 'Linux':
+        elif system == 'Linux' or system == 'Darwin':
+            # macOS actually ships the e2fs version despite being a "BSD"
             uuid_lib = 'e2fs'
         else:
             raise NotImplementedError(
@@ -63,10 +66,37 @@ class PostgreSQL(packages.BundledPackage):
             '--with-icu': None,
             '--with-pam': None,
             '--with-openssl': None,
-            '--with-libxml': None,
-            '--with-libxslt': None,
             '--with-uuid': uuid_lib,
         }
+
+        icu_pkg = build.get_package('icu')
+        if build.is_bundled(icu_pkg):
+            icu_path = build.get_install_dir(
+                icu_pkg, relative_to='pkgbuild')
+            icu_path /= build.get_full_install_prefix().relative_to('/')
+            icu_path = f'$(pwd)/"{icu_path}"'
+            configure_flags['ICU_CFLAGS'] = f'!-I{icu_path}/include/'
+            configure_flags['ICU_LIBS'] = (
+                f'!-L{icu_path}/"lib -licui18n -licuuc -licudata"')
+
+        openssl_pkg = build.get_package('openssl')
+        if build.is_bundled(openssl_pkg):
+            openssl_root = build.get_install_dir(
+                openssl_pkg, relative_to='pkgbuild')
+            openssl_path = (openssl_root
+                            / build.get_full_install_prefix().relative_to('/'))
+            openssl_path = f'$(pwd)/"{openssl_path}"'
+            configure_flags['OPENSSL_CFLAGS'] = (
+                f'!-I{openssl_path}/"include/ -L"{openssl_path}/lib')
+            configure_flags['OPENSSL_LIBS'] = (
+                f'!-L{openssl_path}/"lib -lssl -lcrypto"')
+            configure_flags['LDFLAGS'] = f'!-L{openssl_path}/lib'
+
+            if system == 'Darwin':
+                # ./configure tries to compile and test a program
+                # and it fails because openssl is not yet installed
+                # at its install_name location.
+                configure_flags['DYLD_FALLBACK_LIBRARY_PATH'] = openssl_root
 
         zoneinfo = build.target.get_resource_path(build, 'zoneinfo')
         if zoneinfo:
@@ -75,7 +105,8 @@ class PostgreSQL(packages.BundledPackage):
         if build.target.has_capability('systemd'):
             configure_flags['--with-systemd'] = None
 
-        return build.sh_format_command(configure, configure_flags)
+        return build.sh_format_command(
+            configure, configure_flags, force_args_eq=True)
 
     def get_build_script(self, build) -> str:
         make = build.sh_get_command('make')
@@ -96,7 +127,7 @@ class PostgreSQL(packages.BundledPackage):
         return textwrap.dedent(f'''\
             {make}
             {make} -C contrib
-            {make} DESTDIR="$(realpath _install)" install
+            {make} DESTDIR=$(pwd)/_install install
             {make_pg_config_wrapper}
         ''')
 
@@ -105,8 +136,8 @@ class PostgreSQL(packages.BundledPackage):
         make = build.target.sh_get_command('make')
 
         return textwrap.dedent(f'''\
-            {make} DESTDIR="$(realpath '{installdest}')" install
-            {make} DESTDIR="$(realpath '{installdest}')" -C contrib install
+            {make} DESTDIR=$(pwd)/"{installdest}" install
+            {make} DESTDIR=$(pwd)/"{installdest}" -C contrib install
         ''')
 
     def get_build_tools(self, build) -> dict:

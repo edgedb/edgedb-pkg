@@ -15,12 +15,12 @@ python.set_python_runtime_dependency(poetry_pkg.Dependency(
 
 class EdgeDB(packages.BundledPythonPackage):
 
-    title = "EdgeDB Alpha"
+    title = "EdgeDB"
     name = 'edgedb-server'
-    slot = 'alpha'
     description = 'Next generation object-relational database'
     license = 'ASL 2.0'
     group = 'Applications/Databases'
+    identifier = 'com.edgedb.edgedb'
     url = 'https://edgedb.com/'
 
     sources = (
@@ -37,8 +37,6 @@ class EdgeDB(packages.BundledPythonPackage):
 
     artifact_requirements = [
         'postgresql-edgedb (== 11.1)',
-        'ncurses',
-        'ncurses-term',
         'edgedb',
     ]
 
@@ -48,11 +46,17 @@ class EdgeDB(packages.BundledPythonPackage):
         edgedbpy.EdgeDBPython(version='0.0.1'),
     ]
 
+    @property
+    def slot(self) -> str:
+        return str(self.version.major)
+
     def get_bdist_wheel_command(self, build) -> list:
         bindir = build.get_install_path('bin')
+        runstate = build.get_install_path('runstate') / 'edgedb'
         pg_config = bindir / 'pg_config'
         return (
-            ['build', f'--pg-config={pg_config}'] +
+            ['build', f'--pg-config={pg_config}',
+             f'--runstatedir={runstate}'] +
             super().get_bdist_wheel_command(build)
         )
 
@@ -63,7 +67,7 @@ class EdgeDB(packages.BundledPythonPackage):
         srcdir = build.get_source_dir(self, relative_to='pkgbuild')
 
         script += textwrap.dedent(f'''\
-            {make} -C "{srcdir}/ext" PG_CONFIG="$(realpath {pg_config})"
+            {make} -C "{srcdir}/ext" PG_CONFIG="$(pwd)/{pg_config}"
         ''')
 
         return script
@@ -77,8 +81,8 @@ class EdgeDB(packages.BundledPythonPackage):
 
         script += textwrap.dedent(f'''\
             {make} -C "{srcdir}/ext" \\
-                PG_CONFIG="$(realpath {pg_config})" \\
-                DESTDIR="$(realpath {dest})" \\
+                PG_CONFIG="$(pwd)/{pg_config}" \\
+                DESTDIR="$(pwd)/{dest}" \\
                 install
         ''')
 
@@ -113,22 +117,35 @@ class EdgeDB(packages.BundledPythonPackage):
         action = build.target.get_action('adduser', build)
         user_script = action.get_script(
             name='edgedb', group='edgedb', homedir=dataroot,
-            shell=True, system=True, description='EdgeDB Server')
+            shell=True, system=True,
+            description='EdgeDB Server')
 
         return user_script
 
     def get_after_install_script(self, build) -> str:
 
-        script = ''
+        ensuredir = build.target.get_action('ensuredir', build)
 
         dataroot = build.get_install_path('localstate') / 'lib' / 'edgedb'
+        dataroot_script = ensuredir.get_script(
+            path=dataroot, owner_user='edgedb', owner_group='edgedb',
+            owner_recursive=True)
+
         datadir = dataroot / str(self.version.major) / 'data'
+        datadir_script = ensuredir.get_script(
+            path=datadir, owner_user='edgedb', owner_group='edgedb',
+            mode=0o700)
 
         ctl = build.get_install_path('bin') / 'edgedb-server'
         bootstrap_script = build.sh_format_command(
             ctl, {'-D': datadir, '--bootstrap': None})
 
-        script += build.get_su_script(bootstrap_script, user='edgedb')
+        script = '\n'.join([datadir_script, dataroot_script])
+        script += '\n' + build.get_su_script(bootstrap_script, user='edgedb')
+
+        bindir = build.get_install_path('bin')
+        pathfile = f'{dataroot}/current'
+        script += '\n' + f'[ -e "{pathfile}" ] || echo {bindir} > "{pathfile}"'
 
         return script
 

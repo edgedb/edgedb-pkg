@@ -1,0 +1,305 @@
+diff --git a/configure b/configure
+index c2b9dde102..e6fd99216a 100755
+--- a/configure
++++ b/configure
+@@ -708,6 +708,8 @@ UUID_EXTRA_OBJS
+ with_uuid
+ with_systemd
+ with_selinux
++OPENSSL_LIBS
++OPENSSL_CFLAGS
+ with_openssl
+ with_ldap
+ with_krb_srvnam
+@@ -888,6 +890,8 @@ PKG_CONFIG_PATH
+ PKG_CONFIG_LIBDIR
+ ICU_CFLAGS
+ ICU_LIBS
++OPENSSL_CFLAGS
++OPENSSL_LIBS
+ LDFLAGS_EX
+ LDFLAGS_SL'
+ 
+@@ -1588,6 +1592,10 @@ Some influential environment variables:
+               path overriding pkg-config's built-in search path
+   ICU_CFLAGS  C compiler flags for ICU, overriding pkg-config
+   ICU_LIBS    linker flags for ICU, overriding pkg-config
++  OPENSSL_CFLAGS
++              C compiler flags for OPENSSL, overriding pkg-config
++  OPENSSL_LIBS
++              linker flags for OPENSSL, overriding pkg-config
+   LDFLAGS_EX  extra linker flags for linking executables only
+   LDFLAGS_SL  extra linker flags for linking shared libraries only
+ 
+@@ -7741,6 +7749,100 @@ fi
+ $as_echo "$with_openssl" >&6; }
+ 
+ 
++if test "$with_openssl" = yes; then
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for openssl" >&5
++$as_echo_n "checking for openssl... " >&6; }
++
++if test -n "$OPENSSL_CFLAGS"; then
++    pkg_cv_OPENSSL_CFLAGS="$OPENSSL_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"openssl\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "openssl") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_OPENSSL_CFLAGS=`$PKG_CONFIG --cflags "openssl" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$OPENSSL_LIBS"; then
++    pkg_cv_OPENSSL_LIBS="$OPENSSL_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"openssl\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "openssl") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_OPENSSL_LIBS=`$PKG_CONFIG --libs "openssl" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        OPENSSL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "openssl" 2>&1`
++        else
++	        OPENSSL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "openssl" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$OPENSSL_PKG_ERRORS" >&5
++
++	as_fn_error $? "Package requirements (openssl) were not met:
++
++$OPENSSL_PKG_ERRORS
++
++Consider adjusting the PKG_CONFIG_PATH environment variable if you
++installed software in a non-standard prefix.
++
++Alternatively, you may set the environment variables OPENSSL_CFLAGS
++and OPENSSL_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details." "$LINENO" 5
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
++is in your PATH or set the PKG_CONFIG environment variable to the full
++path to pkg-config.
++
++Alternatively, you may set the environment variables OPENSSL_CFLAGS
++and OPENSSL_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++
++To get pkg-config, see <http://pkg-config.freedesktop.org/>.
++See \`config.log' for more details" "$LINENO" 5; }
++else
++	OPENSSL_CFLAGS=$pkg_cv_OPENSSL_CFLAGS
++	OPENSSL_LIBS=$pkg_cv_OPENSSL_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++fi
++fi
++
+ #
+ # SELinux
+ #
+@@ -11670,7 +11772,11 @@ fi
+ fi
+ 
+ if test "$with_openssl" = yes ; then
+-    if test "$PORTNAME" != "win32"; then
++    pgac_save_LIBS=$LIBS
++
++  CPPFLAGS="$OPENSSL_CFLAGS $CPPFLAGS"
++
++  if test "$PORTNAME" != "win32"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
+ $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
+ if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
+@@ -11926,6 +12032,8 @@ _ACEOF
+ fi
+ done
+ 
++
++  LIBS=$pgac_save_LIBS
+ fi
+ 
+ if test "$with_pam" = yes ; then
+diff --git a/configure.in b/configure.in
+index 3bddce5875..960f8a00f1 100644
+--- a/configure.in
++++ b/configure.in
+@@ -829,6 +829,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
+ AC_MSG_RESULT([$with_openssl])
+ AC_SUBST(with_openssl)
+ 
++if test "$with_openssl" = yes; then
++  PKG_CHECK_MODULES(OPENSSL, openssl)
++fi
++
+ #
+ # SELinux
+ #
+@@ -1193,6 +1197,10 @@ fi
+ 
+ if test "$with_openssl" = yes ; then
+   dnl Order matters!
++  pgac_save_LIBS=$LIBS
++
++  CPPFLAGS="$OPENSSL_CFLAGS $CPPFLAGS"
++
+   if test "$PORTNAME" != "win32"; then
+      AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
+      AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
+@@ -1211,6 +1219,8 @@ if test "$with_openssl" = yes ; then
+   # thread-safety. In 1.1.0, it's no longer required, and CRYPTO_lock()
+   # function was removed.
+   AC_CHECK_FUNCS([CRYPTO_lock])
++
++  LIBS=$pgac_save_LIBS
+ fi
+ 
+ if test "$with_pam" = yes ; then
+diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
+index 573bc6df79..ea9dff1bf3 100644
+--- a/contrib/pgcrypto/Makefile
++++ b/contrib/pgcrypto/Makefile
+@@ -49,6 +49,10 @@ include $(top_builddir)/src/Makefile.global
+ include $(top_srcdir)/contrib/contrib-global.mk
+ endif
+ 
++ifeq ($(with_openssl),yes)
++LIBS += $(OPENSSL_LIBS)
++endif
++
+ # Add libraries that pgcrypto depends (or might depend) on into the
+ # shared library link.  (The order in which you list them here doesn't
+ # matter.)
+diff --git a/contrib/sslinfo/Makefile b/contrib/sslinfo/Makefile
+index 5a972db703..bebfde01c9 100644
+--- a/contrib/sslinfo/Makefile
++++ b/contrib/sslinfo/Makefile
+@@ -19,4 +19,6 @@ include $(top_builddir)/src/Makefile.global
+ include $(top_srcdir)/contrib/contrib-global.mk
+ endif
+ 
++LIBS += $(OPENSSL_LIBS)
++
+ SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
+diff --git a/src/Makefile.global.in b/src/Makefile.global.in
+index c4909c22ff..95b58c48cd 100644
+--- a/src/Makefile.global.in
++++ b/src/Makefile.global.in
+@@ -217,6 +217,9 @@ krb_srvtab = @krb_srvtab@
+ ICU_CFLAGS		= @ICU_CFLAGS@
+ ICU_LIBS		= @ICU_LIBS@
+ 
++OPENSSL_CFLAGS		= @OPENSSL_CFLAGS@
++OPENSSL_LIBS		= @OPENSSL_LIBS@
++
+ TCLSH			= @TCLSH@
+ TCL_LIBS		= @TCL_LIBS@
+ TCL_LIB_SPEC		= @TCL_LIB_SPEC@
+@@ -242,7 +245,7 @@ BITCODE_CXXFLAGS = @BITCODE_CXXFLAGS@
+ CPP = @CPP@
+ CPPFLAGS = @CPPFLAGS@
+ 
+-override CPPFLAGS := $(ICU_CFLAGS) $(CPPFLAGS)
++override CPPFLAGS := $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
+ 
+ ifdef PGXS
+ override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
+diff --git a/src/backend/Makefile b/src/backend/Makefile
+index 25af514fba..428756bdf0 100644
+--- a/src/backend/Makefile
++++ b/src/backend/Makefile
+@@ -41,8 +41,8 @@ OBJS = $(SUBDIROBJS) $(LOCALOBJS) $(top_builddir)/src/port/libpgport_srv.a \
+        $(top_builddir)/src/common/libpgcommon_srv.a
+ 
+ # We put libpgport and libpgcommon into OBJS, so remove it from LIBS; also add
+-# libldap and ICU
+-LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS)
++# libldap, ICU, and OpenSSL.
++LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS) $(OPENSSL_LIBS)
+ 
+ # The backend doesn't need everything that's in LIBS, however
+ LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
+diff --git a/src/backend/libpq/Makefile b/src/backend/libpq/Makefile
+index 3dbec23e30..e84be72529 100644
+--- a/src/backend/libpq/Makefile
++++ b/src/backend/libpq/Makefile
+@@ -19,6 +19,7 @@ OBJS = be-fsstubs.o be-secure.o be-secure-common.o auth.o crypt.o hba.o ifaddr.o
+ 
+ ifeq ($(with_openssl),yes)
+ OBJS += be-secure-openssl.o
++LIBS += $(OPENSSL_LIBS)
+ endif
+ 
+ include $(top_srcdir)/src/backend/common.mk
+diff --git a/src/bin/pgbench/Makefile b/src/bin/pgbench/Makefile
+index 25abd0a875..abb36e4370 100644
+--- a/src/bin/pgbench/Makefile
++++ b/src/bin/pgbench/Makefile
+@@ -17,6 +17,9 @@ override CFLAGS += $(PTHREAD_CFLAGS)
+ endif
+ LIBS += $(PTHREAD_LIBS)
+ 
++ifeq ($(with_openssl),yes)
++LIBS += $(OPENSSL_LIBS)
++endif
+ 
+ all: pgbench
+ 
+diff --git a/src/common/Makefile b/src/common/Makefile
+index 1fc2c66225..ca23ffa5bd 100644
+--- a/src/common/Makefile
++++ b/src/common/Makefile
+@@ -47,6 +47,7 @@ OBJS_COMMON = base64.o config_info.o controldata_utils.o exec.o file_perm.o \
+ 
+ ifeq ($(with_openssl),yes)
+ OBJS_COMMON += sha2_openssl.o
++LIBS += $(OPENSSL_LIBS)
+ else
+ OBJS_COMMON += sha2.o
+ endif
+diff --git a/src/interfaces/libpq/Makefile b/src/interfaces/libpq/Makefile
+index abe0a50e98..85fb9036e1 100644
+--- a/src/interfaces/libpq/Makefile
++++ b/src/interfaces/libpq/Makefile
+@@ -53,6 +53,7 @@ OBJS += base64.o ip.o md5.o scram-common.o saslprep.o unicode_norm.o
+ 
+ ifeq ($(with_openssl),yes)
+ OBJS += fe-secure-openssl.o fe-secure-common.o sha2_openssl.o
++LIBS += $(OPENSSL_LIBS)
+ else
+ OBJS += sha2.o
+ endif
