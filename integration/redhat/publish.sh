@@ -18,4 +18,4 @@ cat <<EOF >"/tmp/sftp-batch"
 put artifacts/*.rpm incoming/
 EOF
 
-sftp uploader@upload-packages.prod.edgedatabase.net -b /tmp/sftp-batch
+sftp -b /tmp/sftp-batch uploader@upload-packages.prod.edgedatabase.net
