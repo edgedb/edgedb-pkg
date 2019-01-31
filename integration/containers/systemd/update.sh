@@ -16,7 +16,7 @@ generated_warning() {
 }
 
 entrypoint="$(cat entrypoint.sh | sed -r -e 's/^(.*)$/\1\\n\\/g')"
-entrypoint_cmd="RUN echo -e '${entrypoint}' >/usr/local/bin/entrypoint.sh"
+entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/usr/local/bin/entrypoint.sh"
 
 tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
 echo "${entrypoint_cmd}" >"${tmp}"
