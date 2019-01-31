@@ -3,3 +3,4 @@
 update-images:
 	python/update.sh
 	systemd/update.sh
+	testpublished/update.sh

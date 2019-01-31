@@ -2,8 +2,7 @@
 
 set -ex
 
-rpm --import https://packages.prod.edgedatabase.net/keys/edgedb.asc
-echo <<EOF >/etc/yum.repos.d/
+cat <<EOF >/etc/yum.repos.d/edgedb.repo
 [edgedb]
 name=edgedb
 baseurl=https://packages.prod.edgedatabase.net/rpm/el7/

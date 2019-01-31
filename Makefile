@@ -1,10 +1,11 @@
-.PHONY: build test update-images build-images check-target
+.PHONY: build test test-published update-images build-images check-target
 
 
 IMAGE_REGISTRY = containers.magicstack.net/magicstack/edgedb-pkg
 SUPPORTED_TARGETS = debian-stretch ubuntu-bionic centos-7
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
+DISTRO = $(lastword $(subst -, ,$(TARGET)))
 
 ifeq ($(PLATFORM),ubuntu)
 	PLATFORM = debian
@@ -50,6 +51,13 @@ test: check-target
 		-v /tmp/artifacts:/artifacts \
 		$(IMAGE_REGISTRY)/test:$(TARGET) \
 		/bin/bash /src/integration/$(PLATFORM)/test.sh
+
+test-published: check-target
+	docker run -it --rm \
+		-e DISTRO=$(DISTRO) \
+		-v $(ROOT):/src \
+		$(IMAGE_REGISTRY)/testpublished:$(TARGET) \
+		/bin/bash /src/integration/$(PLATFORM)/test-published.sh
 
 update-images:
 	make -C integration/containers

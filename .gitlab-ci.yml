@@ -151,6 +151,7 @@ prepare:integration-images:
   tags:
     - magiclamp
 
+  image: ${CI_REGISTRY_IMAGE}/testpublished:${DISTRO_FULL}
   extends: .integration
   stage: test-published
   script:
@@ -192,7 +193,6 @@ publish:ubuntu-bionic:
 test-published:ubuntu-bionic:
   variables:
     <<: [*debian, *bionic]
-  image: ubuntu:bionic
   dependencies:
     - publish:ubuntu-bionic
   extends: .test-published
@@ -228,7 +228,6 @@ publish:rhel-7:
 test-published:rhel-7:
   variables:
     <<: [*redhat, *rhel7]
-  image: centos:7
   dependencies:
     - publish:rhel-7
   extends: .test-published
