@@ -1,0 +1,1 @@
+/var/spool/repo/incoming IN_CLOSE_WRITE /usr/local/bin/processincoming.sh "$@/$#"

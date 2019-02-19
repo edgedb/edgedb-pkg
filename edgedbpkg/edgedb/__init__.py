@@ -16,7 +16,7 @@ python.set_python_runtime_dependency(poetry_pkg.Dependency(
 class EdgeDB(packages.BundledPythonPackage):
 
     title = "EdgeDB"
-    name = 'edgedb-server'
+    name = 'edgedb'
     description = 'Next generation object-relational database'
     license = 'ASL 2.0'
     group = 'Applications/Databases'
@@ -37,7 +37,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     artifact_requirements = [
         'postgresql-edgedb (== 11.1)',
-        'edgedb',
+        'pypkg-edgedb',
     ]
 
     bundle_deps = [
@@ -153,6 +153,5 @@ class EdgeDB(packages.BundledPythonPackage):
         bindir = build.get_install_path('bin')
 
         return [
-            bindir / 'edgedb-server',
-            bindir / 'edgedb'
+            bindir / 'edgedb',
         ]

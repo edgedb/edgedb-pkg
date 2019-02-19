@@ -1,13 +1,8 @@
 {bindir}/initdb
 {bindir}/pg_config
 {bindir}/pg_ctl
-{bindir}/pg_resetwal
-{bindir}/pg_rewind
-{bindir}/pg_standby
-{bindir}/pg_upgrade
-{bindir}/pg_waldump
+{bindir}/psql
 {bindir}/postgres
-{bindir}/vacuumlo
 {libdir}/postgresql/*.so
 {libdir}/libpq*
 {datadir}/postgresql/extension/*

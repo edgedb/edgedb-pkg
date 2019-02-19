@@ -105,10 +105,15 @@ class Python(packages.BundledPackage):
             chmod +x python-wrapper
         ''')
 
+        disabled_modules = '_sqlite3 _tkinter _dbm _gdbm _lzma _bz2'
+
         return textwrap.dedent(f'''\
             # make sure no funny business is going on if metapkg
             # is ran from a venv.
             unset __PYVENV_LAUNCHER__
+            echo '*disabled*' >> Modules/Setup.local
+            echo '' >> Modules/Setup.local
+            echo {disabled_modules} >> Modules/Setup.local
             {env}
             {make}
             ./{python} -m ensurepip --root "{dest}"

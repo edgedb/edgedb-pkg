@@ -12,6 +12,5 @@ echo deb [arch=amd64] https://packages.prod.edgedatabase.net/apt ${DISTRO} main 
 apt-get remove -y curl gnupg
 apt-get autoremove -y
 apt-get update
-apt-get install -y edgedb-server
-edgedb-server --help
+apt-get install -y edgedb-0
 edgedb --help

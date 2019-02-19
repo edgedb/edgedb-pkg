@@ -93,6 +93,12 @@ prepare:integration-images:
   DISTRO_FULL: "centos-7"
 
 
+.macos: &macos
+  PLATFORM: "macos"
+  DISTRO: "macos-amd64"
+  DISTRO_FULL: "macos-amd64"
+
+
 .integration:
   only:
     variables:
@@ -165,80 +171,97 @@ prepare:integration-images:
 
 # Ubuntu 18.04
 
-# build:ubuntu-bionic:
-#   variables:
-#     <<: [*debian, *bionic]
-#   extends: .build
+build:ubuntu-bionic:
+  variables:
+    <<: [*debian, *bionic]
+  extends: .build
 
 
-# test:ubuntu-bionic:
-#   variables:
-#     <<: [*debian, *bionic]
-#   dependencies:
-#     - build:ubuntu-bionic
-#   extends: .test
+test:ubuntu-bionic:
+  variables:
+    <<: [*debian, *bionic]
+  dependencies:
+    - build:ubuntu-bionic
+  extends: .test
 
 
-# publish:ubuntu-bionic:
-#   variables:
-#     <<: [*debian, *bionic]
-#   dependencies:
-#     # Must depend on both test AND build so that the
-#     # package artifacts are passed accordingly.
-#     - build:ubuntu-bionic
-#     - test:ubuntu-bionic
-#   extends: .publish
+publish:ubuntu-bionic:
+  variables:
+    <<: [*debian, *bionic]
+  dependencies:
+    # Must depend on both test AND build so that the
+    # package artifacts are passed accordingly.
+    - build:ubuntu-bionic
+    - test:ubuntu-bionic
+  extends: .publish
 
 
-# test-published:ubuntu-bionic:
-#   variables:
-#     <<: [*debian, *bionic]
-#   dependencies:
-#     - publish:ubuntu-bionic
-#   extends: .test-published
+test-published:ubuntu-bionic:
+  variables:
+    <<: [*debian, *bionic]
+  dependencies:
+    - publish:ubuntu-bionic
+  extends: .test-published
 
 
-# # RHEL 7
+# RHEL 7
 
-# build:rhel-7:
-#   variables:
-#     <<: [*redhat, *rhel7]
-#   extends: .build
-
-
-# test:rhel-7:
-#   variables:
-#     <<: [*redhat, *rhel7]
-#   dependencies:
-#     - build:rhel-7
-#   extends: .test
+build:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  extends: .build
 
 
-# publish:rhel-7:
-#   variables:
-#     <<: [*redhat, *rhel7]
-#   dependencies:
-#     # Must depend on both test AND build so that the
-#     # package artifacts are passed accordingly.
-#     - build:rhel-7
-#     - test:rhel-7
-#   extends: .publish
+test:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  dependencies:
+    - build:rhel-7
+  extends: .test
 
 
-# test-published:rhel-7:
-#   variables:
-#     <<: [*redhat, *rhel7]
-#   dependencies:
-#     - publish:rhel-7
-#   extends: .test-published
+publish:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  dependencies:
+    # Must depend on both test AND build so that the
+    # package artifacts are passed accordingly.
+    - build:rhel-7
+    - test:rhel-7
+  extends: .publish
+
+
+test-published:rhel-7:
+  variables:
+    <<: [*redhat, *rhel7]
+  dependencies:
+    - publish:rhel-7
+  extends: .test-published
 
 
 # macOS
 
 build:macOS:
   variables:
-    PLATFORM: "macos"
-    DISTRO: "macos-amd64"
-    DISTRO_FULL: "macos-amd64"
+    <<: [*macos]
   extends: .build
   image: libvirt://macOS:base
+
+
+test:macOS:
+  variables:
+    <<: [*macos]
+  extends: .test
+  image: libvirt://macOS:base
+  dependencies:
+    - build:macOS
+
+
+publish:macOS:
+  variables:
+    <<: [*macos]
+  extends: .publish
+  image: libvirt://macOS:base
+  dependencies:
+    - build:macOS
+    - test:macOS

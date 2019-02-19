@@ -2,7 +2,5 @@
 
 set -ex
 
-curl -H "Host: files.elvis.hammer.magicstack.net" \
-    http://192.168.122.1/build.sh >build.sh
-chmod +x build.sh
-exec ./build.sh
+pip3 install --extra-index-url=https://pypi.magicstack.net/simple/ metapkg
+python3 -m metapkg build --dest=artifacts edgedbpkg.edgedb:EdgeDB

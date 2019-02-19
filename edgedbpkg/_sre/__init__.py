@@ -97,8 +97,31 @@ class PubPackagesServiceInstance(services.ServiceInstance):
                         data=textwrap.indent(
                             '\n'.join(f'{k}: {v}'
                                       for k, v in k8s_hostkeys.items()),
-                            '    '),
+                            '    ').strip(),
                     ),
+                ),
+            )
+
+        keys = {'root': 'authorized_keys', 'uploader': 'uploaders'}
+        for user, fn in keys.items():
+            ssh_ids = env.platform.get_ssh_ids(user, self.name)
+            if not ssh_ids:
+                continue
+
+            data = base64.b64encode(ssh_ids.encode()).decode()
+
+            self.add_required_resource(
+                k8s_platform.K8SResource(
+                    name=f'{self.name}-ssh-{user}-authorized-keys',
+                    definition=textwrap.dedent(f'''\
+                        apiVersion: v1
+                        type: Opaque
+                        kind: Secret
+                        data:
+                            {fn}: {data}
+                        metadata:
+                            name: {self.name}-ssh-{user}-authorized-keys
+                    ''')
                 ),
             )
 

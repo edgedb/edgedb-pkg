@@ -11,6 +11,5 @@ gpgcheck=1
 gpgkey=https://packages.prod.edgedatabase.net/keys/edgedb.asc
 EOF
 
-yum install -y edgedb-server
-edgedb-server --help
+yum install -y edgedb-0
 edgedb --help

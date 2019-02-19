@@ -3,3 +3,14 @@
 {libdir}/pkgconfig/**
 {libdir}/python*/config-*/libpython*.a
 {libdir}/python*/test/**
+{libdir}/python*/dbm/**
+{libdir}/python*/distutils/command/wininst*
+{libdir}/python*/distutils/tests/**
+{libdir}/python*/ensurepip/**
+{libdir}/python*/idlelib/**
+{libdir}/python*/lib2to3/**
+{libdir}/python*/pydoc_data/**
+{libdir}/python*/sqlite3/**
+{libdir}/python*/tkinter/**
+{libdir}/python*/turtledemo/**
+{libdir}/python*/turtle.py
