@@ -3,7 +3,7 @@
 set -ex
 
 apt-get update
-dpkg -i artifacts/edgedb-0_*_amd64.deb || apt-get -f install -y
+apt install artifacts/edgedb-0_*_amd64.deb
 su edgedb -c '/usr/lib/x86_64-linux-gnu/edgedb-0/bin/python3 \
              -m edb.tools --no-devmode test /usr/share/edgedb-0/tests \
              -e flake8 --output-format=simple'
