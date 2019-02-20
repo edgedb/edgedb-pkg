@@ -169,74 +169,74 @@ prepare:integration-images:
 #
 
 
-# Ubuntu 18.04
+# # Ubuntu 18.04
 
-build:ubuntu-bionic:
-  variables:
-    <<: [*debian, *bionic]
-  extends: .build
-
-
-test:ubuntu-bionic:
-  variables:
-    <<: [*debian, *bionic]
-  dependencies:
-    - build:ubuntu-bionic
-  extends: .test
+# build:ubuntu-bionic:
+#   variables:
+#     <<: [*debian, *bionic]
+#   extends: .build
 
 
-publish:ubuntu-bionic:
-  variables:
-    <<: [*debian, *bionic]
-  dependencies:
-    # Must depend on both test AND build so that the
-    # package artifacts are passed accordingly.
-    - build:ubuntu-bionic
-    - test:ubuntu-bionic
-  extends: .publish
+# test:ubuntu-bionic:
+#   variables:
+#     <<: [*debian, *bionic]
+#   dependencies:
+#     - build:ubuntu-bionic
+#   extends: .test
 
 
-test-published:ubuntu-bionic:
-  variables:
-    <<: [*debian, *bionic]
-  dependencies:
-    - publish:ubuntu-bionic
-  extends: .test-published
+# publish:ubuntu-bionic:
+#   variables:
+#     <<: [*debian, *bionic]
+#   dependencies:
+#     # Must depend on both test AND build so that the
+#     # package artifacts are passed accordingly.
+#     - build:ubuntu-bionic
+#     - test:ubuntu-bionic
+#   extends: .publish
 
 
-# RHEL 7
-
-build:rhel-7:
-  variables:
-    <<: [*redhat, *rhel7]
-  extends: .build
-
-
-test:rhel-7:
-  variables:
-    <<: [*redhat, *rhel7]
-  dependencies:
-    - build:rhel-7
-  extends: .test
+# test-published:ubuntu-bionic:
+#   variables:
+#     <<: [*debian, *bionic]
+#   dependencies:
+#     - publish:ubuntu-bionic
+#   extends: .test-published
 
 
-publish:rhel-7:
-  variables:
-    <<: [*redhat, *rhel7]
-  dependencies:
-    # Must depend on both test AND build so that the
-    # package artifacts are passed accordingly.
-    - build:rhel-7
-    - test:rhel-7
-  extends: .publish
+# # RHEL 7
+
+# build:rhel-7:
+#   variables:
+#     <<: [*redhat, *rhel7]
+#   extends: .build
 
 
-test-published:rhel-7:
-  variables:
-    <<: [*redhat, *rhel7]
-  dependencies:
-    - publish:rhel-7
-  extends: .test-published
+# test:rhel-7:
+#   variables:
+#     <<: [*redhat, *rhel7]
+#   dependencies:
+#     - build:rhel-7
+#   extends: .test
+
+
+# publish:rhel-7:
+#   variables:
+#     <<: [*redhat, *rhel7]
+#   dependencies:
+#     # Must depend on both test AND build so that the
+#     # package artifacts are passed accordingly.
+#     - build:rhel-7
+#     - test:rhel-7
+#   extends: .publish
+
+
+# test-published:rhel-7:
+#   variables:
+#     <<: [*redhat, *rhel7]
+#   dependencies:
+#     - publish:rhel-7
+#   extends: .test-published
 
 
 # macOS

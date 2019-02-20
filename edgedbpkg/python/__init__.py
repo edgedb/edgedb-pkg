@@ -124,9 +124,49 @@ class Python(packages.BundledPackage):
         installdest = build.get_install_dir(self, relative_to='pkgbuild')
         make = build.sh_get_command('make')
 
+        openssl_pkg = build.get_package('openssl')
+        if build.is_bundled(openssl_pkg):
+            # We must bundle the CA certificates if OpenSSL is bundled.
+            python = build.sh_get_command('python', package=self)
+            temp = build.get_temp_root(relative_to='pkgbuild')
+            sslpath = (
+                'import ssl; '
+                'print(ssl.get_default_verify_paths().openssl_cafile)'
+            )
+            certifipath = (
+                'import certifi; '
+                'print(certifi.where())'
+            )
+            extra_install = textwrap.dedent(f'''\
+                "{python}" -m pip install \\
+                    --upgrade --force-reinstall \\
+                    --root "{temp}" "certifi"
+                sslpath=$("{python}" -c "{sslpath}")
+                ssl_instpath="$(pwd)/{installdest}/${{sslpath}}"
+                mkdir -p "$(dirname ${{ssl_instpath}})"
+                certifipath=$("{python}" -c "{certifipath}")
+                cp "${{certifipath}}" "${{ssl_instpath}}"
+            ''')
+        else:
+            extra_install = ''
+
         return textwrap.dedent(f'''\
             {make} DESTDIR=$(pwd)/"{installdest}" ENSUREPIP=no install
-        ''')
+            {extra_install}
+        ''').strip()
+
+    def get_install_list_script(self, build) -> str:
+        script = super().get_install_list_script(build)
+        openssl_pkg = build.get_package('openssl')
+        python = build.sh_get_command('python', package=self)
+        if build.is_bundled(openssl_pkg):
+            sslpath = (
+                'import ssl; '
+                'print(ssl.get_default_verify_paths().openssl_cafile)'
+            )
+            script += f'\n"{python}" -c "{sslpath}"'
+
+        return script
 
     def get_build_tools(self, build) -> dict:
         build_dir = build.get_build_dir(self)
