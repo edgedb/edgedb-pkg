@@ -7,5 +7,5 @@ su edgedb -c '/usr/lib64/edgedb-0/bin/python3 \
              -m edb.tools --no-devmode test /usr/share/edgedb-0/tests \
              -e flake8 --output-format=simple'
 systemctl enable --now edgedb-0
-[[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]]
+[[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
