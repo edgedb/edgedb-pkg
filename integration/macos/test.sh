@@ -9,6 +9,8 @@ sudo su edgedb -c \
     -m edb.tools --no-devmode test \
     /Library/Frameworks/EdgeDB.framework/Versions/0/share/edgedb-0/tests \
     -e flake8 --output-format=simple'
-sudo launchctl enable system/com.edgedb.edgedb-0
+sudo launchctl bootstrap system/com.edgedb.edgedb-0
+sleep 5
+sudo launchctl print system/com.edgedb.edgedb-0
 [[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
