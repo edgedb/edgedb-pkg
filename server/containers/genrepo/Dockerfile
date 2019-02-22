@@ -15,9 +15,12 @@ RUN apt-get update \
                --home $REPO_INCOMING_DIR --no-create-home uploader \
     && adduser repomgr incoming \
     && adduser uploader incoming \
-    && mkdir -p $REPO_INCOMING_DIR \
-    && chown repomgr:incoming $REPO_INCOMING_DIR \
+    && mkdir -p $REPO_INCOMING_DIR/macos \
+    && mkdir -p $REPO_INCOMING_DIR/source \
+    && chown -R repomgr:incoming $REPO_INCOMING_DIR \
     && chmod g+ws $REPO_INCOMING_DIR \
+    && chmod g+ws $REPO_INCOMING_DIR/macos \
+    && chmod g+ws $REPO_INCOMING_DIR/source \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
     && mkdir -p /etc/ssh.default/ \
     && rm -rf /var/lib/apt/lists/*
