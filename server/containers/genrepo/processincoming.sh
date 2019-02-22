@@ -29,4 +29,4 @@ mkdir -p /tmp/repo-staging/
 filename=$(basename "${pkg}")
 mv "${pkg}" /tmp/repo-staging
 gpg --detach-sign --armor "/tmp/repo-staging/${filename}"
-mv "/tmp/repo-staging/${filename}*" "/var/lib/repos/${dist}"
+mv /tmp/repo-staging/"${filename}"* "/var/lib/repos/${dist}/"
