@@ -11,9 +11,9 @@ User=edgedb
 Group=edgedb
 
 Environment=EDGEDATA=@@{localstatedir}/lib/edgedb/@@{slot}/data/
-RuntimeDirectory=%N
+RuntimeDirectory=edgedb
 
-ExecStart=@@{bindir}/edgedb-server -D ${EDGEDATA} --runstate-dir=%t/%N
+ExecStart=@@{bindir}/edgedb-server -D ${EDGEDATA} --runstate-dir=%t/edgedb
 ExecReload=/bin/kill -HUP ${MAINPID}
 KillMode=mixed
 KillSignal=SIGINT

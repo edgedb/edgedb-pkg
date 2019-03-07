@@ -25,6 +25,12 @@ class Python(packages.BundledPackage):
         'zlib',
     ]
 
+    artifact_build_requirements = [
+        'libffi-dev; extra == "capability-libffi"',
+        'openssl-dev (>=1.0.2)',
+        'zlib-dev',
+    ]
+
     bundle_deps = [
         openssl.OpenSSL(version='1.0.2o')
     ]
@@ -45,6 +51,9 @@ class Python(packages.BundledPackage):
             '--with-dbmliborder': 'bdb:gdbm',
             '--with-computed-gotos': None,
         }
+
+        if 'libffi' not in build.target.get_capabilities():
+            configure_flags['--without-system-ffi'] = None
 
         if platform.system() == 'Darwin':
             configure_flags['--enable-universalsdk'] = (

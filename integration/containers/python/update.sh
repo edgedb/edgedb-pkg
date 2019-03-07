@@ -112,6 +112,7 @@ while IFS= read -r -d '' v; do
 	case "$variant" in
 		ubuntu*) template='ubuntu'; tag="${variant}" ;;
 		centos*) template='centos'; tag="${variant}" ;;
+		fedora*) template='fedora'; tag="${variant}" ;;
 		debian*) template='debian'; tag="${variant}" ;;
 	esac
 

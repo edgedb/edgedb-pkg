@@ -7,6 +7,7 @@ class ICU(packages.BundledPackage):
 
     title = "ICU"
     name = 'icu'
+    aliases = ['icu-dev']
 
     _server = "http://download.icu-project.org/files/icu4c/{version}/"
 

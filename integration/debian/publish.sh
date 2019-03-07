@@ -7,7 +7,7 @@ echo "${DPUT_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
 chmod 400 "${HOME}/.ssh/id_ed25519"
 
 cat <<EOF >"${HOME}/.ssh/config"
-Host upload-packages.prod.edgedatabase.net
+Host upload-packages.edgedb.com
     Port 2222
     StrictHostKeyChecking no
 EOF
@@ -16,7 +16,7 @@ set -ex
 
 cat <<EOF >/tmp/dput.cf
 [edgedb-prod]
-fqdn                    = upload-packages.prod.edgedatabase.net
+fqdn                    = upload-packages.edgedb.com
 incoming                = /incoming
 login                   = uploader
 allow_dcut              = 1

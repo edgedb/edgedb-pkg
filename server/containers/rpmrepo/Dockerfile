@@ -14,9 +14,9 @@ RUN yum install -y \
     && useradd -G uploaders -d $REPO_INCOMING_DIR --no-create-home uploader \
     && gpasswd -a repomgr incoming \
     && gpasswd -a uploader incoming \
-    && mkdir -p $REPO_INCOMING_DIR \
-    && chown repomgr:incoming $REPO_INCOMING_DIR \
-    && chmod g+ws $REPO_INCOMING_DIR \
+    && mkdir -p $REPO_INCOMING_DIR/triggers \
+    && chown -R repomgr:incoming $REPO_INCOMING_DIR \
+    && chmod -R g+ws $REPO_INCOMING_DIR \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
     && mkdir -p /etc/ssh.default/ \
     && rm -rf /var/lib/apt/lists/*
@@ -28,6 +28,8 @@ COPY config/incron/incron.allow /etc/
 COPY config/incron/incrontab /var/spool/incron/repomgr
 COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
+RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
+    /usr/local/bin/processincoming.sh
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 700 /home/repomgr/.gnupg \

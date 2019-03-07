@@ -20,7 +20,7 @@ class PubPackagesService(services.Service):
 
     name = 'pub-packages'
     description = 'Service for EdgeDB release packages'
-    hostname = 'packages.{env}.edgedatabase.net'
+    hostname = 'packages.edgedb.com'
 
     @classmethod
     def get_instance_class(cls):

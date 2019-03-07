@@ -37,6 +37,15 @@ data:
       access_log  /dev/stdout main;
       sendfile        on;
       keepalive_timeout  65;
+
+      map $request_filename $expires {
+        default          off;
+        ~*^.*\.rpm$      max;
+        ~*^.*\.deb$      max;
+        ~*^.*\.pkg$      max;
+        ~*^.*\.tar\..*$  max;
+      }
+
       server {
           listen 80;
           server_name  _;
@@ -50,7 +59,8 @@ data:
               return 307 https://$host$request_uri;
             }
             root /srv/www/packages;
-            autoindex on;
+            add_header Cache-Control "public, no-transform";
+            expires $expires;
           }
 
           location /keys {
@@ -58,7 +68,8 @@ data:
               return 307 https://$host$request_uri;
             }
             root /srv/www/;
-            autoindex on;
+            expires 2d;
+            add_header Cache-Control "public, no-transform";
           }
 
           location /apt/db {

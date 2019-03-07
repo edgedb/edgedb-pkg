@@ -4,31 +4,38 @@ set -Eexuo pipefail
 shopt -s nullglob
 
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $(basename $0) <rpm-file>" >&2
+    echo "Usage: $(basename $0) <upload-list>" >&2
     exit 1
 fi
 
-pkg=$1
-release=$(rpm -qp --queryformat '%{RELEASE}' "${pkg}")
-dist=${release##*.}
+list=$1
+dir="%%REPO_INCOMING_DIR%%"
 
-case "${dist}" in
-    el7)
-        ;;
-    *)
-        echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
-esac
+while read -r -u 10 pkgname; do
 
-if [ ! -e /var/lib/repos/${dist} ]; then
-    mkdir /var/lib/repos/${dist}
-    createrepo --database /var/lib/repos/${dist}
-fi
+    pkg="${dir}/${pkgname}"
+    release=$(rpm -qp --queryformat '%{RELEASE}' "${pkg}")
+    dist=${release##*.}
 
-mkdir -p /tmp/repo-staging/
+    case "${dist}" in
+        el7)
+            ;;
+        *)
+            echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
+    esac
 
-filename=$(basename "${pkg}")
-mv "${pkg}" /tmp/repo-staging
-rpm --resign "/tmp/repo-staging/${filename}"
-mv "/tmp/repo-staging/${filename}" "/var/lib/repos/${dist}"
-createrepo --update "/var/lib/repos/${dist}"
-gpg --detach-sign --armor "/var/lib/repos/${dist}/repodata/repomd.xml"
+    if [ ! -e /var/lib/repos/${dist} ]; then
+        mkdir /var/lib/repos/${dist}
+        createrepo --database /var/lib/repos/${dist}
+    fi
+
+    mkdir -p /tmp/repo-staging/
+
+    mv "${pkg}" /tmp/repo-staging
+    echo | rpm --resign "/tmp/repo-staging/${pkgname}"
+    mv "/tmp/repo-staging/${pkgname}" "/var/lib/repos/${dist}"
+    createrepo --update "/var/lib/repos/${dist}"
+    gpg --yes --batch --detach-sign --armor \
+        "/var/lib/repos/${dist}/repodata/repomd.xml"
+
+done 10<"${list}"

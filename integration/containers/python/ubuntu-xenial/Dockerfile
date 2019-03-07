@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:stretch
+FROM buildpack-deps:xenial
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -14,7 +14,8 @@ ENV PATH /usr/local/bin:$PATH
 ENV LANG C.UTF-8
 
 # extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
+	apt-get install -y --no-install-recommends \
 # Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
 		libssl-dev \
 		tk-dev \

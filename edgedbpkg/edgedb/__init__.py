@@ -38,6 +38,7 @@ class EdgeDB(packages.BundledPythonPackage):
     artifact_requirements = [
         'postgresql-edgedb (== 11.1)',
         'pypkg-edgedb',
+        'tzdata; extra == "capability-tzdata"',
     ]
 
     bundle_deps = [
@@ -48,7 +49,11 @@ class EdgeDB(packages.BundledPythonPackage):
 
     @property
     def slot(self) -> str:
-        return str(self.version.major)
+        if self.version.prerelease:
+            stage, no = self.version.prerelease
+            return f'{self.version.major}-{stage}{no}'
+        else:
+            return f'{self.version.major}'
 
     def get_bdist_wheel_command(self, build) -> list:
         bindir = build.get_install_path('bin')
@@ -131,7 +136,7 @@ class EdgeDB(packages.BundledPythonPackage):
             path=dataroot, owner_user='edgedb', owner_group='edgedb',
             owner_recursive=True)
 
-        datadir = dataroot / str(self.version.major) / 'data'
+        datadir = dataroot / self.slot / 'data'
         datadir_script = ensuredir.get_script(
             path=datadir, owner_user='edgedb', owner_group='edgedb',
             mode=0o700)
@@ -139,6 +144,17 @@ class EdgeDB(packages.BundledPythonPackage):
         ctl = build.get_install_path('bin') / 'edgedb-server'
         bootstrap_script = build.sh_format_command(
             ctl, {'-D': datadir, '--bootstrap': None})
+
+        error = (
+            f'Error: could not create default EdgeDB cluster. '
+            f'Please create it manually with '
+            f'"sudo -u edgedb {bootstrap_script}"'
+        )
+
+        bootstrap_script = (
+            f'if [ -z "${{_EDGEDB_INSTALL_SKIP_BOOTSTRAP}}" ]; then '
+            f'{bootstrap_script} || echo {error} >&2; fi'
+        )
 
         script = '\n'.join([datadir_script, dataroot_script])
         script += '\n' + build.get_su_script(bootstrap_script, user='edgedb')
@@ -154,4 +170,5 @@ class EdgeDB(packages.BundledPythonPackage):
 
         return [
             bindir / 'edgedb',
+            bindir / 'edgedb-server',
         ]

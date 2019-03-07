@@ -9,6 +9,7 @@ class OpenSSL(packages.BundledPackage):
 
     title = "OpenSSL"
     name = 'openssl'
+    aliases = ['openssl-dev']
 
     _server = 'https://www.openssl.org/source/'
 

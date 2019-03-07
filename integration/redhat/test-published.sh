@@ -2,14 +2,14 @@
 
 set -ex
 
-cat <<EOF >/etc/yum.repos.d/edgedb.repo
+cat <<'EOF' >/etc/yum.repos.d/edgedb.repo
 [edgedb]
 name=edgedb
-baseurl=https://packages.prod.edgedatabase.net/rpm/el7/
+baseurl=https://packages.edgedb.com/rpm/el$releasever/
 enabled=1
 gpgcheck=1
-gpgkey=https://packages.prod.edgedatabase.net/keys/edgedb.asc
+gpgkey=https://packages.edgedb.com/keys/edgedb.asc
 EOF
 
-yum install -y edgedb-0
+yum install -y edgedb-1-alpha1
 edgedb --help

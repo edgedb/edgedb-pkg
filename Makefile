@@ -2,7 +2,7 @@
 
 
 IMAGE_REGISTRY = containers.magicstack.net/magicstack/edgedb-pkg
-SUPPORTED_TARGETS = debian-stretch ubuntu-bionic centos-7
+SUPPORTED_TARGETS = debian-stretch ubuntu-bionic ubuntu-xenial centos-7 fedora-29
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
 DISTRO = $(lastword $(subst -, ,$(TARGET)))
@@ -12,6 +12,10 @@ ifeq ($(PLATFORM),ubuntu)
 endif
 
 ifeq ($(PLATFORM),centos)
+	PLATFORM = redhat
+endif
+
+ifeq ($(PLATFORM),fedora)
 	PLATFORM = redhat
 endif
 
@@ -36,12 +40,12 @@ build: check-target
 	docker run -it --rm \
 		-v $(ROOT):/src \
 		-v /tmp/pkgcache:/root/.cache/ \
-		-v /tmp/artifacts:/build/artifacts \
+		-v /tmp/artifacts:/src/artifacts \
 		$(EXTRAVOLUMES) \
 		-e PYTHONPATH=/src \
-		-w /build \
+		-w /src \
 		$(IMAGE_REGISTRY)/build:$(TARGET) \
-		/bin/bash /src/integration/$(PLATFORM)/build.sh
+		/bin/bash integration/$(PLATFORM)/build.sh
 
 test: check-target
 	docker run -it --rm \

@@ -1,0 +1,8 @@
+FROM fedora:%%PLACEHOLDER%%
+
+ENV LANG en_US.UTF-8
+
+RUN dnf install -y \
+	gcc make python3 python3-wheel git 'dnf-command(builddep)' rsync
+
+CMD ["python3"]

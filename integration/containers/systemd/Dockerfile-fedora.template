@@ -1,0 +1,12 @@
+FROM fedora:%%PLACEHOLDER%%
+
+ENV container docker
+
+STOPSIGNAL SIGRTMIN+3
+
+RUN yum install -y systemd
+
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

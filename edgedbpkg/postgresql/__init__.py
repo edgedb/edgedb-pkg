@@ -21,18 +21,23 @@ class PostgreSQL(packages.BundledPackage):
         },
     )
 
-    artifact_build_requirements = [
-        'bison',
-        'flex',
-        'systemd-dev ; extra == "capability-systemd"',
-    ]
-
     artifact_requirements = [
         'icu (>=50)',
         'openssl (>=1.0.2)',
         'pam',
         'uuid',
         'zlib',
+    ]
+
+    artifact_build_requirements = [
+        'bison',
+        'flex',
+        'systemd-dev ; extra == "capability-systemd"',
+        'icu-dev (>=50)',
+        'openssl-dev (>=1.0.2)',
+        'pam-dev',
+        'uuid-dev',
+        'zlib-dev',
     ]
 
     bundle_deps = [
@@ -67,6 +72,7 @@ class PostgreSQL(packages.BundledPackage):
             '--with-pam': None,
             '--with-openssl': None,
             '--with-uuid': uuid_lib,
+            '--without-readline': None,
         }
 
         icu_pkg = build.get_package('icu')
@@ -98,8 +104,8 @@ class PostgreSQL(packages.BundledPackage):
                 # at its install_name location.
                 configure_flags['DYLD_FALLBACK_LIBRARY_PATH'] = openssl_root
 
-        zoneinfo = build.target.get_resource_path(build, 'zoneinfo')
-        if zoneinfo:
+        if build.target.has_capability('tzdata'):
+            zoneinfo = build.target.get_resource_path(build, 'tzdata')
             configure_flags['--with-system-tzdata'] = zoneinfo
 
         if build.target.has_capability('systemd'):

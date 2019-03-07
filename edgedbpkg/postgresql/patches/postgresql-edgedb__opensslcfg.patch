@@ -1,8 +1,26 @@
+From d73870cd8082b4c9200e2898b5eae4056d514dd8 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Mon, 11 Feb 2019 20:28:00 -0500
+Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
+
+---
+ configure                     | 110 +++++++++++++++++++++++++++++++++-
+ configure.in                  |  10 ++++
+ contrib/pgcrypto/Makefile     |   4 ++
+ contrib/sslinfo/Makefile      |   2 +
+ src/Makefile.global.in        |   5 +-
+ src/backend/Makefile          |   4 +-
+ src/backend/libpq/Makefile    |   1 +
+ src/bin/pgbench/Makefile      |   3 +
+ src/common/Makefile           |   1 +
+ src/interfaces/libpq/Makefile |   1 +
+ 10 files changed, 137 insertions(+), 4 deletions(-)
+
 diff --git a/configure b/configure
-index c2b9dde102..e6fd99216a 100755
+index 9eda1c6d07..f8ea808f5c 100755
 --- a/configure
 +++ b/configure
-@@ -708,6 +708,8 @@ UUID_EXTRA_OBJS
+@@ -709,6 +709,8 @@ UUID_EXTRA_OBJS
  with_uuid
  with_systemd
  with_selinux
@@ -11,7 +29,7 @@ index c2b9dde102..e6fd99216a 100755
  with_openssl
  with_ldap
  with_krb_srvnam
-@@ -888,6 +890,8 @@ PKG_CONFIG_PATH
+@@ -889,6 +891,8 @@ PKG_CONFIG_PATH
  PKG_CONFIG_LIBDIR
  ICU_CFLAGS
  ICU_LIBS
@@ -20,7 +38,7 @@ index c2b9dde102..e6fd99216a 100755
  LDFLAGS_EX
  LDFLAGS_SL'
  
-@@ -1588,6 +1592,10 @@ Some influential environment variables:
+@@ -1589,6 +1593,10 @@ Some influential environment variables:
                path overriding pkg-config's built-in search path
    ICU_CFLAGS  C compiler flags for ICU, overriding pkg-config
    ICU_LIBS    linker flags for ICU, overriding pkg-config
@@ -31,7 +49,7 @@ index c2b9dde102..e6fd99216a 100755
    LDFLAGS_EX  extra linker flags for linking executables only
    LDFLAGS_SL  extra linker flags for linking shared libraries only
  
-@@ -7741,6 +7749,100 @@ fi
+@@ -7685,6 +7693,100 @@ fi
  $as_echo "$with_openssl" >&6; }
  
  
@@ -132,7 +150,7 @@ index c2b9dde102..e6fd99216a 100755
  #
  # SELinux
  #
-@@ -11670,7 +11772,11 @@ fi
+@@ -11572,7 +11674,11 @@ fi
  fi
  
  if test "$with_openssl" = yes ; then
@@ -145,7 +163,7 @@ index c2b9dde102..e6fd99216a 100755
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
  if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
-@@ -11926,6 +12032,8 @@ _ACEOF
+@@ -11828,6 +11934,8 @@ _ACEOF
  fi
  done
  
@@ -155,10 +173,10 @@ index c2b9dde102..e6fd99216a 100755
  
  if test "$with_pam" = yes ; then
 diff --git a/configure.in b/configure.in
-index 3bddce5875..960f8a00f1 100644
+index e7619dbff7..54dd1b470c 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -829,6 +829,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
+@@ -830,6 +830,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
  AC_MSG_RESULT([$with_openssl])
  AC_SUBST(with_openssl)
  
@@ -216,7 +234,7 @@ index 5a972db703..bebfde01c9 100644
 +
  SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index c4909c22ff..95b58c48cd 100644
+index e47cb759ad..1cbb4b67da 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -217,6 +217,9 @@ krb_srvtab = @krb_srvtab@
@@ -229,9 +247,9 @@ index c4909c22ff..95b58c48cd 100644
  TCLSH			= @TCLSH@
  TCL_LIBS		= @TCL_LIBS@
  TCL_LIB_SPEC		= @TCL_LIB_SPEC@
-@@ -242,7 +245,7 @@ BITCODE_CXXFLAGS = @BITCODE_CXXFLAGS@
- CPP = @CPP@
+@@ -243,7 +246,7 @@ CPP = @CPP@
  CPPFLAGS = @CPPFLAGS@
+ PG_SYSROOT = @PG_SYSROOT@
  
 -override CPPFLAGS := $(ICU_CFLAGS) $(CPPFLAGS)
 +override CPPFLAGS := $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
@@ -303,3 +321,6 @@ index abe0a50e98..85fb9036e1 100644
  else
  OBJS += sha2.o
  endif
+-- 
+2.19.2
+

@@ -6,6 +6,7 @@
 {libdir}/postgresql/*.so
 {libdir}/libpq*
 {datadir}/postgresql/extension/*
+{datadir}/postgresql/timezone/**
 {datadir}/postgresql/timezonesets/*
 {datadir}/postgresql/tsearch_data/*
 {datadir}/postgresql/*.sql

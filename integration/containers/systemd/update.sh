@@ -28,6 +28,7 @@ while IFS= read -r -d '' v; do
 	case "$variant" in
 		ubuntu*) template='ubuntu'; tag="${variant}" ;;
 		debian*) template='debian'; tag="${variant}" ;;
+		fedora*) template='fedora'; tag="${variant}" ;;
 		centos*) template='centos'; tag="${variant}" ;;
 		*) echo "Unsupported variant: ${variant}" >@2; exit 1 ;;
 	esac
