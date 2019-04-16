@@ -1,0 +1,101 @@
+From de8e8e53e6dae4ea0a8bc7acc564fd2b9af4ca59 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Mon, 15 Apr 2019 19:16:16 -0400
+Subject: [PATCH 3/3] Preserve module alias information in views created with
+ DDL
+
+---
+ edb/schema/nodes.py        | 22 ++++++++++++++++++++++
+ tests/test_edgeql_views.py | 34 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 56 insertions(+)
+
+diff --git a/edb/schema/nodes.py b/edb/schema/nodes.py
+index fdcd2f11..dc53a730 100644
+--- a/edb/schema/nodes.py
++++ b/edb/schema/nodes.py
+@@ -22,8 +22,10 @@ import typing
+ from edb import errors
+ 
+ from edb.edgeql import ast as qlast
++from edb.edgeql import codegen as qlcodegen
+ 
+ from . import delta as sd
++from . import expr as s_expr
+ from . import inheriting
+ from . import objects as so
+ from . import schema as s_schema
+@@ -115,6 +117,26 @@ class NodeCommand(sd.ObjectCommand):
+     def _handle_view_op(cls, schema, cmd, astnode, context):
+         view_expr = cls._maybe_get_view_expr(astnode)
+         if view_expr is not None:
++            if not isinstance(view_expr, qlast.Statement):
++                view_expr = qlast.SelectQuery(result=view_expr)
++
++            existing_aliases = {}
++            for alias in view_expr.aliases:
++                if isinstance(alias, qlast.ModuleAliasDecl):
++                    existing_aliases[alias.alias] = alias.module
++
++            aliases_to_add = set(context.modaliases) - set(existing_aliases)
++            for alias in aliases_to_add:
++                view_expr.aliases.append(
++                    qlast.ModuleAliasDecl(
++                        alias=alias,
++                        module=context.modaliases[alias],
++                    )
++                )
++
++            expr_ql = qlcodegen.generate_source(view_expr, pretty=False)
++            cmd.set_attribute_value('expr', s_expr.Expression(text=expr_ql))
++
+             ir = cls._compile_view_expr(view_expr, cmd.classname,
+                                         schema, context)
+ 
+diff --git a/tests/test_edgeql_views.py b/tests/test_edgeql_views.py
+index b2309c44..f9721b66 100644
+--- a/tests/test_edgeql_views.py
++++ b/tests/test_edgeql_views.py
+@@ -716,6 +716,40 @@ class TestEdgeQLViews(tb.QueryTestCase):
+             res
+         )
+ 
++    async def test_edgeql_views_ignore_alias(self):
++        await self.con.execute('''
++            SET MODULE test;
++
++            CREATE VIEW UserView2 := (
++                SELECT User {
++                    deck: {
++                        id
++                    } ORDER BY User.deck.cost DESC
++                    LIMIT 1,
++                }
++            );
++        ''')
++
++        # Explicitly reset the default module alias to test
++        # that views don't care.
++        await self.con.execute('''
++            SET MODULE std;
++        ''')
++
++        await self.assert_query_result(
++            r"""
++                SELECT test::UserView2 {
++                    deck,
++                }
++                FILTER .name = 'Alice';
++            """,
++            [{
++                'deck': [
++                    {}
++                ]
++            }]
++        )
++
+     async def test_edgeql_views_esdl_01(self):
+         await self.assert_query_result(
+             r"""
+-- 
+2.19.2
+

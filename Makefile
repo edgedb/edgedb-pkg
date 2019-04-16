@@ -24,6 +24,15 @@ ifeq ($(METAPKGDEV),true)
 	EXTRAVOLUMES = -v $(_METAPKG_PATH):/usr/local/lib/python3.7/site-packages/metapkg
 endif
 
+EXTRAENV =
+
+ifneq ($(EDGEDB_TAG),)
+	EXTRAENV += -e EDGEDB_TAG=$(EDGEDB_TAG)
+endif
+
+ifneq ($(PKG_REVISION),)
+	EXTRAENV += -e PKG_REVISION=$(PKG_REVISION)
+endif
 
 check-target:
 ifeq ($(TARGET),)
@@ -35,13 +44,13 @@ ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
 			supported targets are: $(SUPPORTED_TARGETS))
 endif
 
-
 build: check-target
 	docker run -it --rm \
 		-v $(ROOT):/src \
 		-v /tmp/pkgcache:/root/.cache/ \
 		-v /tmp/artifacts:/src/artifacts \
 		$(EXTRAVOLUMES) \
+		$(EXTRAENV) \
 		-e PYTHONPATH=/src \
 		-w /src \
 		$(IMAGE_REGISTRY)/build:$(TARGET) \

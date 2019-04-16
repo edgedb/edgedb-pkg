@@ -16,7 +16,7 @@ class PostgreSQL(packages.BundledPackage):
         {
             'url': 'git+https://github.com/edgedb/postgres.git',
             'extras': {
-                'branch': 'edge_11',
+                'version': 'heads/edge_11',
             },
         },
     )

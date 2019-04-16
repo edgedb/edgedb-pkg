@@ -1,0 +1,265 @@
+From 575909c169717f0bd46bd53b882c606f24860327 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Fri, 12 Apr 2019 17:21:32 -0400
+Subject: [PATCH 2/3] Make sure expression cardinality is checked properly in
+ DML
+
+The `INSERT` and `UPDATE` shapes aren't checking the cardinality of the
+input expression, allowing non-singleton expressions to be used for
+singleton pointers.
+---
+ edb/edgeql/compiler/setgen.py            | 11 +++---
+ edb/edgeql/compiler/stmt.py              |  2 ++
+ edb/schema/pointers.py                   | 45 ++++++++++++------------
+ tests/schemas/insert.esdl                |  2 +-
+ tests/schemas/link_tgt_del.esdl          |  4 ++-
+ tests/schemas/link_tgt_del_migrated.esdl |  4 ++-
+ tests/test_edgeql_ddl.py                 |  5 ++-
+ tests/test_edgeql_insert.py              | 22 ++++++++++--
+ tests/test_edgeql_update.py              | 13 +++++++
+ tests/test_server_proto.py               |  1 +
+ 10 files changed, 75 insertions(+), 34 deletions(-)
+
+diff --git a/edb/edgeql/compiler/setgen.py b/edb/edgeql/compiler/setgen.py
+index cd511109..fc21d2af 100644
+--- a/edb/edgeql/compiler/setgen.py
++++ b/edb/edgeql/compiler/setgen.py
+@@ -116,6 +116,7 @@ def new_set_from_set(
+         stype=stype,
+         expr=ir_set.expr,
+         rptr=rptr,
++        context=ir_set.context,
+         ctx=ctx
+     )
+ 
+@@ -799,20 +800,20 @@ def computable_ptr_set(
+ 
+         comp_ir_set = dispatch.compile(qlexpr, ctx=subctx)
+ 
++    comp_ir_set_copy = new_set_from_set(comp_ir_set, ctx=ctx)
+     pending_cardinality = ctx.pending_cardinality.get(ptrcls)
+     if pending_cardinality is not None and not pending_cardinality.from_parent:
+-        comp_ir_set_copy = new_set_from_set(comp_ir_set, ctx=ctx)
+         stmtctx.get_pointer_cardinality_later(
+             ptrcls=ptrcls, irexpr=comp_ir_set_copy,
+             specified_card=pending_cardinality.specified_cardinality,
+             source_ctx=pending_cardinality.source_ctx,
+             ctx=ctx)
+ 
+-        def _check_cardinality(ctx):
+-            if ptrcls.singular(ctx.env.schema):
+-                stmtctx.enforce_singleton_now(comp_ir_set_copy, ctx=ctx)
++    def _check_cardinality(ctx):
++        if ptrcls.singular(ctx.env.schema):
++            stmtctx.enforce_singleton_now(comp_ir_set_copy, ctx=ctx)
+ 
+-        stmtctx.at_stmt_fini(_check_cardinality, ctx=ctx)
++    stmtctx.at_stmt_fini(_check_cardinality, ctx=ctx)
+ 
+     comp_ir_set = new_set_from_set(
+         comp_ir_set, path_id=result_path_id, rptr=rptr, ctx=ctx)
+diff --git a/edb/edgeql/compiler/stmt.py b/edb/edgeql/compiler/stmt.py
+index 32bc2c5f..10387348 100644
+--- a/edb/edgeql/compiler/stmt.py
++++ b/edb/edgeql/compiler/stmt.py
+@@ -107,6 +107,8 @@ def compile_SelectQuery(
+ 
+             stmt.limit = clauses.compile_limit_offset_clause(
+                 expr.limit, ctx=sctx)
++
++            metadata.ignore_offset_limit = False
+         else:
+             stmt.result = compile_result_clause(
+                 expr.result,
+diff --git a/edb/schema/pointers.py b/edb/schema/pointers.py
+index 88f5697f..f298c057 100644
+--- a/edb/schema/pointers.py
++++ b/edb/schema/pointers.py
+@@ -60,32 +60,31 @@ def merge_cardinality(target: so.Object, sources: typing.List[so.Object],
+             if current is None:
+                 current = nextval
+                 current_from = source
+-            else:
+-                if current is not nextval:
+-                    current_from_source = current_from.get_source(schema)
+-                    source_source = source.get_source(schema)
++            elif current is not nextval:
++                current_from_source = current_from.get_source(schema)
++                source_source = source.get_source(schema)
+ 
+-                    tgt_repr = (
+-                        f'{target_source.get_displayname(schema)}.'
+-                        f'{target.get_displayname(schema)}'
+-                    )
+-                    cf_repr = (
+-                        f'{current_from_source.get_displayname(schema)}.'
+-                        f'{current_from.get_displayname(schema)}'
+-                    )
+-                    other_repr = (
+-                        f'{source_source.get_displayname(schema)}.'
+-                        f'{source.get_displayname(schema)}'
+-                    )
++                tgt_repr = (
++                    f'{target_source.get_displayname(schema)}.'
++                    f'{target.get_displayname(schema)}'
++                )
++                cf_repr = (
++                    f'{current_from_source.get_displayname(schema)}.'
++                    f'{current_from.get_displayname(schema)}'
++                )
++                other_repr = (
++                    f'{source_source.get_displayname(schema)}.'
++                    f'{source.get_displayname(schema)}'
++                )
+ 
+-                    raise errors.SchemaError(
+-                        f'cannot redefine the target cardinality of '
+-                        f'{tgt_repr!r}: it is defined '
+-                        f'as {current.as_ptr_qual()!r} in {cf_repr!r} and '
+-                        f'as {nextval.as_ptr_qual()!r} in {other_repr!r}.'
+-                    )
++                raise errors.SchemaError(
++                    f'cannot redefine the target cardinality of '
++                    f'{tgt_repr!r}: it is defined '
++                    f'as {current.as_ptr_qual()!r} in {cf_repr!r} and '
++                    f'as {nextval.as_ptr_qual()!r} in {other_repr!r}.'
++                )
+ 
+-        return current
++    return current
+ 
+ 
+ class PointerLike:
+diff --git a/tests/schemas/insert.esdl b/tests/schemas/insert.esdl
+index faff9caf..dcbcef68 100644
+--- a/tests/schemas/insert.esdl
++++ b/tests/schemas/insert.esdl
+@@ -33,7 +33,7 @@ type InsertTest {
+     }
+ }
+ 
+-type Annotation {
++type Note {
+     required property name -> str;
+     property note -> str;
+     link subject -> Object;
+diff --git a/tests/schemas/link_tgt_del.esdl b/tests/schemas/link_tgt_del.esdl
+index 314d7573..2656d534 100644
+--- a/tests/schemas/link_tgt_del.esdl
++++ b/tests/schemas/link_tgt_del.esdl
+@@ -18,7 +18,9 @@
+ 
+ 
+ abstract type Named {
+-    required property name -> str;
++    required property name -> str {
++        delegated constraint exclusive;
++    }
+ }
+ 
+ type Target1 extending Named;
+diff --git a/tests/schemas/link_tgt_del_migrated.esdl b/tests/schemas/link_tgt_del_migrated.esdl
+index ef17d3d7..7a953616 100644
+--- a/tests/schemas/link_tgt_del_migrated.esdl
++++ b/tests/schemas/link_tgt_del_migrated.esdl
+@@ -18,7 +18,9 @@
+ 
+ 
+ abstract type Named {
+-    required property name -> str;
++    required property name -> str {
++        delegated constraint exclusive;
++    }
+ }
+ 
+ type Target1 extending Named;
+diff --git a/tests/test_edgeql_ddl.py b/tests/test_edgeql_ddl.py
+index 9339f137..436bfc53 100644
+--- a/tests/test_edgeql_ddl.py
++++ b/tests/test_edgeql_ddl.py
+@@ -166,7 +166,10 @@ class TestEdgeQLDDL(tb.DDLTestCase):
+             };
+ 
+             INSERT test::A6 { name := 'a6' };
+-            INSERT test::Object6 { a := (SELECT test::A6), b := 'foo' };
++            INSERT test::Object6 {
++                a := (SELECT test::A6 LIMIT 1),
++                b := 'foo'
++            };
+         """)
+ 
+         await self.assert_query_result(
+diff --git a/tests/test_edgeql_insert.py b/tests/test_edgeql_insert.py
+index 216c8c65..20b3534c 100644
+--- a/tests/test_edgeql_insert.py
++++ b/tests/test_edgeql_insert.py
+@@ -808,9 +808,9 @@ class TestInsert(tb.QueryTestCase):
+                         })
+                     ) ORDER BY _i.l2 DESC LIMIT 1
+                 )}
+-            UNION (INSERT Annotation {
++            UNION (INSERT Note {
+                 name := 'insert expr 1',
+-                note := 'largest ' + <str>x.l2,
++                note := 'largest ' ++ <str>x.l2,
+                 subject := x
+             });
+         ''')
+@@ -1175,3 +1175,21 @@ class TestInsert(tb.QueryTestCase):
+                 'ref': [],
+             }],
+         )
++
++    async def test_edgeql_insert_cardinality_01(self):
++        with self.assertRaisesRegex(
++                edgedb.QueryError,
++                'single'):
++            await self.con.execute(r'''
++                SET MODULE test;
++
++                INSERT Subordinate { name := 'sub1_cardinality_01'};
++                INSERT Subordinate { name := 'sub2_cardinality_01'};
++                INSERT Note {
++                    name := 'note_cardinality_01',
++                    subject := (
++                        SELECT Subordinate
++                        FILTER .name LIKE '%cardinality_01'
++                    )
++                };
++            ''')
+diff --git a/tests/test_edgeql_update.py b/tests/test_edgeql_update.py
+index e1c135b6..0a1bd96f 100644
+--- a/tests/test_edgeql_update.py
++++ b/tests/test_edgeql_update.py
+@@ -1543,3 +1543,16 @@ class TestUpdate(tb.QueryTestCase):
+                     status := <Object>{}
+                 };
+             """)
++
++    async def test_edgeql_update_cardinality_01(self):
++        with self.assertRaisesRegex(
++                edgedb.QueryError,
++                'single'):
++            await self.con.execute(r'''
++                SET MODULE test;
++
++                UPDATE UpdateTest
++                SET {
++                    status := Status
++                };
++            ''')
+diff --git a/tests/test_server_proto.py b/tests/test_server_proto.py
+index 2747864d..cd701fdc 100644
+--- a/tests/test_server_proto.py
++++ b/tests/test_server_proto.py
+@@ -1553,6 +1553,7 @@ class TestServerProto(tb.QueryTestCase):
+                         tmp_tx_13_2 := DETACHED (
+                             SELECT test::Tmp_tx_13
+                             FILTER test::Tmp_tx_13.tmp_tx_13_1 = 1
++                            LIMIT 1
+                         )
+                     };
+ 
+-- 
+2.19.2
+
