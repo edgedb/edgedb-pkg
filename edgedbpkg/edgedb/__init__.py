@@ -5,7 +5,8 @@ from poetry import packages as poetry_pkg
 from metapkg import packages
 from metapkg.packages import python
 
-from edgedbpkg import postgresql, python as python_bundle, edgedbpy
+from edgedbpkg import postgresql
+from edgedbpkg import python as python_bundle
 
 
 python.set_python_runtime_dependency(poetry_pkg.Dependency(
@@ -44,7 +45,6 @@ class EdgeDB(packages.BundledPythonPackage):
     bundle_deps = [
         postgresql.PostgreSQL(version='11.1'),
         python_bundle.Python(version='3.7.2'),
-        edgedbpy.EdgeDBPython(version='0.0.1'),
     ]
 
     @property
