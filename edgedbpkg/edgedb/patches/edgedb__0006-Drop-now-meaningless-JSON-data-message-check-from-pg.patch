@@ -1,0 +1,30 @@
+From f4d27bab225d061ab258bd1c1bbd1352eb2dd5ae Mon Sep 17 00:00:00 2001
+From: Yury Selivanov <yury@magic.io>
+Date: Thu, 25 Apr 2019 11:42:18 -0400
+Subject: [PATCH] Drop (now meaningless) JSON data message check from pgcon.pyx
+
+Fixes #631.
+---
+ edb/server/pgcon/pgcon.pyx | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/edb/server/pgcon/pgcon.pyx b/edb/server/pgcon/pgcon.pyx
+index ed6cbd30..074121a7 100644
+--- a/edb/server/pgcon/pgcon.pyx
++++ b/edb/server/pgcon/pgcon.pyx
+@@ -318,12 +318,6 @@ cdef class PGProto:
+                             f'received NULL for a JSON query {sql!r}')
+                         self.buffer.discard_message()
+                         continue
+-                    if coll <= 2:
+-                        error = RuntimeError(
+-                            f'unable to unpack DataRow '
+-                            f'for a JSON query {sql!r}')
+-                        self.buffer.discard_message()
+-                        continue
+ 
+                     data = self.buffer.read_bytes(coll)
+ 
+-- 
+2.21.0
+
