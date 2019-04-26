@@ -13,6 +13,7 @@ import textwrap
 from edbsre import resources
 from edbsre.lib import services
 from edbsre.envs import edgedb1_prod
+from edbsre.platform import gcp as gcp_platform
 from edbsre.platform import k8s as k8s_platform
 
 
@@ -166,6 +167,13 @@ class PubPackagesServiceInstance(services.ServiceInstance):
                 ''')
             )
         )
+
+        self.add_required_resource(gcp_platform.ServiceAccount(
+            name='cloudstorage-mount-bot',
+            description='Service Account for Cloud Storage Mounts',
+            roles=('roles/storage.admin',),
+            key_in_secret=f'cloudstorage-mount-bot-credentials',
+        ))
 
         for fn in ('preparation.yaml', 'production.yaml', 'tls.yaml',
                    'ingress.yaml'):
