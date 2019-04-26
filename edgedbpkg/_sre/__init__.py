@@ -175,8 +175,7 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             key_in_secret=f'cloudstorage-mount-bot-credentials',
         ))
 
-        for fn in ('preparation.yaml', 'production.yaml', 'tls.yaml',
-                   'ingress.yaml'):
+        for fn in ('production.yaml', 'tls.yaml', 'ingress.yaml'):
             with open(defs / fn) as f:
                 definition = f.read()
 
