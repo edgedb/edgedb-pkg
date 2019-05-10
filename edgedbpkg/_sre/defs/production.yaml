@@ -61,6 +61,7 @@ data:
             root /srv/www/packages;
             add_header Cache-Control "public, no-transform";
             expires $expires;
+            autoindex on;
           }
 
           location /keys {
