@@ -1,0 +1,30 @@
+From c92df1339e1a73b281b183357a172767bce2163b Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Sat, 7 Sep 2019 17:17:08 -0400
+Subject: [PATCH] Prevent and IndexError when applying a nop migration
+
+Fixed in master in 824f14a687, but worth backporting as people bump into
+this often.
+
+Fixes: #704
+Fixes: #714
+---
+ edb/pgsql/dbops/base.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/edb/pgsql/dbops/base.py b/edb/pgsql/dbops/base.py
+index 2594de7e..d9f6b7fb 100644
+--- a/edb/pgsql/dbops/base.py
++++ b/edb/pgsql/dbops/base.py
+@@ -89,7 +89,7 @@ class SQLBlock:
+                  for cmd in self.commands)
+         body = '\n\n'.join(stmt + ';' if stmt[-1] != ';' else stmt
+                            for stmt in stmts).rstrip()
+-        if body[-1] != ';':
++        if body and body[-1] != ';':
+             body += ';'
+ 
+         return body
+-- 
+2.23.0
+
