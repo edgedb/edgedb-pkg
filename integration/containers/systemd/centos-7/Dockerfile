@@ -29,8 +29,10 @@ RUN set -ex \
 	&& rpmbuild -ba /tmp/rpmbuild/SPECS/systemd.spec \
 	&& yum history undo -y last || true \
 	&& yum history undo -y last-2 || true \
-	&& rpm -e --nodeps systemd \
-	&& yum install -y /tmp/rpmbuild/RPMS/x86_64/systemd-219-*.el7.x86_64.rpm \
+	&& rpm -e --nodeps systemd systemd-libs \
+	&& yum install --exclude systemd-libs.i686 -y \
+		/tmp/rpmbuild/RPMS/x86_64/systemd-219-*.el7.x86_64.rpm \
+		/tmp/rpmbuild/RPMS/x86_64/systemd-libs-219-*.el7.x86_64.rpm \
 	&& rm -rf /tmp/rpmbuild \
 	&& rm ~/.rpmmacros \
 	&& yum clean all
