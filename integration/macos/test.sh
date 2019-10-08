@@ -2,13 +2,21 @@
 
 set -ex
 
+dest="artifacts"
+if [ -n "${PKG_PLATFORM}" ]; then
+    dest+="/${PKG_PLATFORM}"
+fi
+if [ -n "${PKG_PLATFORM_VERSION}" ]; then
+    dest+="-${PKG_PLATFORM_VERSION}"
+fi
+
 re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.pkg"
-slot="$(ls artifacts | sed -n -E "s/${re}/\1/p")"
+slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 fwpath="/Library/Frameworks/EdgeDB.framework/"
 
 sudo installer -dumplog -verbose \
-    -pkg artifacts/*.pkg \
-    -target /Volumes/macOS || (sudo cat /var/log/install.log && exit 1)
+    -pkg "${dest}"/*.pkg \
+    -target / || (sudo cat /var/log/install.log && exit 1)
 
 socket="/var/run/edgedb/.s.EDGEDB.5656"
 

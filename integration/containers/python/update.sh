@@ -40,6 +40,12 @@ generated_warning() {
 	EOH
 }
 
+entrypoint="$(cat entrypoint.sh | sed -r -e 's/^(.*)$/\1\\n\\/g')"
+entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
+
+tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
+echo "${entrypoint_cmd}" >"${tmp}"
+
 rcVersion="${version%-rc}"
 rcGrepV='-v'
 if [ "$rcVersion" != "$version" ]; then
@@ -134,5 +140,7 @@ while IFS= read -r -d '' v; do
 			sed -ri -e '/libssl-dev/d' "$dir/Dockerfile"
 			;;
 	esac
+
+	awk -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${dir}/Dockerfile"
 
 done < <(find . -maxdepth 1 -type d -name '*-*' -print0)

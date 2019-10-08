@@ -1,0 +1,27 @@
+{
+  "name": "describe-edgedb-package-artifact",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Action to describe EdgeDB package artifacts",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edgedb/action-describe-edgedb-package-artifact.git"
+  },
+  "author": "EdgeDB Inc.",
+  "license": "Apache 2.0",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.13",
+    "@types/node": "^12.0.4",
+    "jest": "^24.8.0",
+    "jest-circus": "^24.7.1",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.5.1"
+  }
+}

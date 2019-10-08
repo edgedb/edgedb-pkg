@@ -3,16 +3,16 @@
 set -e
 
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
-echo "${DPUT_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
+echo "${PACKAGE_UPLOAD_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
 chmod 400 "${HOME}/.ssh/id_ed25519"
+
+set -ex
 
 cat <<EOF >"${HOME}/.ssh/config"
 Host upload-packages.edgedb.com
     Port 2223
     StrictHostKeyChecking no
 EOF
-
-set -ex
 
 cd artifacts
 ls *.rpm > upload.list

@@ -1,0 +1,15 @@
+name: 'describe-edgedb-package-artifact'
+description: 'Describe an EdgeDB package artifact.'
+author: 'EdgeDB Inc.'
+inputs:
+  target:
+    description: 'Build Target'
+  path:
+    description: 'Artifact Root'
+    default: '.'
+outputs:
+  version-slot:
+    description: "Version Slot (e.g. alpha-1)"
+runs:
+  using: 'node12'
+  main: 'lib/main.js'

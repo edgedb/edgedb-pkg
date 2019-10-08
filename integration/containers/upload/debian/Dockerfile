@@ -11,3 +11,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get remove -y patch \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

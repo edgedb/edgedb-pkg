@@ -1,0 +1,5 @@
+name: 'Test EdgeDB Package'
+author: 'EdgeDB'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

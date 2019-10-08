@@ -3,7 +3,7 @@
 set -e
 
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
-echo "${DPUT_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
+echo "${PACKAGE_UPLOAD_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
 chmod 400 "${HOME}/.ssh/id_ed25519"
 
 cat <<EOF >"${HOME}/.ssh/config"
