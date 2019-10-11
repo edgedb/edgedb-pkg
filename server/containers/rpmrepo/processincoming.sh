@@ -16,9 +16,14 @@ while read -r -u 10 pkgname; do
     pkg="${dir}/${pkgname}"
     release=$(rpm -qp --queryformat '%{RELEASE}' "${pkg}")
     dist=${release##*.}
+    releaseno=${release%.*}
+    subdist=${releaseno##*.}
+    if [ -n "${subdist}" ]; then
+        dist="${dist}-${subdist}"
+    fi
 
     case "${dist}" in
-        el7)
+        el7*)
             ;;
         *)
             echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
