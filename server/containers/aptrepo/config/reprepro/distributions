@@ -10,7 +10,7 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: stretch-nightly
+Codename: stretch.nightly
 Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Debian Stretch (Nightly Builds)
@@ -28,7 +28,7 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: bionic-nightly
+Codename: bionic.nightly
 Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Ubuntu 18.04 (Nightly Builds)
@@ -46,7 +46,7 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: xenial-nightly
+Codename: xenial.nightly
 Architectures: amd64 source
 Components: main
 Description: EdgeDB Package Repository for Ubuntu 16.04 (Nightly Builds)
