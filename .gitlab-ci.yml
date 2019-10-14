@@ -48,7 +48,7 @@ build:server:
   image: ${CI_REGISTRY_IMAGE}/gcloud:latest
 
   services:
-    - docker:dind
+    - docker:18.09.7-dind
 
   script:
     - server/build-images.sh
