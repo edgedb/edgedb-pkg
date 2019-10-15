@@ -17,7 +17,7 @@ while read -r -u 10 pkgname; do
     release=$(rpm -qp --queryformat '%{RELEASE}' "${pkg}")
     dist=${release##*.}
     releaseno=${release%.*}
-    subdist=${releaseno##*.}
+    subdist=$(echo ${releaseno} | sed 's/[[:digit:]]\+//')
     if [ -n "${subdist}" ]; then
         dist="${dist}.${subdist}"
     fi
