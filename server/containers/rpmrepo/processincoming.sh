@@ -19,7 +19,7 @@ while read -r -u 10 pkgname; do
     releaseno=${release%.*}
     subdist=${releaseno##*.}
     if [ -n "${subdist}" ]; then
-        dist="${dist}-${subdist}"
+        dist="${dist}.${subdist}"
     fi
 
     case "${dist}" in
