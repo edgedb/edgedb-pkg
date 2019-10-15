@@ -107,6 +107,10 @@ spec:
         - mountPath: "/secrets"
           name: storage-credentials
 
+        resources:
+          requests:
+            cpu: "10m"
+
         securityContext:
           privileged: true
           capabilities:
@@ -168,7 +172,7 @@ spec:
         image: "nginx:latest"
         resources:
           requests:
-            cpu: "50m"
+            cpu: "10m"
         readinessProbe:
           httpGet:
             path: /__healthz
@@ -198,7 +202,7 @@ spec:
           value: "2222"
         resources:
           requests:
-            cpu: "50m"
+            cpu: "10m"
         readinessProbe:
           tcpSocket:
             port: 2222
@@ -238,7 +242,7 @@ spec:
           value: "2223"
         resources:
           requests:
-            cpu: "50m"
+            cpu: "10m"
         readinessProbe:
           tcpSocket:
             port: 2223
@@ -278,7 +282,7 @@ spec:
           value: "2224"
         resources:
           requests:
-            cpu: "50m"
+            cpu: "10m"
         readinessProbe:
           tcpSocket:
             port: 2224
