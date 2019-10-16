@@ -9,11 +9,18 @@ if [ "$#" -ne 1 ]; then
 fi
 
 list=$1
-dir="%%REPO_INCOMING_DIR%%"
+incomingdir="%%REPO_INCOMING_DIR%%"
+localdir="%%REPO_LOCAL_DIR%%"
+basedir="%%REPO_BASE_DIR%%"
+
+# createrepo seems to be really broken on gcsfuse
+# https://github.com/GoogleCloudPlatform/gcsfuse/issues/321
+# so, as a workaround, update the repo using a local copy,
+# and rsync the final result to gcs.
 
 while read -r -u 10 pkgname; do
 
-    pkg="${dir}/${pkgname}"
+    pkg="${incomingdir}/${pkgname}"
     release=$(rpm -qp --queryformat '%{RELEASE}' "${pkg}")
     dist=${release##*.}
     releaseno=${release%.*}
@@ -29,18 +36,25 @@ while read -r -u 10 pkgname; do
             echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
     esac
 
-    if [ ! -e /var/lib/repos/${dist} ]; then
-        mkdir /var/lib/repos/${dist}
-        createrepo --database /var/lib/repos/${dist}
+    local_dist="${localdir}/${dist}"
+    shared_dist="${basedir}/${dist}"
+
+    mkdir -p "${local_dist}"
+
+    if [ ! -e "${shared_dist}" ]; then
+        createrepo --database "${local_dist}"
+    else
+        rsync -av "${shared_dist}/" "${local_dist}/"
     fi
 
     mkdir -p /tmp/repo-staging/
-
     mv "${pkg}" /tmp/repo-staging
     echo | rpm --resign "/tmp/repo-staging/${pkgname}"
-    mv "/tmp/repo-staging/${pkgname}" "/var/lib/repos/${dist}"
-    createrepo --update "/var/lib/repos/${dist}"
-    gpg --yes --batch --detach-sign --armor \
-        "/var/lib/repos/${dist}/repodata/repomd.xml"
+    mv "/tmp/repo-staging/${pkgname}" "${local_dist}"
+
+    createrepo --update "${local_dist}"
+    gpg --yes --batch --detach-sign --armor "${local_dist}/repodata/repomd.xml"
+
+    rsync -av "${local_dist}/" "${shared_dist}/"
 
 done 10<"${list}"
