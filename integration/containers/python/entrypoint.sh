@@ -7,7 +7,7 @@ fi
 set -Exeo pipefail
 
 pip install -U git+https://github.com/edgedb/metapkg
-pip install -U git+https://github.com/edgedb/edgedb-pkg@gha
+pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 extraopts=
 if [ -n "${SRC_REVISION}" ]; then

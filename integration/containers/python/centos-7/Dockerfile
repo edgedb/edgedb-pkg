@@ -79,7 +79,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 19.3
+ENV PYTHON_PIP_VERSION 19.3.1
 
 RUN set -ex; \
 	\
@@ -108,7 +108,7 @@ fi\n\
 set -Exeo pipefail\n\
 \n\
 pip install -U git+https://github.com/edgedb/metapkg\n\
-pip install -U git+https://github.com/edgedb/edgedb-pkg@gha\n\
+pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
 extraopts=\n\
 if [ -n "${SRC_REVISION}" ]; then\n\
