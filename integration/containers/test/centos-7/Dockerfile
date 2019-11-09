@@ -24,7 +24,7 @@ yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
                "${dest}"/edgedb-${slot}*.x86_64.rpm\n\
 su edgedb -c "/usr/lib64/edgedb-${slot}/bin/python3 \\\n\
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \\\n\
-              -e flake8 --output-format=simple"\n\
+              -e cqa_ --output-format=simple"\n\
 echo "Success!"\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
