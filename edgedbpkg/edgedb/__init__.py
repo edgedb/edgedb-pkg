@@ -71,10 +71,6 @@ class EdgeDB(packages.BundledPythonPackage):
         make = build.target.sh_get_command('make')
         srcdir = build.get_source_dir(self, relative_to='pkgbuild')
 
-        script += textwrap.dedent(f'''\
-            {make} -C "{srcdir}/ext" PG_CONFIG="$(pwd)/{pg_config}"
-        ''')
-
         return script
 
     def get_build_install_script(self, build) -> str:
