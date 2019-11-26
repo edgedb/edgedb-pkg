@@ -72,6 +72,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
         datadir = build.get_install_path('data')
         script += textwrap.dedent(f'''\
+            mkdir -p "{dest}/{datadir}"
             cp -a "{srcdir}/tests" "{dest}/{datadir}"
         ''')
 
