@@ -9,7 +9,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const process = __importStar(require("process"));
-const re = /(?:\w+)-(\d+(-(dev|alpha|beta|rc)\d+)?).*\.(rpm|deb|img)/gm;
+const re = /^(?:\w+)-(\d+(-(dev|alpha|beta|rc)\d+)?).*\.(rpm|deb|img)$/gm;
 async function run() {
     try {
         const target = process.env['INPUT_TARGET'];
