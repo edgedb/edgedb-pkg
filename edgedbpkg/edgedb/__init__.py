@@ -65,27 +65,10 @@ class EdgeDB(packages.BundledPythonPackage):
             super().get_bdist_wheel_command(build)
         )
 
-    def get_build_script(self, build) -> str:
-        script = super().get_build_script(build)
-        pg_config = build.sh_get_command('pg_config')
-        make = build.target.sh_get_command('make')
-        srcdir = build.get_source_dir(self, relative_to='pkgbuild')
-
-        return script
-
     def get_build_install_script(self, build) -> str:
         script = super().get_build_install_script(build)
-        pg_config = build.sh_get_command('pg_config')
-        make = build.target.sh_get_command('make')
         srcdir = build.get_source_dir(self, relative_to='pkgbuild')
         dest = build.get_install_dir(self, relative_to='pkgbuild')
-
-        script += textwrap.dedent(f'''\
-            {make} -C "{srcdir}/ext" \\
-                PG_CONFIG="$(pwd)/{pg_config}" \\
-                DESTDIR="$(pwd)/{dest}" \\
-                install
-        ''')
 
         datadir = build.get_install_path('data')
         script += textwrap.dedent(f'''\
