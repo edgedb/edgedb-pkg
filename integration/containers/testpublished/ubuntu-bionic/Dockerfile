@@ -28,8 +28,15 @@ apt-get install -y curl gnupg apt-transport-https\n\
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
 echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \\\n\
     >> /etc/apt/sources.list.d/edgedb.list\n\
+\n\
 apt-get update\n\
-apt-get install -y edgedb-${slot}\n\
+\n\
+try=1\n\
+while [ $try -le 5 ]; do\n\
+    apt-get install -y edgedb-${slot} && break || true\n\
+    try=$(( $try + 1 ))\n\
+done\n\
+\n\
 edgedb --help\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh

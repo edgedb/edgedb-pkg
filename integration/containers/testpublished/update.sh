@@ -34,7 +34,11 @@ while IFS= read -r -d '' v; do
 		-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
 		"$dir/Dockerfile"
 
-	entrypoint="$(cat entrypoint-${platform}.sh | sed -r -e 's/\\/\\\\/g' | sed -r -e 's/\x27/\x27\\\x27\x27/g' | sed -r -e 's/^(.*)$/\1\\n\\/g')"
+	entrypoint="$(cat entrypoint-${platform}.sh \
+				  | sed -r -e 's/\\/\\\\/g' \
+				  | sed -r -e 's/\x27/\x27\\\x27\x27/g' \
+				  | sed -r -e 's/^(.*)$/\1\\n\\/g' \
+				  | sed -r -e 's/&/\\&/g')"
 	entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
 
 	tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
