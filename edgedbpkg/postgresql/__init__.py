@@ -16,7 +16,7 @@ class PostgreSQL(packages.BundledPackage):
         {
             'url': 'git+https://github.com/postgres/postgres.git',
             'extras': {
-                'version': 'tags/REL_12_1',
+                'version': 'REL_12_1',
             },
         },
     )
