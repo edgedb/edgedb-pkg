@@ -43,7 +43,7 @@ sudo su edgedb -c \
     "${fwpath}/Versions/${slot}/lib/edgedb-${slot}/bin/python3 \
      -m edb.tools --no-devmode test \
      ${fwpath}/Versions/${slot}/share/edgedb-${slot}/tests \
-     -e cqa_ --output-format=simple"
+     -e cqa_ -e tools_ --output-format=simple"
 
 sudo su edgedb -c \
     'edgedb --admin configure insert auth --method=trust --priority=0'

@@ -19,5 +19,5 @@ apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \
                ./"${dest}"/edgedb-${slot}_*_amd64.deb
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-${slot}/bin/python3 \
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \
-              -e cqa_ --output-format=simple"
+              -e cqa_ -e tools_ --output-format=simple"
 echo "Success!"

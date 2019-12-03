@@ -17,5 +17,5 @@ yum install -y "${dest}"/edgedb-common*.x86_64.rpm \
                "${dest}"/edgedb-${slot}*.x86_64.rpm
 su edgedb -c "/usr/lib64/edgedb-${slot}/bin/python3 \
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \
-              -e cqa_ --output-format=simple"
+              -e cqa_ -e tools_ --output-format=simple"
 echo "Success!"

@@ -14,7 +14,7 @@ su edgedb -c 'echo "test" | \
               edgedb --admin alter role edgedb --password-from-stdin'
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-${slot}/bin/python3 \
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \
-              -e flake8 --output-format=simple"
+              -e cqa_ -e tools_ --output-format=simple"
 su edgedb -c 'echo "test" | \
               edgedb --admin configure insert auth \
                 --method=trust --priority=0'
