@@ -15,9 +15,6 @@ class PostgreSQL(packages.BundledPackage):
     sources = (
         {
             'url': 'git+https://github.com/postgres/postgres.git',
-            'extras': {
-                'version': 'REL_12_1',
-            },
         },
     )
 
@@ -44,6 +41,10 @@ class PostgreSQL(packages.BundledPackage):
         openssl.OpenSSL(version='1.0.2o'),
         icu.ICU(version='60.2'),
     ]
+
+    @classmethod
+    def to_vcs_version(cls, version: str) -> str:
+        return f"tags/REL_{version.replace('.', '_')}"
 
     def get_configure_script(self, build) -> str:
         extra_version = ''

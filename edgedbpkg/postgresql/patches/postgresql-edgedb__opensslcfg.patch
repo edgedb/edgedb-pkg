@@ -1,4 +1,4 @@
-From d73870cd8082b4c9200e2898b5eae4056d514dd8 Mon Sep 17 00:00:00 2001
+From 64ba0cf1c5eb843f1014d6ac7bd165e149091b85 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
@@ -17,7 +17,7 @@ Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
  10 files changed, 137 insertions(+), 4 deletions(-)
 
 diff --git a/configure b/configure
-index 9eda1c6d07..f8ea808f5c 100755
+index d8eda1df43..1b0a314786 100755
 --- a/configure
 +++ b/configure
 @@ -709,6 +709,8 @@ UUID_EXTRA_OBJS
@@ -35,10 +35,10 @@ index 9eda1c6d07..f8ea808f5c 100755
  ICU_LIBS
 +OPENSSL_CFLAGS
 +OPENSSL_LIBS
+ XML2_CONFIG
  LDFLAGS_EX
- LDFLAGS_SL'
- 
-@@ -1589,6 +1593,10 @@ Some influential environment variables:
+ LDFLAGS_SL
+@@ -1593,6 +1597,10 @@ Some influential environment variables:
                path overriding pkg-config's built-in search path
    ICU_CFLAGS  C compiler flags for ICU, overriding pkg-config
    ICU_LIBS    linker flags for ICU, overriding pkg-config
@@ -46,10 +46,10 @@ index 9eda1c6d07..f8ea808f5c 100755
 +              C compiler flags for OPENSSL, overriding pkg-config
 +  OPENSSL_LIBS
 +              linker flags for OPENSSL, overriding pkg-config
+   XML2_CONFIG path to xml2-config utility
    LDFLAGS_EX  extra linker flags for linking executables only
    LDFLAGS_SL  extra linker flags for linking shared libraries only
- 
-@@ -7685,6 +7693,100 @@ fi
+@@ -7898,6 +7906,100 @@ fi
  $as_echo "$with_openssl" >&6; }
  
  
@@ -150,7 +150,7 @@ index 9eda1c6d07..f8ea808f5c 100755
  #
  # SELinux
  #
-@@ -11572,7 +11674,11 @@ fi
+@@ -11917,7 +12019,11 @@ fi
  fi
  
  if test "$with_openssl" = yes ; then
@@ -163,7 +163,7 @@ index 9eda1c6d07..f8ea808f5c 100755
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
  if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
-@@ -11828,6 +11934,8 @@ _ACEOF
+@@ -12173,6 +12279,8 @@ _ACEOF
  fi
  done
  
@@ -173,10 +173,10 @@ index 9eda1c6d07..f8ea808f5c 100755
  
  if test "$with_pam" = yes ; then
 diff --git a/configure.in b/configure.in
-index e7619dbff7..54dd1b470c 100644
+index edb362bc78..70a1b4c80d 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -830,6 +830,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
+@@ -844,6 +844,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
  AC_MSG_RESULT([$with_openssl])
  AC_SUBST(with_openssl)
  
@@ -187,7 +187,7 @@ index e7619dbff7..54dd1b470c 100644
  #
  # SELinux
  #
-@@ -1193,6 +1197,10 @@ fi
+@@ -1202,6 +1206,10 @@ fi
  
  if test "$with_openssl" = yes ; then
    dnl Order matters!
@@ -198,7 +198,7 @@ index e7619dbff7..54dd1b470c 100644
    if test "$PORTNAME" != "win32"; then
       AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
-@@ -1211,6 +1219,8 @@ if test "$with_openssl" = yes ; then
+@@ -1220,6 +1228,8 @@ if test "$with_openssl" = yes ; then
    # thread-safety. In 1.1.0, it's no longer required, and CRYPTO_lock()
    # function was removed.
    AC_CHECK_FUNCS([CRYPTO_lock])
@@ -208,7 +208,7 @@ index e7619dbff7..54dd1b470c 100644
  
  if test "$with_pam" = yes ; then
 diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
-index 573bc6df79..ea9dff1bf3 100644
+index 1313b66408..e564544fd8 100644
 --- a/contrib/pgcrypto/Makefile
 +++ b/contrib/pgcrypto/Makefile
 @@ -49,6 +49,10 @@ include $(top_builddir)/src/Makefile.global
@@ -234,10 +234,10 @@ index 5a972db703..bebfde01c9 100644
 +
  SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index e47cb759ad..1cbb4b67da 100644
+index 1d60560167..52666454e5 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -217,6 +217,9 @@ krb_srvtab = @krb_srvtab@
+@@ -216,6 +216,9 @@ krb_srvtab = @krb_srvtab@
  ICU_CFLAGS		= @ICU_CFLAGS@
  ICU_LIBS		= @ICU_LIBS@
  
@@ -247,7 +247,7 @@ index e47cb759ad..1cbb4b67da 100644
  TCLSH			= @TCLSH@
  TCL_LIBS		= @TCL_LIBS@
  TCL_LIB_SPEC		= @TCL_LIB_SPEC@
-@@ -243,7 +246,7 @@ CPP = @CPP@
+@@ -242,7 +245,7 @@ CPP = @CPP@
  CPPFLAGS = @CPPFLAGS@
  PG_SYSROOT = @PG_SYSROOT@
  
@@ -257,7 +257,7 @@ index e47cb759ad..1cbb4b67da 100644
  ifdef PGXS
  override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index 25af514fba..428756bdf0 100644
+index b03d5e510f..c47c0f34b5 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
 @@ -41,8 +41,8 @@ OBJS = $(SUBDIROBJS) $(LOCALOBJS) $(top_builddir)/src/port/libpgport_srv.a \
@@ -272,7 +272,7 @@ index 25af514fba..428756bdf0 100644
  # The backend doesn't need everything that's in LIBS, however
  LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
 diff --git a/src/backend/libpq/Makefile b/src/backend/libpq/Makefile
-index 3dbec23e30..e84be72529 100644
+index 47efef0682..c5a6d1c8fe 100644
 --- a/src/backend/libpq/Makefile
 +++ b/src/backend/libpq/Makefile
 @@ -19,6 +19,7 @@ OBJS = be-fsstubs.o be-secure.o be-secure-common.o auth.o crypt.o hba.o ifaddr.o
@@ -282,7 +282,7 @@ index 3dbec23e30..e84be72529 100644
 +LIBS += $(OPENSSL_LIBS)
  endif
  
- include $(top_srcdir)/src/backend/common.mk
+ ifeq ($(with_gssapi),yes)
 diff --git a/src/bin/pgbench/Makefile b/src/bin/pgbench/Makefile
 index 25abd0a875..abb36e4370 100644
 --- a/src/bin/pgbench/Makefile
@@ -298,10 +298,10 @@ index 25abd0a875..abb36e4370 100644
  all: pgbench
  
 diff --git a/src/common/Makefile b/src/common/Makefile
-index 1fc2c66225..ca23ffa5bd 100644
+index 2f22b9b101..e2b69b9620 100644
 --- a/src/common/Makefile
 +++ b/src/common/Makefile
-@@ -47,6 +47,7 @@ OBJS_COMMON = base64.o config_info.o controldata_utils.o exec.o file_perm.o \
+@@ -54,6 +54,7 @@ OBJS_COMMON = base64.o config_info.o controldata_utils.o d2s.o exec.o f2s.o \
  
  ifeq ($(with_openssl),yes)
  OBJS_COMMON += sha2_openssl.o
@@ -310,17 +310,17 @@ index 1fc2c66225..ca23ffa5bd 100644
  OBJS_COMMON += sha2.o
  endif
 diff --git a/src/interfaces/libpq/Makefile b/src/interfaces/libpq/Makefile
-index abe0a50e98..85fb9036e1 100644
+index 4b0a8c719d..b66d7cc947 100644
 --- a/src/interfaces/libpq/Makefile
 +++ b/src/interfaces/libpq/Makefile
-@@ -53,6 +53,7 @@ OBJS += base64.o ip.o md5.o scram-common.o saslprep.o unicode_norm.o
+@@ -36,6 +36,7 @@ OBJS += encnames.o wchar.o
  
  ifeq ($(with_openssl),yes)
- OBJS += fe-secure-openssl.o fe-secure-common.o sha2_openssl.o
+ OBJS += fe-secure-openssl.o fe-secure-common.o
 +LIBS += $(OPENSSL_LIBS)
- else
- OBJS += sha2.o
  endif
+ 
+ ifeq ($(with_gssapi),yes)
 -- 
-2.19.2
+2.23.0
 
