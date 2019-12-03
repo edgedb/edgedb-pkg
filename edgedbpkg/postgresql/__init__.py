@@ -14,9 +14,9 @@ class PostgreSQL(packages.BundledPackage):
 
     sources = (
         {
-            'url': 'git+https://github.com/edgedb/postgres.git',
+            'url': 'git+https://github.com/postgres/postgres.git',
             'extras': {
-                'version': 'heads/edge_11',
+                'version': 'tags/REL_12_1',
             },
         },
     )
