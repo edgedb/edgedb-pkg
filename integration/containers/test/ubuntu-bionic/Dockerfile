@@ -26,7 +26,7 @@ apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \\\n\
                ./"${dest}"/edgedb-${slot}_*_amd64.deb\n\
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-${slot}/bin/python3 \\\n\
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \\\n\
-              -e cqa_ --output-format=simple"\n\
+              -e cqa_ -e tools_ --output-format=simple"\n\
 echo "Success!"\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
