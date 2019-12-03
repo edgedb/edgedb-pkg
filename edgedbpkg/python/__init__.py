@@ -123,6 +123,9 @@ class Python(packages.BundledPackage):
             echo '*disabled*' >> Modules/Setup.local
             echo '' >> Modules/Setup.local
             echo {disabled_modules} >> Modules/Setup.local
+            # make sure config.c is regenerated reliably by make
+            rm Modules/config.c
+            ls -al Modules/
             {env}
             {make}
             ./{python} -m ensurepip --root "{dest}"
