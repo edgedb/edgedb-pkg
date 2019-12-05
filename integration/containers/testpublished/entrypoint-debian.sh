@@ -22,7 +22,11 @@ curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
 echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \
     >> /etc/apt/sources.list.d/edgedb.list
 
-apt-get update
+try=1
+while [ $try -le 5 ]; do
+    apt-get update && break || true
+    try=$(( $try + 1 ))
+done
 
 try=1
 while [ $try -le 5 ]; do
