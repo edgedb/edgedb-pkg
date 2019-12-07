@@ -10,7 +10,7 @@ from edgedbpkg import python as python_bundle
 
 
 python.set_python_runtime_dependency(poetry_pkg.Dependency(
-    name='python-edgedb', constraint='3.7.*'
+    name='python-edgedb', constraint='3.8.*'
 ))
 
 
@@ -44,7 +44,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     bundle_deps = [
         postgresql.PostgreSQL(version='12.1'),
-        python_bundle.Python(version='3.7.5'),
+        python_bundle.Python(version='3.8.0'),
     ]
 
     @property
