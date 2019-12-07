@@ -46,6 +46,14 @@ data:
         ~*^.*\.tar\..*$  max;
       }
 
+      map $request_filename $cache_control {
+        default          "no-store, no-cache, private";
+        ~*^.*\.rpm$      "public, no-transform";
+        ~*^.*\.deb$      "public, no-transform";
+        ~*^.*\.pkg$      "public, no-transform";
+        ~*^.*\.tar\..*$  "public, no-transform";
+      }
+
       server {
           listen 80;
           server_name  _;
@@ -59,7 +67,7 @@ data:
               return 307 https://$host$request_uri;
             }
             root /srv/www/packages;
-            add_header Cache-Control "public, no-transform";
+            add_header Cache-Control $cache_control;
             expires $expires;
             autoindex on;
           }
