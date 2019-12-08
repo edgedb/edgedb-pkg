@@ -1,0 +1,25 @@
+name: Build GCP Containers
+
+on:
+  push:
+    branches:
+      - gha
+    # paths:
+    #   - "server/containers/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 50
+        submodules: true
+
+    - name: Build containers
+      uses: ./.github/actions/build-gcp-containers-action
+      with:
+        gcp_service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        gcp_service_key: ${{ secrets.GCP_SERVICE_KEY }}
+        path: server/containers
