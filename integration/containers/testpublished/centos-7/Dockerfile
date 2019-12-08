@@ -30,6 +30,9 @@ gpgcheck=1\n\
 gpgkey=https://packages.edgedb.com/keys/edgedb.asc\n\
 EOF\n\
 \n\
+echo "Pausing for 30 seconds to let the package repo settle..."\n\
+sleep 30\n\
+\n\
 yum install -y edgedb-${slot}\n\
 edgedb --help\n\' >/entrypoint.sh
 
