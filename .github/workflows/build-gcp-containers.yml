@@ -3,9 +3,11 @@ name: Build GCP Containers
 on:
   push:
     branches:
-      - gha
-    # paths:
-    #   - "server/containers/**"
+      - master
+    paths:
+      - "server/containers/**"
+  repository_dispatch:
+    types: ["server-containers"]
 
 jobs:
   build:
