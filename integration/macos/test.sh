@@ -37,7 +37,7 @@ fi
 source /etc/profile
 
 sudo su edgedb -c \
-    'echo "test" | edgedb --admin alter role edgedb --password-from-stdin'
+    'echo "test" | edgedb --admin alter-role edgedb --password-from-stdin'
 
 sudo su edgedb -c \
     "${fwpath}/Versions/${slot}/lib/edgedb-${slot}/bin/python3 \
