@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM centos:7
+FROM centos:8
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
