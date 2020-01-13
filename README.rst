@@ -25,3 +25,50 @@ by triggering a "nightly-build" repository dispatch:
         -H "Content-Type: application/json" \
         --data '{"event_type": "nightly-build"}' \
         https://api.github.com/repos/edgedb/edgedb/dispatches
+
+
+Building Locally
+================
+
+It is possible to execute package build and test stages locally for linux
+targets using Docker:
+
+Build Stage
+-----------
+
+Build the packages for a given target:
+
+.. code-block:: shell
+
+    make TARGET=<target> build
+
+See the Makefile for the list of supported targets.  The Makefile also
+takes the following optional arguments:
+
+* ``SRC_REVISION``: EdgeDB git revision to build, defaults to ``master``;
+* ``PKG_REVISION``: numeric revision of the output package;
+* ``PKG_SUBDIST``: name of repository the package is intended for, currently
+  the only supported value is ``nightly``;
+* ``OUTPUTDIR``: the name of the directory where the build artifacts will
+  be stored;
+
+Test Stage
+----------
+
+Test the packages built with ``make build``:
+
+.. code-block:: shell
+
+    make TARGET=<target> test
+
+The values of the ``TARGET`` and ``OUTPUTDIR`` variables must be the same
+as used for ``make build``.
+
+There is also a test variant that checks systemd integration:
+
+.. code-block:: shell
+
+    make TARGET=<target> test-systemd
+
+Note that this requires the ability to run Docker containers with
+``CAP_ADMIN``.
