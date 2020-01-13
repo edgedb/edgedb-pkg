@@ -51,6 +51,11 @@ takes the following optional arguments:
   the only supported value is ``nightly``;
 * ``OUTPUTDIR``: the name of the directory where the build artifacts will
   be stored;
+* ``METAPKGDEV``: when set to ``true``, uses metapkg from the current
+  virtualenv instead of pulling it from Github, this is useful for debugging
+  or making changes to metapkg;
+* ``GET_SHELL``: when set to ``true``, start the shell instead of running the
+  build.
 
 Test Stage
 ----------
