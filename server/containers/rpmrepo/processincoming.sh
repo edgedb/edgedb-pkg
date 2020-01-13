@@ -32,6 +32,8 @@ while read -r -u 10 pkgname; do
     case "${dist}" in
         el7*)
             ;;
+        el8*)
+            ;;
         *)
             echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
     esac

@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM ubuntu:bionic
+FROM debian:buster
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\

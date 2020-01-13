@@ -9,6 +9,13 @@ set -Exeo pipefail
 pip install -U git+https://github.com/edgedb/metapkg
 pip install -U git+https://github.com/edgedb/edgedb-pkg
 
+if [ -n "${METAPKG_PATH}" ]; then
+    p=$(python -c 'import metapkg;print(metapkg.__path__[0])')
+    rm -rf "${p}"
+    cp -a "${METAPKG_PATH}" "${p}"
+    ls -al "${p}"
+fi
+
 extraopts=
 if [ -n "${SRC_REVISION}" ]; then
     extraopts+=" --source-revision=${SRC_REVISION}"

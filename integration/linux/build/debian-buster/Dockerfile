@@ -1,29 +1,32 @@
-FROM centos:%%PLACEHOLDER%%
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
+
+FROM buildpack-deps:buster
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
 
 # http://bugs.python.org/issue19846
 # > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG en_US.UTF-8
+ENV LANG C.UTF-8
 
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+# extra dependencies (over what buildpack-deps already includes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
+		libssl-dev \
+		tk-dev \
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN yum install -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en
-
-ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION %%PLACEHOLDER%%
-ENV GIT_VERSION 2.20.1
+ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
+ENV PYTHON_VERSION 3.8.1
 
 RUN set -ex \
 	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
-	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
@@ -33,12 +36,9 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
-	&& mkdir -p /usr/src/git \
-	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
-	&& rm git.tar.xz \
 	\
 	&& cd /usr/src/python \
-	&& gnuArch="$(gcc -dumpmachine)" \
+	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
 	&& ./configure \
 		--build="$gnuArch" \
 		--enable-loadable-sqlite-extensions \
@@ -58,12 +58,7 @@ RUN set -ex \
 		\) -exec rm -rf '{}' + \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version \
-	&& cd /usr/src/git \
-	&& make prefix=/usr/local V=1 -j $(nproc) all \
-	&& make prefix=/usr/local install \
-	&& rm -rf /usr/src/git \
-	&& git --version
+	&& python3 --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -73,7 +68,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
+ENV PYTHON_PIP_VERSION 19.3.1
 
 RUN set -ex; \
 	\
@@ -93,7 +88,52 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-%%WRITE_ENTRYPOINT%%
+RUN /bin/echo -e '#!/bin/bash\n\
+\n\
+if [ "$1" == "bash" ]; then\n\
+    exec /bin/bash\n\
+fi\n\
+\n\
+set -Exeo pipefail\n\
+\n\
+pip install -U git+https://github.com/edgedb/metapkg\n\
+pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+\n\
+if [ -n "${METAPKG_PATH}" ]; then\n\
+    p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
+    rm -rf "${p}"\n\
+    cp -a "${METAPKG_PATH}" "${p}"\n\
+    ls -al "${p}"\n\
+fi\n\
+\n\
+extraopts=\n\
+if [ -n "${SRC_REVISION}" ]; then\n\
+    extraopts+=" --source-revision=${SRC_REVISION}"\n\
+fi\n\
+\n\
+if [ -n "${PKG_REVISION}" ]; then\n\
+    if [ "${PKG_REVISION}" = "<current-date>" ]; then\n\
+        PKG_REVISION="$(date --utc +%Y%m%d%H)"\n\
+    fi\n\
+    extraopts+=" --pkg-revision=${PKG_REVISION}"\n\
+fi\n\
+\n\
+if [ -n "${PKG_SUBDIST}" ]; then\n\
+    extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
+fi\n\
+\n\
+dest="artifacts"\n\
+if [ -n "${PKG_PLATFORM}" ]; then\n\
+    dest+="/${PKG_PLATFORM}"\n\
+fi\n\
+if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
+    dest+="-${PKG_PLATFORM_VERSION}"\n\
+fi\n\
+\n\
+python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+\n\
+ls -al "${dest}"\n\' >/entrypoint.sh
+
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

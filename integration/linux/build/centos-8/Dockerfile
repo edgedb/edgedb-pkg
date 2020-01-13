@@ -1,4 +1,10 @@
-FROM centos:%%PLACEHOLDER%%
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
+
+FROM centos:8
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -14,8 +20,8 @@ RUN yum install -y \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en
 
-ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION %%PLACEHOLDER%%
+ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
+ENV PYTHON_VERSION 3.8.1
 ENV GIT_VERSION 2.20.1
 
 RUN set -ex \
@@ -73,7 +79,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
+ENV PYTHON_PIP_VERSION 19.3.1
 
 RUN set -ex; \
 	\
@@ -93,7 +99,52 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-%%WRITE_ENTRYPOINT%%
+RUN /bin/echo -e '#!/bin/bash\n\
+\n\
+if [ "$1" == "bash" ]; then\n\
+    exec /bin/bash\n\
+fi\n\
+\n\
+set -Exeo pipefail\n\
+\n\
+pip install -U git+https://github.com/edgedb/metapkg\n\
+pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+\n\
+if [ -n "${METAPKG_PATH}" ]; then\n\
+    p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
+    rm -rf "${p}"\n\
+    cp -a "${METAPKG_PATH}" "${p}"\n\
+    ls -al "${p}"\n\
+fi\n\
+\n\
+extraopts=\n\
+if [ -n "${SRC_REVISION}" ]; then\n\
+    extraopts+=" --source-revision=${SRC_REVISION}"\n\
+fi\n\
+\n\
+if [ -n "${PKG_REVISION}" ]; then\n\
+    if [ "${PKG_REVISION}" = "<current-date>" ]; then\n\
+        PKG_REVISION="$(date --utc +%Y%m%d%H)"\n\
+    fi\n\
+    extraopts+=" --pkg-revision=${PKG_REVISION}"\n\
+fi\n\
+\n\
+if [ -n "${PKG_SUBDIST}" ]; then\n\
+    extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
+fi\n\
+\n\
+dest="artifacts"\n\
+if [ -n "${PKG_PLATFORM}" ]; then\n\
+    dest+="/${PKG_PLATFORM}"\n\
+fi\n\
+if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
+    dest+="-${PKG_PLATFORM_VERSION}"\n\
+fi\n\
+\n\
+python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+\n\
+ls -al "${dest}"\n\' >/entrypoint.sh
+
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

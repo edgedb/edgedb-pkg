@@ -19,6 +19,24 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
+Codename: buster
+Architectures: amd64 source
+Components: main
+Description: EdgeDB Package Repository for Debian Buster
+SignWith: A3FF3633DF29BDBF
+
+Origin: EdgeDB Open Source Project
+Label: EdgeDB
+Suite: stable
+Codename: buster.nightly
+Architectures: amd64 source
+Components: main
+Description: EdgeDB Package Repository for Debian Buster (Nightly Builds)
+SignWith: A3FF3633DF29BDBF
+
+Origin: EdgeDB Open Source Project
+Label: EdgeDB
+Suite: stable
 Codename: bionic
 Architectures: amd64 source
 Components: main

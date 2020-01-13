@@ -1,20 +1,28 @@
-.PHONY: build test test-published update-images build-images check-target
+.PHONY: build test test-systemd test-published update-images check-target
 
 
-IMAGE_REGISTRY = containers.magicstack.net/magicstack/edgedb-pkg
-SUPPORTED_TARGETS = debian-stretch ubuntu-bionic ubuntu-xenial centos-7 fedora-29
+SUPPORTED_TARGETS = debian-stretch debian-buster \
+					ubuntu-bionic ubuntu-xenial \
+					centos-7 centos-8 fedora-29
+
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
 DISTRO = $(lastword $(subst -, ,$(TARGET)))
-METAPKG_PYTHON_VERSION = 3.8
 OUTPUTDIR := /tmp/artifacts
+GET_SHELL :=
+
+EXTRAENV =
+EXTRAVOLUMES =
 
 ifeq ($(METAPKGDEV),true)
 	_METAPKG_PATH = $(shell python -c 'import metapkg;print(metapkg.__path__[0])')
-	EXTRAVOLUMES = -v $(_METAPKG_PATH):/usr/local/lib/python$(METAPKG_PYTHON_VERSION)/site-packages/metapkg
+	EXTRAVOLUMES += -v $(_METAPKG_PATH):/metapkg
+	EXTRAENV += -e METAPKG_PATH=/metapkg
 endif
 
-EXTRAENV =
+ifeq ($(GET_SHELL),true)
+	COMMAND = bash
+endif
 
 ifneq ($(SRC_REVISION),)
 	EXTRAENV += -e SRC_REVISION=$(SRC_REVISION)
@@ -56,7 +64,8 @@ build: check-target
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		-e PYTHONPATH=/src \
 		-w /src \
-		edgedb-pkg/build:$(TARGET)
+		edgedb-pkg/build:$(TARGET) \
+		$(COMMAND)
 
 test: check-target
 	make -C integration/linux/test
@@ -67,7 +76,8 @@ test: check-target
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
-		edgedb-pkg/test:$(TARGET)
+		edgedb-pkg/test:$(TARGET) \
+		$(COMMAND)
 
 test-systemd: check-target
 	make -C integration/linux/test-systemd
@@ -90,4 +100,5 @@ test-published: check-target
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		-v $(ROOT):/src \
-		edgedb-pkg/testpublished:$(TARGET)
+		edgedb-pkg/testpublished:$(TARGET) \
+		$(COMMAND)

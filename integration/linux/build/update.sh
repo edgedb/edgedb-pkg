@@ -44,7 +44,11 @@ generated_warning() {
 	EOH
 }
 
-entrypoint="$(cat entrypoint.sh | sed -r -e 's/^(.*)$/\1\\n\\/g')"
+entrypoint="$(cat entrypoint.sh \
+				| sed -r -e 's/\\/\\\\/g' \
+				| sed -r -e 's/\x27/\x27\\\x27\x27/g' \
+				| sed -r -e 's/^(.*)$/\1\\n\\/g' \
+				| sed -r -e 's/&/\\&/g')"
 entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
 
 tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
@@ -126,3 +130,4 @@ sed -ri \
 	"${target}"
 
 awk -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
+rm "${tmp}"

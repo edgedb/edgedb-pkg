@@ -1,7 +1,7 @@
 .PHONY: all
 
 DOCKERFILES = $(addsuffix /Dockerfile, $(shell find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n'))
-DEPS = ./update.sh
+DEPS = ./update.sh ./entrypoint.sh
 
 all: $(DOCKERFILES)
 

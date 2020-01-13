@@ -1,0 +1,5 @@
+name: 'Build EdgeDB Package'
+author: 'EdgeDB'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

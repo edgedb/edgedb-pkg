@@ -18,7 +18,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext rsync
+	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
 ENV PYTHON_VERSION 3.8.1
@@ -109,6 +109,13 @@ set -Exeo pipefail\n\
 \n\
 pip install -U git+https://github.com/edgedb/metapkg\n\
 pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+\n\
+if [ -n "${METAPKG_PATH}" ]; then\n\
+    p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
+    rm -rf "${p}"\n\
+    cp -a "${METAPKG_PATH}" "${p}"\n\
+    ls -al "${p}"\n\
+fi\n\
 \n\
 extraopts=\n\
 if [ -n "${SRC_REVISION}" ]; then\n\

@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM ubuntu:bionic
+FROM centos:8
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
@@ -17,14 +17,12 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.deb"\n\
+re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
-echo "SLOT=$slot"\n\
 \n\
-apt-get update\n\
-apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \\\n\
-               ./"${dest}"/edgedb-${slot}_*_amd64.deb\n\
-su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-${slot}/bin/python3 \\\n\
+yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
+               "${dest}"/edgedb-${slot}*.x86_64.rpm\n\
+su edgedb -c "/usr/lib64/edgedb-${slot}/bin/python3 \\\n\
               -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \\\n\
               -e cqa_ -e tools_ --output-format=simple"\n\
 echo "Success!"\n\' >/entrypoint.sh

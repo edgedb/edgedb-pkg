@@ -29,6 +29,7 @@ class PostgreSQL(packages.BundledPackage):
     artifact_build_requirements = [
         'bison',
         'flex',
+        'perl',
         'systemd-dev ; extra == "capability-systemd"',
         'icu-dev (>=50)',
         'openssl-dev (>=1.0.2)',

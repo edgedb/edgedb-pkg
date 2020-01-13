@@ -1,4 +1,4 @@
 Name: main
 IncomingDir: /var/spool/reprepro/incoming/
 TempDir: /var/tmp/incoming-staging/
-Allow: stretch stretch.nightly bionic bionic.nightly xenial xenial.nightly
+Allow: stretch stretch.nightly buster buster.nightly bionic bionic.nightly xenial xenial.nightly
