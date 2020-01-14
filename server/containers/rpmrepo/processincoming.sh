@@ -54,9 +54,13 @@ while read -r -u 10 pkgname; do
     echo | rpm --resign "/tmp/repo-staging/${pkgname}"
     mv "/tmp/repo-staging/${pkgname}" "${local_dist}"
 
+    if [ "${subdist}" = "nightly" ]; then
+        rm $(repomanage --keep=3 --old "${local_dist}")
+    fi
+
     createrepo --update "${local_dist}"
     gpg --yes --batch --detach-sign --armor "${local_dist}/repodata/repomd.xml"
 
-    rsync -av "${local_dist}/" "${shared_dist}/"
+    rsync -av --delete "${local_dist}/" "${shared_dist}/"
 
 done 10<"${list}"

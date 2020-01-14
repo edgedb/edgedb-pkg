@@ -7,7 +7,7 @@ ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 RUN yum install -y \
         https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm \
     && yum install -y \
-        createrepo openssh-server bash incron sudo gnupg rpm-sign rsync \
+        createrepo openssh-server bash incron sudo gnupg rpm-sign rsync yum-utils \
     && groupadd --gid 2000 repomgr \
     && useradd --uid 2000 --gid 2000 repomgr \
     && groupadd uploaders \
