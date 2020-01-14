@@ -123,6 +123,10 @@ if [ -n "${PKG_SUBDIST}" ]; then\n\
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
 fi\n\
 \n\
+if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
+    extraopts+=" --extra-optimizations"\n\
+fi\n\
+\n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\

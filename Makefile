@@ -40,6 +40,9 @@ ifneq ($(PKG_SUBDIST),)
 	EXTRAENV += -e PKG_SUBDIST=$(PKG_SUBDIST)
 endif
 
+ifneq ($(EXTRA_OPTIMIZATIONS),)
+	EXTRAENV += -e EXTRA_OPTIMIZATIONS=true
+endif
 
 check-target:
 ifeq ($(TARGET),)

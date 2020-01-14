@@ -113,6 +113,12 @@ class PostgreSQL(packages.BundledPackage):
         if build.target.has_capability('systemd'):
             configure_flags['--with-systemd'] = None
 
+        if build.extra_optimizations_enabled() and build.supports_lto():
+            configure_flags['CFLAGS'] = (
+                '-O2 -flto -fuse-linker-plugin '
+                '-ffat-lto-objects -flto-partition=none'
+            )
+
         return build.sh_format_command(
             configure, configure_flags, force_args_eq=True)
 

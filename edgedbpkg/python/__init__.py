@@ -52,6 +52,11 @@ class Python(packages.BundledPackage):
             '--with-computed-gotos': None,
         }
 
+        if build.extra_optimizations_enabled():
+            configure_flags['--enable-optimizations'] = None
+            if build.supports_lto():
+                configure_flags['--with-lto'] = None
+
         if 'libffi' not in build.target.get_capabilities():
             configure_flags['--without-system-ffi'] = None
 

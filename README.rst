@@ -54,6 +54,9 @@ takes the following optional arguments:
 * ``METAPKGDEV``: when set to ``true``, uses metapkg from the current
   virtualenv instead of pulling it from Github, this is useful for debugging
   or making changes to metapkg;
+* ``EXTRA_OPTIMIZATIONS``: build with extra optimizations enabled, this
+  significantly increases the build time, but results in sligtly faster
+  binaries;
 * ``GET_SHELL``: when set to ``true``, start the shell instead of running the
   build.
 
