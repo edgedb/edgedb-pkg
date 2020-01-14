@@ -53,7 +53,8 @@ class Python(packages.BundledPackage):
         }
 
         if build.extra_optimizations_enabled():
-            configure_flags['--enable-optimizations'] = None
+            if build.supports_pgo():
+                configure_flags['--enable-optimizations'] = None
             if build.supports_lto():
                 configure_flags['--with-lto'] = None
 
