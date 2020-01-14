@@ -41,5 +41,9 @@ mv /tmp/repo-staging/"${filename}"* "/var/lib/repos/${dist}/"
 cp -a "/var/lib/repos/${dist}/${filename}" \
       "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}"
 
+touch "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}"
+
 cp -a "/var/lib/repos/${dist}/${filename}.asc" \
       "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}.asc"
+
+touch "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}.asc"
