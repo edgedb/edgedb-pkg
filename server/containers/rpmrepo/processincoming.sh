@@ -55,7 +55,10 @@ while read -r -u 10 pkgname; do
     mv "/tmp/repo-staging/${pkgname}" "${local_dist}"
 
     if [ "${subdist}" = "nightly" ]; then
-        rm $(repomanage --keep=3 --old "${local_dist}")
+        old_rpms=$(repomanage --keep=3 --old "${local_dist}")
+        if [ -n "${old_rpms}" ]; then
+            rm "${old_rpms}"
+        fi
     fi
 
     createrepo --update "${local_dist}"
