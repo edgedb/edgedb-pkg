@@ -45,7 +45,7 @@ Build the packages for a given target:
 See the Makefile for the list of supported targets.  The Makefile also
 takes the following optional arguments:
 
-* ``SRC_REVISION``: EdgeDB git revision to build, defaults to ``master``;
+* ``SRC_REF``: EdgeDB git ref to build, defaults to ``master``;
 * ``PKG_REVISION``: numeric revision of the output package;
 * ``PKG_SUBDIST``: name of repository the package is intended for, currently
   the only supported value is ``nightly``;

@@ -6,8 +6,8 @@ pip3 install -U git+https://github.com/edgedb/metapkg
 pip3 install -U git+https://github.com/edgedb/edgedb-pkg
 
 extraopts=
-if [ -n "${SRC_REVISION}" ]; then
-    extraopts+=" --source-revision=${SRC_REVISION}"
+if [ -n "${SRC_REF}" ]; then
+    extraopts+=" --source-ref=${SRC_REF}"
 fi
 
 if [ -n "${PKG_REVISION}" ]; then

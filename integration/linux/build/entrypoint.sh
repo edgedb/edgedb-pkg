@@ -17,8 +17,8 @@ if [ -n "${METAPKG_PATH}" ]; then
 fi
 
 extraopts=
-if [ -n "${SRC_REVISION}" ]; then
-    extraopts+=" --source-revision=${SRC_REVISION}"
+if [ -n "${SRC_REF}" ]; then
+    extraopts+=" --source-ref=${SRC_REF}"
 fi
 
 if [ -n "${PKG_REVISION}" ]; then

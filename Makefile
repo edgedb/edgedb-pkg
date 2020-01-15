@@ -24,8 +24,8 @@ ifeq ($(GET_SHELL),true)
 	COMMAND = bash
 endif
 
-ifneq ($(SRC_REVISION),)
-	EXTRAENV += -e SRC_REVISION=$(SRC_REVISION)
+ifneq ($(SRC_REF),)
+	EXTRAENV += -e SRC_REF=$(SRC_REF)
 endif
 
 ifneq ($(PKG_VERSION_SLOT),)
