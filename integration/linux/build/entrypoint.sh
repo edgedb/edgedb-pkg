@@ -21,6 +21,10 @@ if [ -n "${SRC_REF}" ]; then
     extraopts+=" --source-ref=${SRC_REF}"
 fi
 
+if [ -n "${PKG_VERSION}" ]; then
+    extraopts+=" --pkg-version=${PKG_VERSION}"
+fi
+
 if [ -n "${PKG_REVISION}" ]; then
     if [ "${PKG_REVISION}" = "<current-date>" ]; then
         PKG_REVISION="$(date --utc +%Y%m%d%H)"
