@@ -45,7 +45,7 @@ class PostgreSQL(packages.BundledPackage):
 
     @classmethod
     def to_vcs_version(cls, version: str) -> str:
-        return f"tags/REL_{version.replace('.', '_')}"
+        return f"REL_{version.replace('.', '_')}"
 
     def get_configure_script(self, build) -> str:
         extra_version = ''
