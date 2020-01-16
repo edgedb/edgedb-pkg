@@ -24,15 +24,7 @@ echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \
 
 try=1
 while [ $try -le 30 ]; do
-    apt-get update && break || true
-    try=$(( $try + 1 ))
-    echo "Retrying in 10 seconds (try #${try})"
-    sleep 10
-done
-
-try=1
-while [ $try -le 30 ]; do
-    apt-get install -y edgedb-${slot} && break || true
+    apt-get update && apt-get install -y edgedb-${slot} && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10

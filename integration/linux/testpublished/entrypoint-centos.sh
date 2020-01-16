@@ -25,6 +25,7 @@ EOF
 
 try=1
 while [ $try -le 30 ]; do
+    yum makecache
     yum install --verbose -y edgedb-${slot} && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
