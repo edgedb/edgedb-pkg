@@ -199,7 +199,38 @@ spec:
         - name: gpg-pub-keys
           mountPath: /srv/www/keys
           readOnly: true
+      volumes:
+      - name: gcs-bucket
+        hostPath:
+          path: /mounts/repos
+          type: Directory
+      - name: nginx-conf
+        configMap:
+          name: "<service-name>-nginx-conf"
+      - name: gpg-pub-keys
+        secret:
+          defaultMode: 0444
+          secretName: <service-name>-gpg-pub-keys
+---
 
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  name: "<service-name>-upload"
+  namespace: "default"
+  labels:
+    app: "<service-name>-upload"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "<service-name>-upload"
+  template:
+    metadata:
+      labels:
+        app: "<service-name>-upload"
+    spec:
+      containers:
       - name: "reprepro"
         image: "gcr.io/edgedb-infra/aptrepo:latest"
         imagePullPolicy: Always
@@ -376,7 +407,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: "<service-name>"
+    app: "<service-name>-upload"
   ports:
   - protocol: TCP
     name: deb-ssh-port
