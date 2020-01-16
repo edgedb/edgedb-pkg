@@ -9,6 +9,10 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
 \n\
+if [ "$1" == "bash" ]; then\n\
+    exec /bin/bash\n\
+fi\n\
+\n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\

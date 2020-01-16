@@ -2,6 +2,10 @@
 
 set -ex
 
+if [ "$1" == "bash" ]; then
+    exec /bin/bash
+fi
+
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"

@@ -16,7 +16,7 @@ if [ -z "${slot}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
-dist='\''el\\$releasever'\''\n\
+dist='\''el$releasever'\''\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     dist+=".${PKG_SUBDIST}"\n\
 fi\n\
@@ -30,10 +30,14 @@ gpgcheck=1\n\
 gpgkey=https://packages.edgedb.com/keys/edgedb.asc\n\
 EOF\n\
 \n\
-echo "Pausing for 5 minutes to let the package repo settle..."\n\
-sleep 300\n\
+try=1\n\
+while [ $try -le 30 ]; do\n\
+    yum install --verbose -y edgedb-${slot} && break || true\n\
+    try=$(( $try + 1 ))\n\
+    echo "Retrying in 10 seconds (try #${try})"\n\
+    sleep 10\n\
+done\n\
 \n\
-yum install -y edgedb-${slot}\n\
 edgedb --help\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh

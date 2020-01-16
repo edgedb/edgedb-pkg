@@ -9,7 +9,7 @@ if [ -z "${slot}" ]; then
     exit 1
 fi
 
-dist='el\\$releasever'
+dist='el$releasever'
 if [ -n "${PKG_SUBDIST}" ]; then
     dist+=".${PKG_SUBDIST}"
 fi
@@ -25,7 +25,7 @@ EOF
 
 try=1
 while [ $try -le 30 ]; do
-    yum install -y edgedb-${slot} && break || true
+    yum install --verbose -y edgedb-${slot} && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10
