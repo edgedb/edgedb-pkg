@@ -169,7 +169,7 @@ class Python(packages.BundledPackage):
             extra_install = ''
 
         return textwrap.dedent(f'''\
-            {make} DESTDIR=$(pwd)/"{installdest}" ENSUREPIP=no install
+            {make} -j1 DESTDIR=$(pwd)/"{installdest}" ENSUREPIP=no install
             {extra_install}
         ''').strip()
 
