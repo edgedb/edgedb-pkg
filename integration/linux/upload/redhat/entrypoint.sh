@@ -18,15 +18,18 @@ Host upload-packages.edgedb.com
 EOF
 
 dest="artifacts"
+key=""
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"
+    key+="-${PKG_PLATFORM}"
 fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
+    key+="-${PKG_PLATFORM_VERSION}"
 fi
 
 cd "${dest}"
-ls *.rpm > upload.list
+ls *.rpm > "upload${key}.list"
 
 cat <<EOF >"/tmp/sftp-batch"
 put *.rpm incoming/
