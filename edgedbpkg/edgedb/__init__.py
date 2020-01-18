@@ -1,3 +1,4 @@
+import datetime
 import textwrap
 
 from poetry import packages as poetry_pkg
@@ -59,11 +60,21 @@ class EdgeDB(packages.BundledPythonPackage):
         bindir = build.get_install_path('bin')
         runstate = build.get_install_path('runstate') / 'edgedb'
         pg_config = bindir / 'pg_config'
-        return (
-            ['build', f'--pg-config={pg_config}',
-             f'--runstatedir={runstate}'] +
-            super().get_bdist_wheel_command(build)
-        )
+
+        command = [
+            'build',
+            f'--pg-config={pg_config}',
+            f'--runstatedir={runstate}',
+        ]
+        if 'dev' not in str(self.version):
+            git_rev = self.resolve_version(build.io)
+            curdate = datetime.datetime.now(tz=datetime.timezone.utc)
+            curdate_str = curdate.strftime(r'%Y%m%d')
+            command += [
+                f'--version-suffix=g{git_rev[:9]}.d{curdate_str}'
+            ]
+
+        return command + super().get_bdist_wheel_command(build)
 
     def get_build_install_script(self, build) -> str:
         script = super().get_build_install_script(build)

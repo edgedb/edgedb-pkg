@@ -31,9 +31,9 @@ fi
 cd "${dest}"
 ls *.rpm > "upload${key}.list"
 
-cat <<EOF >"/tmp/sftp-batch"
+cat <<EOF >/tmp/sftp-batch
 put *.rpm incoming/
-put upload.list incoming/triggers/
+put upload${key}.list incoming/triggers/
 EOF
 
 sftp -b /tmp/sftp-batch uploader@upload-packages.edgedb.com
