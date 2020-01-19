@@ -32,6 +32,7 @@ cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
 version="3.8"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | jq -r .info.version)"
+rustVersion="1.40.0"
 
 generated_warning() {
 	cat <<-EOH
@@ -125,6 +126,7 @@ sed -ri \
 	-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
 	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
 	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
+	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
 	-e 's!^(FROM (buildpack-deps)):.*!\1:'"${variant#*-}"'!' \
 	-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
 	"${target}"

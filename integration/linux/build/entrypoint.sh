@@ -1,9 +1,5 @@
 #!/bin/bash
 
-if [ "$1" == "bash" ]; then
-    exec /bin/bash
-fi
-
 set -Exeo pipefail
 
 pip install -U git+https://github.com/edgedb/metapkg
@@ -48,6 +44,10 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
-
-ls -al "${dest}"
+if [ "$1" == "bash" ]; then
+    echo python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
+    exec /bin/bash
+else
+    python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
+    ls -al "${dest}"
+fi

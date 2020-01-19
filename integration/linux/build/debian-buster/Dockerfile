@@ -22,6 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
 ENV PYTHON_VERSION 3.8.1
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+ENV PATH /usr/local/cargo/bin:$PATH
+ENV RUST_VERSION 1.40.0
 
 RUN set -ex \
 	\
@@ -56,9 +60,14 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version
+	&& python3 --version \
+	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
+		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
+	&& rustc --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -89,10 +98,6 @@ RUN set -ex; \
 	rm -f get-pip.py
 
 RUN /bin/echo -e '#!/bin/bash\n\
-\n\
-if [ "$1" == "bash" ]; then\n\
-    exec /bin/bash\n\
-fi\n\
 \n\
 set -Exeo pipefail\n\
 \n\
@@ -138,9 +143,13 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
-\n\
-ls -al "${dest}"\n\' >/entrypoint.sh
+if [ "$1" == "bash" ]; then\n\
+    echo python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+    exec /bin/bash\n\
+else\n\
+    python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+    ls -al "${dest}"\n\
+fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
