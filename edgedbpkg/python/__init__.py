@@ -83,8 +83,9 @@ class Python(packages.BundledPackage):
 
         exe_suffix = ''
         sitescript = (
-            f'import site; '
-            f'print(site.getsitepackages([\\"${{p}}\\"])[0])'
+            f'import site; import pathlib; '
+            f'print(pathlib.Path( '
+            f'site.getsitepackages([\\"${{p}}\\"])[0]).resolve())'
         )
 
         openssl_pkg = build.get_package('openssl')
