@@ -9,11 +9,14 @@ class ICU(packages.BundledPackage):
     name = 'icu'
     aliases = ['icu-dev']
 
-    _server = "http://download.icu-project.org/files/icu4c/{version}/"
+    _server = "https://github.com/unicode-org/icu/releases/download/"
 
     sources = [
         {
-            'url': _server + '/icu4c-{underscore_version}-src.tgz',
+            'url': (
+                _server + 'release-{dash_version}/'
+                + 'icu4c-{underscore_version}-src.tgz'
+            ),
         }
     ]
 

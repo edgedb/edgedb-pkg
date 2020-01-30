@@ -36,11 +36,6 @@ class OpenSSL(packages.BundledPackage):
             'enable-ec_nistp_64_gcc_128': None,
         }
 
-        # Yeah, OpenSSL is like that.
-        # TODO: can be removed after the switch to 3.0.0.
-        installdest = build.get_install_dir(self, relative_to='pkgbuild')
-        configure_flags['--install_prefix'] = f'!$(pwd)/"{installdest}"'
-
         cfgcmd = build.sh_format_command(configure, configure_flags)
         if platform.system() == 'Darwin':
             # Force 64-bit build
