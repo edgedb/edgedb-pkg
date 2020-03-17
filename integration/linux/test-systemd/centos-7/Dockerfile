@@ -47,7 +47,7 @@ cat >/usr/local/bin/script.sh <<'\''EOF'\''\n\
 set -xeuo pipefail\n\
 \n\
 function finish() {\n\
-    /bin/systemctl exit \\$?\n\
+    /bin/systemctl exit $?\n\
 }\n\
 \n\
 trap finish 0\n\
@@ -69,8 +69,8 @@ yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
 systemctl enable --now edgedb-${slot} \\\n\
     || (journalctl -u edgedb-${slot} && exit 1)\n\
 \n\
-su edgedb -c '\''edgedb --admin configure insert auth \\\n\
-                --method=trust --priority=0'\''\n\
+su edgedb -c '\''edgedb --admin configure insert Auth \\\n\
+                --method=Trust --priority=0'\''\n\
 [[ "$(echo '\''SELECT 1 + 3;'\'' | edgedb -u edgedb)" == *4* ]] || exit 1\n\
 echo "Success!"\n\
 \n\

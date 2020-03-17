@@ -30,8 +30,8 @@ yum install -y "${dest}"/edgedb-common*.x86_64.rpm \
 systemctl enable --now edgedb-${slot} \
     || (journalctl -u edgedb-${slot} && exit 1)
 
-su edgedb -c 'edgedb --admin configure insert auth \
-                --method=trust --priority=0'
+su edgedb -c 'edgedb --admin configure insert Auth \
+                --method=Trust --priority=0'
 [[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
 

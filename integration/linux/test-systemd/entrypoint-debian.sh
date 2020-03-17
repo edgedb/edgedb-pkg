@@ -32,8 +32,10 @@ apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \
 systemctl enable --now edgedb-${slot} \
     || (journalctl -u edgedb-${slot} && exit 1)
 
-su edgedb -c 'edgedb --admin configure insert auth \
-                --method=trust --priority=0'
+ls -al /var/run/edgedb/
+
+su edgedb -c 'edgedb --admin configure insert Auth \
+                --method=Trust --priority=0'
 [[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
 

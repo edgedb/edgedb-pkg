@@ -4,13 +4,14 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM fedora:29
+FROM debian:buster
 
 ENV container docker
 
 STOPSIGNAL SIGRTMIN+3
 
-RUN yum install -y systemd
+RUN apt-get update && apt-get install -y --no-install-recommends systemd \
+	&& rm -rf /var/lib/apt/lists/*
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
@@ -35,14 +36,18 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
+re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.deb"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
+echo "SLOT=$slot"\n\
 \n\
-yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
-               "${dest}"/edgedb-${slot}*.x86_64.rpm\n\
-\n\
+export DEBIAN_FRONTEND=noninteractive\n\
+apt-get update\n\
+apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \\\n\
+               ./"${dest}"/edgedb-${slot}_*_amd64.deb\n\
 systemctl enable --now edgedb-${slot} \\\n\
     || (journalctl -u edgedb-${slot} && exit 1)\n\
+\n\
+ls -al /var/run/edgedb/\n\
 \n\
 su edgedb -c '\''edgedb --admin configure insert Auth \\\n\
                 --method=Trust --priority=0'\''\n\
