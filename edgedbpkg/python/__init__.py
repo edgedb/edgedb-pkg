@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import *
+
 import platform
 import textwrap
 
@@ -75,6 +78,34 @@ class Python(packages.BundledPackage):
 
         return build.sh_format_command(configure, configure_flags)
 
+    def _get_make_env(self, build) -> str:
+        openssl_pkg = build.get_package('openssl')
+        if build.is_bundled(openssl_pkg):
+            # Make sure bundled libssl gets found, since it's only a
+            # temp install at this point.
+            openssl_root = build.get_install_dir(
+                openssl_pkg, relative_to='pkgbuild')
+            openssl_lib_path = (
+                openssl_root
+                / build.get_install_path('lib').relative_to('/')
+            )
+
+            if platform.system() == 'Darwin':
+                fw_root = build.target.get_framework_root(build).parent
+                openssl_fw_root = openssl_root / fw_root.relative_to('/')
+                env = [
+                    f'DYLD_LIBRARY_PATH="$(pwd)/{openssl_lib_path}"',
+                    f'DYLD_FRAMEWORK_PATH="$(pwd)/{openssl_fw_root}"',
+                ]
+            else:
+                env = [
+                    f'LD_LIBRARY_PATH="$(pwd)/{openssl_lib_path}"'
+                ]
+        else:
+            env = []
+
+        return ' '.join(env)
+
     def get_build_script(self, build) -> str:
         make = build.sh_get_command('make')
 
@@ -92,42 +123,21 @@ class Python(packages.BundledPackage):
             f'site.getsitepackages([\\"${{p}}\\"])[0]).resolve())'
         )
 
-        openssl_pkg = build.get_package('openssl')
-        if build.is_bundled(openssl_pkg):
-            # Make sure bundled libssl gets found, since it's only a
-            # temp install at this point.
-            openssl_root = build.get_install_dir(
-                openssl_pkg, relative_to='pkgbuild')
-            openssl_lib_path = (
-                openssl_root
-                / build.get_install_path('lib').relative_to('/')
-            )
-
-            if platform.system() == 'Darwin':
-                fw_root = build.target.get_framework_root(build).parent
-                openssl_fw_root = openssl_root / fw_root.relative_to('/')
-                env = (
-                    f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
-                    f'\nexport DYLD_FRAMEWORK_PATH=$(pwd)/"{openssl_fw_root}"'
-                    f'\nls -al $(pwd)/"{openssl_lib_path}"'
-                )
-            else:
-                env = f'export LD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
-        else:
-            env = ''
-
         python = f'python{exe_suffix}'
+
+        env = self._get_make_env(build)
 
         make_wrapper = textwrap.dedent(f'''\
             echo '#!/bin/sh' > python-wrapper
             echo 'unset __PYVENV_LAUNCHER__' >> python-wrapper
-            echo {env} >> python-wrapper
+            {f"echo export {env} >> python-wrapper" if env else ""}
             echo 'd=$(dirname $0)' >> python-wrapper
             echo 'p=${{d}}/{dest}/{prefix}' >> python-wrapper
             echo 's=$(${{d}}/{python} -c "{sitescript}")' >> python-wrapper
             echo export PYTHONPATH='${{s}}' >> python-wrapper
             echo exec '${{d}}/{python}' '"$@"' >> python-wrapper
             chmod +x python-wrapper
+            cat python-wrapper
         ''')
 
         disabled_modules = '_sqlite3 _tkinter _dbm _gdbm _lzma _bz2'
@@ -142,8 +152,7 @@ class Python(packages.BundledPackage):
             # make sure config.c is regenerated reliably by make
             rm Modules/config.c
             ls -al Modules/
-            {env}
-            {make}
+            {make} {env}
             ./{python} -m ensurepip --root "{dest}"
             {make_wrapper}
         ''')
@@ -178,8 +187,11 @@ class Python(packages.BundledPackage):
         else:
             extra_install = ''
 
+        env = self._get_make_env(build)
+
         return textwrap.dedent(f'''\
-            {make} -j1 DESTDIR=$(pwd)/"{installdest}" ENSUREPIP=no install
+            {make} -j1 DESTDIR=$(pwd)/"{installdest}" {env} \
+                ENSUREPIP=no install
             {extra_install}
         ''').strip()
 
