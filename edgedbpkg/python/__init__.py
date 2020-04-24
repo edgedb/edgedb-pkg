@@ -81,7 +81,11 @@ class Python(packages.BundledPackage):
         prefix = build.get_full_install_prefix().relative_to('/')
         dest = build.get_temp_root(relative_to='pkgbuild')
 
-        exe_suffix = ''
+        if platform.system() == 'Darwin':
+            exe_suffix = '.exe'
+        else:
+            exe_suffix = ''
+
         sitescript = (
             f'import site; import pathlib; '
             f'print(pathlib.Path( '
@@ -92,16 +96,20 @@ class Python(packages.BundledPackage):
         if build.is_bundled(openssl_pkg):
             # Make sure bundled libssl gets found, since it's only a
             # temp install at this point.
-            openssl_path = build.get_install_dir(
+            openssl_root = build.get_install_dir(
                 openssl_pkg, relative_to='pkgbuild')
             openssl_lib_path = (
-                openssl_path
+                openssl_root
                 / build.get_install_path('lib').relative_to('/')
             )
 
             if platform.system() == 'Darwin':
-                env = f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
-                exe_suffix = '.exe'
+                fw_root = build.target.get_framework_root(build).parent
+                openssl_fw_root = openssl_root / fw_root.relative_to('/')
+                env = (
+                    f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
+                    f'\nexport DYLD_FRAMEWORK_PATH=$(pwd)/"{openssl_fw_root}"'
+                )
             else:
                 env = f'export LD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
         else:
