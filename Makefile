@@ -1,9 +1,15 @@
 .PHONY: build test test-systemd test-published update-images check-target
 
 
-SUPPORTED_TARGETS = debian-stretch debian-buster \
-					ubuntu-bionic ubuntu-xenial \
-					centos-7 centos-8 fedora-29
+SUPPORTED_TARGETS = \
+	debian-stretch \
+	debian-buster \
+	ubuntu-bionic \
+	ubuntu-xenial \
+	ubuntu-focal \
+	centos-7 \
+	centos-8 \
+	fedora-29
 
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
@@ -46,6 +52,10 @@ endif
 
 ifneq ($(EXTRA_OPTIMIZATIONS),)
 	EXTRAENV += -e EXTRA_OPTIMIZATIONS=true
+endif
+
+ifneq ($(PACKAGE),)
+    EXTRAENV += -e PACKAGE=$(PACKAGE)
 endif
 
 check-target:

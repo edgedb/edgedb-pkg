@@ -38,14 +38,14 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        'postgresql-edgedb (== 12.1)',
+        'postgresql-edgedb (== 12.2)',
         'pypkg-edgedb',
         'tzdata; extra == "capability-tzdata"',
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version='12.1'),
-        python_bundle.Python(version='3.8.1'),
+        postgresql.PostgreSQL(version='12.2'),
+        python_bundle.Python(version='3.8.2'),
     ]
 
     @property
@@ -160,6 +160,5 @@ class EdgeDB(packages.BundledPythonPackage):
         bindir = build.get_install_path('bin')
 
         return [
-            bindir / 'edgedb',
             bindir / 'edgedb-server',
         ]

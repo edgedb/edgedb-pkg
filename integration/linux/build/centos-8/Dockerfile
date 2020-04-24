@@ -26,7 +26,7 @@ ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.41.1
+ENV RUST_VERSION 1.42.0
 
 RUN set -ex \
 	\
@@ -154,11 +154,15 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
+if [ -z "${PACKAGE}" ]; then\n\
+    PACKAGE="edgedbpkg.edgedb:EdgeDB"\n\
+fi\n\
+\n\
 if [ "$1" == "bash" ]; then\n\
-    echo python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+    echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     exec /bin/bash\n\
 else\n\
-    python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB\n\
+    python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     ls -al "${dest}"\n\
 fi\n\' >/entrypoint.sh
 

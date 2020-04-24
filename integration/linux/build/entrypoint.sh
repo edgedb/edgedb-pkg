@@ -44,10 +44,14 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
+if [ -z "${PACKAGE}" ]; then
+    PACKAGE="edgedbpkg.edgedb:EdgeDB"
+fi
+
 if [ "$1" == "bash" ]; then
-    echo python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
+    echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
     exec /bin/bash
 else
-    python -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
+    python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
     ls -al "${dest}"
 fi

@@ -1,4 +1,4 @@
-From 64ba0cf1c5eb843f1014d6ac7bd165e149091b85 Mon Sep 17 00:00:00 2001
+From 2241d0676b695c8a04a0657a77266f4b1ddb1da7 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
@@ -17,7 +17,7 @@ Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
  10 files changed, 137 insertions(+), 4 deletions(-)
 
 diff --git a/configure b/configure
-index d8eda1df43..1b0a314786 100755
+index c22d3de89a..f5de47f300 100755
 --- a/configure
 +++ b/configure
 @@ -709,6 +709,8 @@ UUID_EXTRA_OBJS
@@ -163,17 +163,17 @@ index d8eda1df43..1b0a314786 100755
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
  if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
-@@ -12173,6 +12279,8 @@ _ACEOF
- fi
- done
+@@ -12210,6 +12316,8 @@ $as_echo "$ac_cv_func_ssl_clear_options" >&6; }
+ $as_echo "#define HAVE_SSL_CLEAR_OPTIONS 1" >>confdefs.h
  
+   fi
 +
 +  LIBS=$pgac_save_LIBS
  fi
  
  if test "$with_pam" = yes ; then
 diff --git a/configure.in b/configure.in
-index edb362bc78..70a1b4c80d 100644
+index 976f90d45b..705dc6cbc6 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -844,6 +844,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
@@ -198,10 +198,10 @@ index edb362bc78..70a1b4c80d 100644
    if test "$PORTNAME" != "win32"; then
       AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
-@@ -1220,6 +1228,8 @@ if test "$with_openssl" = yes ; then
-   # thread-safety. In 1.1.0, it's no longer required, and CRYPTO_lock()
-   # function was removed.
-   AC_CHECK_FUNCS([CRYPTO_lock])
+@@ -1234,6 +1242,8 @@ if test "$with_openssl" = yes ; then
+   if test $ac_cv_func_ssl_clear_options = yes ; then
+     AC_DEFINE(HAVE_SSL_CLEAR_OPTIONS, 1, [Define to 1 if you have SSL_clear_options()])
+   fi
 +
 +  LIBS=$pgac_save_LIBS
  fi
@@ -322,5 +322,5 @@ index 4b0a8c719d..b66d7cc947 100644
  
  ifeq ($(with_gssapi),yes)
 -- 
-2.23.0
+2.26.2
 

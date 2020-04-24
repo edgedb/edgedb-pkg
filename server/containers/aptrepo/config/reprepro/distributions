@@ -37,6 +37,24 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
+Codename: xenial
+Architectures: amd64 source
+Components: main
+Description: EdgeDB Package Repository for Ubuntu 16.04
+SignWith: A3FF3633DF29BDBF
+
+Origin: EdgeDB Open Source Project
+Label: EdgeDB
+Suite: stable
+Codename: xenial.nightly
+Architectures: amd64 source
+Components: main
+Description: EdgeDB Package Repository for Ubuntu 16.04 (Nightly Builds)
+SignWith: A3FF3633DF29BDBF
+
+Origin: EdgeDB Open Source Project
+Label: EdgeDB
+Suite: stable
 Codename: bionic
 Architectures: amd64 source
 Components: main
@@ -55,17 +73,17 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: xenial
+Codename: focal
 Architectures: amd64 source
 Components: main
-Description: EdgeDB Package Repository for Ubuntu 16.04
+Description: EdgeDB Package Repository for Ubuntu 20.04
 SignWith: A3FF3633DF29BDBF
 
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: xenial.nightly
+Codename: focal.nightly
 Architectures: amd64 source
 Components: main
-Description: EdgeDB Package Repository for Ubuntu 16.04 (Nightly Builds)
+Description: EdgeDB Package Repository for Ubuntu 20.04 (Nightly Builds)
 SignWith: A3FF3633DF29BDBF
