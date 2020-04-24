@@ -109,6 +109,7 @@ class Python(packages.BundledPackage):
                 env = (
                     f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
                     f'\nexport DYLD_FRAMEWORK_PATH=$(pwd)/"{openssl_fw_root}"'
+                    f'\nls -al $(pwd)/"{openssl_lib_path}"'
                 )
             else:
                 env = f'export LD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
