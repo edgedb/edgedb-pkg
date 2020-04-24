@@ -35,6 +35,33 @@ class Python(packages.BundledPackage):
         openssl.OpenSSL(version='1.0.2o')
     ]
 
+    def _get_build_env_vars(self, build) -> str:
+        openssl_pkg = build.get_package('openssl')
+        if build.is_bundled(openssl_pkg):
+            # Make sure bundled libssl gets found, since it's only a
+            # temp install at this point.
+            openssl_path = build.get_install_dir(
+                openssl_pkg, relative_to='pkgbuild')
+            openssl_lib_path = (
+                openssl_path
+                / build.get_install_path('lib').relative_to('/')
+            )
+
+            if platform.system() == 'Darwin':
+                env = (
+                    f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
+                    ':${DYLD_LIBRARY_PATH}'
+                )
+            else:
+                env = (
+                    f'export LD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
+                    ':${LD_LIBRARY_PATH}'
+                )
+        else:
+            env = ''
+
+        return env
+
     def get_configure_script(self, build) -> str:
         sdir = build.get_source_dir(self, relative_to='pkgbuild')
 
@@ -73,7 +100,9 @@ class Python(packages.BundledPackage):
             openssl_path /= build.get_full_install_prefix().relative_to('/')
             configure_flags['--with-openssl'] = openssl_path
 
-        return build.sh_format_command(configure, configure_flags)
+        env = self._get_build_env_vars(build)
+
+        return f'{env}\n{build.sh_format_command(configure, configure_flags)}'
 
     def get_build_script(self, build) -> str:
         make = build.sh_get_command('make')
@@ -81,31 +110,18 @@ class Python(packages.BundledPackage):
         prefix = build.get_full_install_prefix().relative_to('/')
         dest = build.get_temp_root(relative_to='pkgbuild')
 
-        exe_suffix = ''
         sitescript = (
             f'import site; import pathlib; '
             f'print(pathlib.Path( '
             f'site.getsitepackages([\\"${{p}}\\"])[0]).resolve())'
         )
 
-        openssl_pkg = build.get_package('openssl')
-        if build.is_bundled(openssl_pkg):
-            # Make sure bundled libssl gets found, since it's only a
-            # temp install at this point.
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to='pkgbuild')
-            openssl_lib_path = (
-                openssl_path
-                / build.get_install_path('lib').relative_to('/')
-            )
+        env = self._get_build_env_vars(build)
 
-            if platform.system() == 'Darwin':
-                env = f'export DYLD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
-                exe_suffix = '.exe'
-            else:
-                env = f'export LD_LIBRARY_PATH=$(pwd)/"{openssl_lib_path}"'
+        if platform.system() == 'Darwin':
+            exe_suffix = '.exe'
         else:
-            env = ''
+            exe_suffix = ''
 
         python = f'python{exe_suffix}'
 
