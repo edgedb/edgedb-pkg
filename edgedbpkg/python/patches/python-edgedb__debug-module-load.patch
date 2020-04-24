@@ -1,0 +1,26 @@
+From b4f729ef50123d27cee4600cceaaf8ebe7b12cc0 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Fri, 24 Apr 2020 15:35:08 -0700
+Subject: [PATCH] Print environment on module load failure
+
+---
+ setup.py | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/setup.py b/setup.py
+index b168ed4082..64f53f1906 100644
+--- a/setup.py
++++ b/setup.py
+@@ -531,6 +531,9 @@ class PyBuildExt(build_ext):
+             self.failed_on_import.append(ext.name)
+             self.announce('*** WARNING: renaming "%s" since importing it'
+                           ' failed: %s' % (ext.name, why), level=3)
++            print('*** ENVIRONMENT:')
++            import pprint
++            pprint.pprint(os.environ)
+             assert not self.inplace
+             basename, tail = os.path.splitext(ext_filename)
+             newname = basename + "_failed" + tail
+-- 
+2.26.2
+
