@@ -17,7 +17,7 @@ if [ -n "${PKG_SUBDIST}" ]; then
 fi
 
 apt-get update
-apt-get install -y curl gnupg apt-transport-https
+apt-get install -y curl gnupg apt-transport-https ncurses-bin
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
 echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \
     >> /etc/apt/sources.list.d/edgedb.list
@@ -30,4 +30,4 @@ while [ $try -le 30 ]; do
     sleep 10
 done
 
-edgedb --help
+edgedb-server --help

@@ -24,7 +24,7 @@ if [ -n "${PKG_SUBDIST}" ]; then\n\
 fi\n\
 \n\
 apt-get update\n\
-apt-get install -y curl gnupg apt-transport-https\n\
+apt-get install -y curl gnupg apt-transport-https ncurses-bin\n\
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
 echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \\\n\
     >> /etc/apt/sources.list.d/edgedb.list\n\
@@ -37,7 +37,7 @@ while [ $try -le 30 ]; do\n\
     sleep 10\n\
 done\n\
 \n\
-edgedb --help\n\' >/entrypoint.sh
+edgedb-server --help\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

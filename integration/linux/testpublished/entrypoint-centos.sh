@@ -31,4 +31,4 @@ while [ $try -le 30 ]; do
     sleep 10
 done
 
-edgedb --help
+edgedb-server --help
