@@ -29,10 +29,15 @@ dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"
 fi
+
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-python3 -m metapkg build --dest="${dest}" ${extraopts} edgedbpkg.edgedb:EdgeDB
+if [ -z "${PACKAGE}" ]; then
+    PACKAGE="edgedbpkg.edgedb:EdgeDB"
+fi
+
+python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
 
 ls -al "${dest}"
