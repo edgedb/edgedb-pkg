@@ -9,7 +9,8 @@ SUPPORTED_TARGETS = \
 	ubuntu-focal \
 	centos-7 \
 	centos-8 \
-	fedora-29
+	fedora-29 \
+	linux-x86_64
 
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
@@ -56,6 +57,10 @@ endif
 
 ifneq ($(PACKAGE),)
     EXTRAENV += -e PACKAGE=$(PACKAGE)
+endif
+
+ifneq ($(BUILD_GENERIC),)
+	EXTRAENV += -e BUILD_GENERIC=$(BUILD_GENERIC)
 endif
 
 check-target:

@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:focal
+FROM buildpack-deps:buster
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -14,11 +14,12 @@ ENV PATH /usr/local/bin:$PATH
 ENV LANG C.UTF-8
 
 # extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
-	apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
 # Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
 		libssl-dev \
 		tk-dev \
+		musl-tools \
+		rsync \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
@@ -61,12 +62,14 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
 	&& python3 --version \
-	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+		-y --no-modify-path --profile minimal \
+		--target x86_64-unknown-linux-musl \
+		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	&& rustc --version
 

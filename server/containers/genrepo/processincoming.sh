@@ -4,46 +4,54 @@ set -Eexuo pipefail
 shopt -s nullglob
 
 if [ "$#" -ne 1 ]; then
-    echo "Usage: $(basename $0) <pkg-file>" >&2
+    echo "Usage: $(basename $0) <upload-list>" >&2
     exit 1
 fi
 
-pkg=$1
-dist=$(basename $(dirname $pkg))
+list=$1
+re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_(.*)(\.pkg|\.zip|\.tar\..*)?$"
 
-case "${dist}" in
-    macos)
-        ;;
-    source)
-        ;;
-    *)
-        echo "Unsupported dist: ${dist}" >&2; exit 1 ;;
-esac
+while read -r -u 10 filename; do
+    dist=${filename%%/*}
+    pkg=${filename#*/}
+    leafname=$(basename ${filename})
+    pkgname="$(echo ${pkg} | sed -n -E "s/${re}/\1/p")"
+    if [ -z "${pkgname}" ]; then
+        echo "Cannot parse artifact filename: ${pkg}" >&2
+        exit 1
+    fi
+    slot="$(echo ${pkg} | sed -n -E "s/${re}/\3/p")"
+    release="$(echo ${pkg} | sed -n -E "s/${re}/\7/p")"
+    ext="$(echo ${pkg} | sed -n -E "s/${re}/\8/p")"
+    subdist=$(echo ${release} | sed 's/[[:digit:]]\+//')
+    pkgdir="${dist}"
+    pkg=${pkg%%/*}
+    tempdir=$(mktemp -d)
+    stgdir="${tempdir}/${pkgdir}"
+    targetdir="${REPO_BASE_DIR}/dist/${pkgdir}"
+    distname="${pkgname}${slot}_latest${subdist}${ext}"
 
-filename=$(basename "${pkg}")
-re="^edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)_([^_]*)_(.*)(\.pkg|tar\..*)$"
-slot="$(echo ${filename} | sed -n -E "s/${re}/\1/p")"
-release="$(echo ${filename} | sed -n -E "s/${re}/\5/p")"
-ext="$(echo ${filename} | sed -n -E "s/${re}/\6/p")"
-subdist=$(echo ${release} | sed 's/[[:digit:]]\+//')
+    mkdir -p "${stgdir}/"
+    cp -a "${filename}" "${stgdir}/"
 
-if [ ! -e /var/lib/repos/${dist} ]; then
-    mkdir /var/lib/repos/${dist}
-fi
+    gpg --detach-sign --armor "${stgdir}/${leafname}"
+    cat "${stgdir}/${leafname}" \
+        | sha256sum | cut -f1 -d ' ' > "${stgdir}/${leafname}.sha256"
 
-mkdir -p /tmp/repo-staging/
+    if [ "${subdist}" != ".nightly" ]; then
+        archivedir="${REPO_BASE_DIR}/archive/${pkgdir}"
+        mkdir -p "${archivedir}/"
+        cp -a "${stgdir}/${leafname}"* "${archivedir}/"
+    fi
 
-filename=$(basename "${pkg}")
-mv "${pkg}" /tmp/repo-staging
-gpg --detach-sign --armor "/tmp/repo-staging/${filename}"
-mv /tmp/repo-staging/"${filename}"* "/var/lib/repos/${dist}/"
+    mkdir -p "${targetdir}/"
+    mv "${stgdir}/${leafname}" "${targetdir}/${distname}"
+    touch "${targetdir}/${distname}"
+    mv "${stgdir}/${leafname}.asc" "${targetdir}/${distname}.asc"
+    touch "${targetdir}/${distname}.asc"
+    mv "${stgdir}/${leafname}.sha256" "${targetdir}/${distname}.sha256"
+    touch "${targetdir}/${distname}.sha256"
 
-cp -a "/var/lib/repos/${dist}/${filename}" \
-      "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}"
+    rm -rf "${tempdir}"
 
-touch "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}"
-
-cp -a "/var/lib/repos/${dist}/${filename}.asc" \
-      "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}.asc"
-
-touch "/var/lib/repos/${dist}/edgedb-${slot}_latest${subdist}${ext}.asc"
+done 10<"${list}"

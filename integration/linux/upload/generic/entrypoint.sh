@@ -2,17 +2,20 @@
 
 set -e
 
+HOME=$(getent passwd "$(whoami)" | cut -d: -f6)
+
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
 echo "${PACKAGE_UPLOAD_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
 chmod 400 "${HOME}/.ssh/id_ed25519"
 
+set -ex
+
 cat <<EOF >"${HOME}/.ssh/config"
 Host upload-packages.edgedb.com
+    User uploader
     Port 2224
     StrictHostKeyChecking no
 EOF
-
-set -ex
 
 dest="artifacts"
 key=""

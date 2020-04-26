@@ -16,3 +16,6 @@ class EdgeDBCLI(packages.BundledRustPackage):
             "url": "git+https://github.com/edgedb/edgedb-cli.git",
         },
     )
+
+    def get_package_layout(self, build) -> packages.PackageFileLayout:
+        return packages.PackageFileLayout.FLAT

@@ -1,10 +1,4 @@
-#
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "update.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
-#
-
-FROM buildpack-deps:focal
+FROM buildpack-deps:buster
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -14,19 +8,20 @@ ENV PATH /usr/local/bin:$PATH
 ENV LANG C.UTF-8
 
 # extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
-	apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
 # Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
 		libssl-dev \
 		tk-dev \
+		musl-tools \
+		rsync \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.8.2
+ENV GPG_KEY %%PLACEHOLDER%%
+ENV PYTHON_VERSION %%PLACEHOLDER%%
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.42.0
+ENV RUST_VERSION %%PLACEHOLDER%%
 
 RUN set -ex \
 	\
@@ -61,12 +56,14 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
 	&& python3 --version \
-	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+		-y --no-modify-path --profile minimal \
+		--target x86_64-unknown-linux-musl \
+		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	&& rustc --version
 
@@ -78,7 +75,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 20.0.2
+ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
 
 RUN set -ex; \
 	\
@@ -98,68 +95,7 @@ RUN set -ex; \
 		\) -exec rm -rf '{}' +; \
 	rm -f get-pip.py
 
-RUN /bin/echo -e '#!/bin/bash\n\
-\n\
-set -Exeo pipefail\n\
-\n\
-pip install -U git+https://github.com/edgedb/metapkg\n\
-pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
-\n\
-if [ -n "${METAPKG_PATH}" ]; then\n\
-    p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
-    rm -rf "${p}"\n\
-    ln -s "${METAPKG_PATH}" "${p}"\n\
-    ls -al "${p}"\n\
-fi\n\
-\n\
-extraopts=\n\
-if [ -n "${SRC_REF}" ]; then\n\
-    extraopts+=" --source-ref=${SRC_REF}"\n\
-fi\n\
-\n\
-if [ -n "${PKG_VERSION}" ]; then\n\
-    extraopts+=" --pkg-version=${PKG_VERSION}"\n\
-fi\n\
-\n\
-if [ -n "${PKG_REVISION}" ]; then\n\
-    if [ "${PKG_REVISION}" = "<current-date>" ]; then\n\
-        PKG_REVISION="$(date --utc +%Y%m%d%H)"\n\
-    fi\n\
-    extraopts+=" --pkg-revision=${PKG_REVISION}"\n\
-fi\n\
-\n\
-if [ -n "${PKG_SUBDIST}" ]; then\n\
-    extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
-fi\n\
-\n\
-if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
-    extraopts+=" --extra-optimizations"\n\
-fi\n\
-\n\
-if [ -n "${BUILD_GENERIC}" ]; then\n\
-    extraopts+=" --generic"\n\
-fi\n\
-\n\
-dest="artifacts"\n\
-if [ -n "${PKG_PLATFORM}" ]; then\n\
-    dest+="/${PKG_PLATFORM}"\n\
-fi\n\
-if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
-    dest+="-${PKG_PLATFORM_VERSION}"\n\
-fi\n\
-\n\
-if [ -z "${PACKAGE}" ]; then\n\
-    PACKAGE="edgedbpkg.edgedb:EdgeDB"\n\
-fi\n\
-\n\
-if [ "$1" == "bash" ]; then\n\
-    echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
-    exec /bin/bash\n\
-else\n\
-    python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
-    ls -al "${dest}"\n\
-fi\n\' >/entrypoint.sh
-
+%%WRITE_ENTRYPOINT%%
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

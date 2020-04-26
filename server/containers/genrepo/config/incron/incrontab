@@ -1,2 +1,1 @@
-/var/spool/repo/incoming/macos IN_CLOSE_WRITE /usr/local/bin/processincoming.sh $@/$#
-/var/spool/repo/incoming/source IN_CLOSE_WRITE /usr/local/bin/processincoming.sh $@/$#
+/var/spool/repo/incoming/triggers/ IN_CLOSE_WRITE /usr/local/bin/processincoming.sh $@/$#

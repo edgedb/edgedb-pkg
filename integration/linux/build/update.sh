@@ -127,7 +127,7 @@ sed -ri \
 	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
 	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
 	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
-	-e 's!^(FROM (buildpack-deps)):.*!\1:'"${variant#*-}"'!' \
+	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!' \
 	-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
 	"${target}"
 

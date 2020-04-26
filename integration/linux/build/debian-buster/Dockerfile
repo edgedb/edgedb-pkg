@@ -107,7 +107,7 @@ pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 if [ -n "${METAPKG_PATH}" ]; then\n\
     p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
     rm -rf "${p}"\n\
-    cp -a "${METAPKG_PATH}" "${p}"\n\
+    ln -s "${METAPKG_PATH}" "${p}"\n\
     ls -al "${p}"\n\
 fi\n\
 \n\
@@ -133,6 +133,10 @@ fi\n\
 \n\
 if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
     extraopts+=" --extra-optimizations"\n\
+fi\n\
+\n\
+if [ -n "${BUILD_GENERIC}" ]; then\n\
+    extraopts+=" --generic"\n\
 fi\n\
 \n\
 dest="artifacts"\n\
