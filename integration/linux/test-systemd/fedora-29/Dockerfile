@@ -38,15 +38,18 @@ fi\n\
 re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
 \n\
-yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
-               "${dest}"/edgedb-${slot}*.x86_64.rpm\n\
+yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \\\n\
+               "${dest}"/edgedb-server-${slot}*.x86_64.rpm\n\
 \n\
-systemctl enable --now edgedb-${slot} \\\n\
-    || (journalctl -u edgedb-${slot} && exit 1)\n\
+systemctl enable --now edgedb-server-${slot} \\\n\
+    || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\
-su edgedb -c '\''edgedb --admin configure insert Auth \\\n\
-                --method=Trust --priority=0'\''\n\
-[[ "$(echo '\''SELECT 1 + 3;'\'' | edgedb -u edgedb)" == *4* ]] || exit 1\n\
+python="/usr/lib64/edgedb-${slot}/bin/python3"\n\
+edbcli="${python} -m edb.cli"\n\
+\n\
+su edgedb -c "${edbcli} --admin configure insert Auth \\\n\
+                --method=Trust --priority=0"\n\
+[[ "$(echo '\''SELECT 1 + 3;'\'' | ${edbcli} -u edgedb)" == *4* ]] || exit 1\n\
 echo "Success!"\n\
 \n\
 EOF\n\

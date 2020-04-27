@@ -32,3 +32,4 @@ while [ $try -le 30 ]; do
 done
 
 edgedb-server --help
+edgedb --help

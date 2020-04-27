@@ -21,13 +21,14 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
 \n\
-yum install -y "${dest}"/edgedb-common*.x86_64.rpm \\\n\
-               "${dest}"/edgedb-${slot}*.x86_64.rpm\n\
-su edgedb -c "/usr/lib64/edgedb-${slot}/bin/python3 \\\n\
-              -m edb.tools --no-devmode test /usr/share/edgedb-${slot}/tests \\\n\
+yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \\\n\
+               "${dest}"/edgedb-server-${slot}*.x86_64.rpm\n\
+su edgedb -c "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
+              -m edb.tools --no-devmode test \\\n\
+              /usr/share/edgedb-server-${slot}/tests \\\n\
               -e cqa_ -e tools_ --output-format=simple"\n\
 echo "Success!"\n\' >/entrypoint.sh
 

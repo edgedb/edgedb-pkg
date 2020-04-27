@@ -1,5 +1,6 @@
 import datetime
 import textwrap
+import typing
 
 from poetry import packages as poetry_pkg
 
@@ -18,11 +19,11 @@ python.set_python_runtime_dependency(poetry_pkg.Dependency(
 class EdgeDB(packages.BundledPythonPackage):
 
     title = "EdgeDB"
-    name = 'edgedb'
+    name = 'edgedb-server'
     description = 'Next generation object-relational database'
     license = 'ASL 2.0'
     group = 'Applications/Databases'
-    identifier = 'com.edgedb.edgedb'
+    identifier = 'com.edgedb.edgedb-server'
     url = 'https://edgedb.com/'
 
     sources = (
@@ -161,4 +162,20 @@ class EdgeDB(packages.BundledPythonPackage):
 
         return [
             bindir / 'edgedb-server',
+        ]
+
+    def get_meta_packages(
+        self,
+        build,
+        root_version: str,
+    ) -> typing.List[packages.MetaPackage]:
+        return [
+            packages.MetaPackage(
+                name=f'edgedb-{self.slot}',
+                description=f'{self.description} (server and client tools)',
+                dependencies={
+                    f'edgedb-server-{self.slot}': f'= {root_version}',
+                    'edgedb-cli': '',
+                }
+            )
         ]

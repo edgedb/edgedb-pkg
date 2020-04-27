@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
 ENV container docker
 
@@ -42,16 +42,19 @@ echo "SLOT=$slot"\n\
 \n\
 export DEBIAN_FRONTEND=noninteractive\n\
 apt-get update\n\
-apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \\\n\
-               ./"${dest}"/edgedb-${slot}_*_amd64.deb\n\
-systemctl enable --now edgedb-${slot} \\\n\
-    || (journalctl -u edgedb-${slot} && exit 1)\n\
+apt install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \\\n\
+               ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
+systemctl enable --now edgedb-server-${slot} \\\n\
+    || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\
 ls -al /var/run/edgedb/\n\
 \n\
-su edgedb -c '\''edgedb --admin configure insert Auth \\\n\
-                --method=Trust --priority=0'\''\n\
-[[ "$(echo '\''SELECT 1 + 3;'\'' | edgedb -u edgedb)" == *4* ]] || exit 1\n\
+python="/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3"\n\
+edbcli="${python} -m edb.cli"\n\
+\n\
+su edgedb -c "${edbcli} --admin configure insert Auth \\\n\
+                --method=Trust --priority=0"\n\
+[[ "$(echo '\''SELECT 1 + 3;'\'' | ${edbcli} -u edgedb)" == *4* ]] || exit 1\n\
 echo "Success!"\n\
 \n\
 EOF\n\

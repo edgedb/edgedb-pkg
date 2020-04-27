@@ -21,22 +21,25 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.deb"
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.deb"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 echo "SLOT=$slot"
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt install -y ./"${dest}"/edgedb-common_*_amd64.deb \
-               ./"${dest}"/edgedb-${slot}_*_amd64.deb
-systemctl enable --now edgedb-${slot} \
-    || (journalctl -u edgedb-${slot} && exit 1)
+apt install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \
+               ./"${dest}"/edgedb-server-${slot}_*_amd64.deb
+systemctl enable --now edgedb-server-${slot} \
+    || (journalctl -u edgedb-server-${slot} && exit 1)
 
 ls -al /var/run/edgedb/
 
-su edgedb -c 'edgedb --admin configure insert Auth \
-                --method=Trust --priority=0'
-[[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
+python="/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3"
+edbcli="${python} -m edb.cli"
+
+su edgedb -c "${edbcli} --admin configure insert Auth \
+                --method=Trust --priority=0"
+[[ "$(echo 'SELECT 1 + 3;' | ${edbcli} -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
 
 EOF

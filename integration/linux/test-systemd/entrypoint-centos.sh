@@ -21,18 +21,21 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.rpm"
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.rpm"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 
-yum install -y "${dest}"/edgedb-common*.x86_64.rpm \
-               "${dest}"/edgedb-${slot}*.x86_64.rpm
+yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \
+               "${dest}"/edgedb-server-${slot}*.x86_64.rpm
 
-systemctl enable --now edgedb-${slot} \
-    || (journalctl -u edgedb-${slot} && exit 1)
+systemctl enable --now edgedb-server-${slot} \
+    || (journalctl -u edgedb-server-${slot} && exit 1)
 
-su edgedb -c 'edgedb --admin configure insert Auth \
-                --method=Trust --priority=0'
-[[ "$(echo 'SELECT 1 + 3;' | edgedb -u edgedb)" == *4* ]] || exit 1
+python="/usr/lib64/edgedb-server-${slot}/bin/python3"
+edbcli="${python} -m edb.cli"
+
+su edgedb -c "${edbcli} --admin configure insert Auth \
+                --method=Trust --priority=0"
+[[ "$(echo 'SELECT 1 + 3;' | ${edbcli} -u edgedb)" == *4* ]] || exit 1
 echo "Success!"
 
 EOF
