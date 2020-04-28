@@ -80,3 +80,16 @@ There is also a test variant that checks systemd integration:
 
 Note that this requires the ability to run Docker containers with
 ``CAP_ADMIN``.
+
+
+Adding Targets and Modifying Build
+==================================
+
+Adding a target for an existing distribution family usually boils down to
+running ``mkdir {build,test,testpublished}/<distro>``, adding ``<distro>``
+to ``SUPPORTED_TARGETS`` in the toplevel ``Makefile``, and running
+``make TARGET=<distro> build`` to generate the containers and test the
+build.
+
+Adding support for new distributions requires implementing a new target
+in `metapkg <https://github.com/edgedb/metapkg/>`_.
