@@ -1,7 +1,5 @@
 FROM ubuntu:bionic
 
-COPY dput.patch /tmp/dput.patch
-
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
