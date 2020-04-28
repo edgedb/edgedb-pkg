@@ -10,10 +10,10 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.pkg"
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.pkg"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 fwpath="/Library/Frameworks/EdgeDB.framework/"
-python="${fwpath}/Versions/${slot}/lib/edgedb-${slot}/bin/python3"
+python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"
 
 sudo installer -dumplog -verbose \
     -pkg "${dest}"/*.pkg \
@@ -28,7 +28,7 @@ while [ $try -le 10 ]; do
     sleep 1
 done
 
-sudo launchctl print system/com.edgedb.edgedb-"${slot}"
+sudo launchctl print system/com.edgedb.edgedb-server-"${slot}"
 
 if [ ! -e "${socket}" ]; then
     echo "Server did not start within 10 seconds."
@@ -46,7 +46,7 @@ sudo su edgedb -c \
 
 sudo su edgedb -c \
     "${python} -m edb.tools --no-devmode test \
-     ${fwpath}/Versions/${slot}/share/edgedb-${slot}/tests \
+     ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
      -e cqa_ -e tools_ --output-format=simple"
 
 sudo su edgedb -c \
