@@ -6,5 +6,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
-COPY entrypoint.sh /entrypoint.sh
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

@@ -17,6 +17,7 @@ PLATFORM = $(firstword $(subst -, ,$(TARGET)))
 DISTRO = $(lastword $(subst -, ,$(TARGET)))
 OUTPUTDIR := /tmp/artifacts
 GET_SHELL :=
+SSH_KEY :=
 
 EXTRAENV =
 EXTRAVOLUMES =
@@ -113,6 +114,19 @@ test-systemd: check-target
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		edgedb-pkg/test-systemd:$(TARGET)
+
+publish: check-target
+	make -C integration/linux/upload
+	docker build -t edgedb-pkg/upload:$(TARGET) integration/linux/upload/$(TARGET)
+	docker run -it --rm \
+		$(EXTRAENV) \
+		-e PKG_PLATFORM=$(PLATFORM) \
+		-e PKG_PLATFORM_VERSION=$(DISTRO) \
+		-e PACKAGE_UPLOAD_SSH_KEY_FILE="/sshkey" \
+		-v $(SSH_KEY):/sshkey \
+		-v $(OUTPUTDIR):/artifacts \
+		edgedb-pkg/upload:$(TARGET) \
+		$(COMMAND)
 
 test-published: check-target
 	make -C integration/linux/testpublished

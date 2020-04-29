@@ -21,7 +21,7 @@ platform="${variant%%-*}"
 { generated_warning; cat "$template"; } > "${target}"
 
 sed -ri \
-	-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
+	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
 	"${target}"
 
 entrypoint="$(cat entrypoint-${platform}.sh \
