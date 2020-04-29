@@ -89,62 +89,39 @@ data:
     }
 ---
 
-apiVersion: apps/v1
-kind: DaemonSet
+apiVersion: v1
+kind: PersistentVolume
 metadata:
-  name: gcsmount
+  name: csi-gcs-pv
 spec:
-  selector:
-    matchLabels:
-      name: gcsmount
-  template:
-    metadata:
-      labels:
-        name: gcsmount
-    spec:
-      containers:
-      - image: "gcr.io/edgedb-infra/gcsfuse:latest"
-        name: "gcsfuse"
-        args: ["gcsfuse", "--foreground", "--key-file", "/secrets/storage.json",
-               "--uid", "2000", "--gid", "2000", "-o", "allow_other",
-               "packages.edgedb-infra.magic.io", "/mounts/repos"]
-        volumeMounts:
-        - mountPath: "/mounts/"
-          name: mount-root
-          mountPropagation: Bidirectional
-        - mountPath: "/secrets"
-          name: storage-credentials
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 500Gi
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: csi-gcs-rw
+  csi:
+    driver: gcs.csi.ofek.dev
+    volumeHandle: packages.edgedb-infra.magic.io
+    volumeAttributes:
+      uid: "2000"
+      gid: "2000"
+    nodePublishSecretRef:
+      name: cloudstorage-mount-bot-credentials
+      namespace: default
+---
 
-        resources:
-          requests:
-            cpu: "10m"
-
-        securityContext:
-          privileged: true
-          capabilities:
-            add: ["CAP_SYS_ADMIN"]
-
-        lifecycle:
-          postStart:
-            exec:
-              command: ["mkdir", "-p", "/mounts/repos"]
-
-          preStop:
-            exec:
-              command: ["fusermount", "-u", "-z", "/mounts/repos"]
-
-      volumes:
-      - name: mount-root
-        hostPath:
-          path: /mounts
-          type: DirectoryOrCreate
-      - name: storage-credentials
-        secret:
-          secretName: cloudstorage-mount-bot-credentials
-          items:
-          - key: service-account-key
-            path: storage.json
-
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-gcs-pvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: csi-gcs-rw
 ---
 
 apiVersion: v1
@@ -190,7 +167,7 @@ spec:
         ports:
         - containerPort: 80
         volumeMounts:
-        - name: gcs-bucket
+        - name: csi-gcs-pvc
           mountPath: /srv/www/packages
           readOnly: true
         - name: nginx-conf
@@ -200,10 +177,9 @@ spec:
           mountPath: /srv/www/keys
           readOnly: true
       volumes:
-      - name: gcs-bucket
-        hostPath:
-          path: /mounts/repos
-          type: Directory
+      - name: csi-gcs-pvc
+        persistentVolumeClaim:
+          claimName: csi-gcs-pvc
       - name: nginx-conf
         configMap:
           name: "<service-name>-nginx-conf"
@@ -253,7 +229,7 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: gcs-bucket
+        - name: csi-gcs-pvc
           mountPath: /var/lib/repos
           subPath: apt
         - name: root-authorized-keys
@@ -293,7 +269,7 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: gcs-bucket
+        - name: csi-gcs-pvc
           mountPath: /var/lib/repos
           subPath: rpm
         - name: root-authorized-keys
@@ -333,7 +309,7 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: gcs-bucket
+        - name: csi-gcs-pvc
           mountPath: /var/lib/repos
         - name: root-authorized-keys
           readOnly: true
@@ -351,10 +327,9 @@ spec:
         - containerPort: 2224
 
       volumes:
-      - name: gcs-bucket
-        hostPath:
-          path: /mounts/repos
-          type: Directory
+      - name: csi-gcs-pvc
+        persistentVolumeClaim:
+          claimName: csi-gcs-pvc
       - name: nginx-conf
         configMap:
           name: "<service-name>-nginx-conf"

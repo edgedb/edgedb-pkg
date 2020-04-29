@@ -42,15 +42,15 @@ while read -r -u 10 filename; do
     if [ "${subdist}" != ".nightly" ]; then
         archivedir="/var/lib/repos/archive/${pkgdir}"
         mkdir -p "${archivedir}/"
-        cp -a "${stgdir}/${leafname}"* "${archivedir}/"
+        cp "${stgdir}/${leafname}"* "${archivedir}/"
     fi
 
     mkdir -p "${targetdir}/"
-    mv "${stgdir}/${leafname}" "${targetdir}/${distname}"
+    cp "${stgdir}/${leafname}" "${targetdir}/${distname}"
     touch "${targetdir}/${distname}"
-    mv "${stgdir}/${leafname}.asc" "${targetdir}/${distname}.asc"
+    cp "${stgdir}/${leafname}.asc" "${targetdir}/${distname}.asc"
     touch "${targetdir}/${distname}.asc"
-    mv "${stgdir}/${leafname}.sha256" "${targetdir}/${distname}.sha256"
+    cp "${stgdir}/${leafname}.sha256" "${targetdir}/${distname}.sha256"
     touch "${targetdir}/${distname}.sha256"
 
     rm -rf "${tempdir}"
