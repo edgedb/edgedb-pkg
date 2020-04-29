@@ -25,6 +25,10 @@ if [ -n "${PKG_SUBDIST}" ]; then
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"
 fi
 
+if [ -n "${BUILD_GENERIC}" ]; then
+    extraopts+=" --generic"
+fi
+
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"
