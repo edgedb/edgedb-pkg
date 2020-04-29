@@ -10,6 +10,7 @@ fi
 
 list=$1
 re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_(.*)(\.pkg|\.zip|\.tar\..*)?$"
+cd /var/spool/repo/incoming
 
 while read -r -u 10 filename; do
     dist=${filename%%/*}
@@ -28,7 +29,7 @@ while read -r -u 10 filename; do
     pkg=${pkg%%/*}
     tempdir=$(mktemp -d)
     stgdir="${tempdir}/${pkgdir}"
-    targetdir="${REPO_BASE_DIR}/dist/${pkgdir}"
+    targetdir="/var/lib/repos/dist/${pkgdir}"
     distname="${pkgname}${slot}_latest${subdist}${ext}"
 
     mkdir -p "${stgdir}/"
@@ -39,7 +40,7 @@ while read -r -u 10 filename; do
         | sha256sum | cut -f1 -d ' ' > "${stgdir}/${leafname}.sha256"
 
     if [ "${subdist}" != ".nightly" ]; then
-        archivedir="${REPO_BASE_DIR}/archive/${pkgdir}"
+        archivedir="/var/lib/repos/archive/${pkgdir}"
         mkdir -p "${archivedir}/"
         cp -a "${stgdir}/${leafname}"* "${archivedir}/"
     fi

@@ -51,11 +51,12 @@ fi\n\
 cd "${dest}"\n\
 list=$(mktemp)\n\
 batch=$(mktemp)\n\
-find . -type f > "${list}"\n\
+find . -type f -printf '\''%P\\n'\'' > "${list}"\n\
+chmod g+rw "${list}"\n\
 \n\
 cat <<EOF >${batch}\n\
 put -r * incoming/\n\
-put ${list} incoming/triggers/upload${key}.list\n\
+put -p ${list} incoming/triggers/upload${key}.list\n\
 EOF\n\
 sftp -b "${batch}" uploader@upload-packages.edgedb.com\n\
 \n\
