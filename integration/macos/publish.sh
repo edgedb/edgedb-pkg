@@ -25,12 +25,13 @@ fi
 
 cd "${dest}"
 list=$(mktemp)
+rellist=$(python3 -c "import os.path; print(os.path.relpath(\"${list}\"))")
 batch=$(mktemp)
 find . -type f > "${list}"
 
 cat <<EOF >${batch}
 put -r * ./incoming/
-put ${list} ./incoming/triggers/upload${key}.list
+put ${rellist} ./incoming/triggers/upload${key}.list
 EOF
 
 sftp -b "${batch}" uploader@upload-packages.edgedb.com

@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM debian:buster
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y \

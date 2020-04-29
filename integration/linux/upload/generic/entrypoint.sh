@@ -28,13 +28,19 @@ fi
 
 cd "${dest}"
 list=$(mktemp)
+rellist=$(basename ${list})
 batch=$(mktemp)
 find . -type f > "${list}"
 
 cat <<EOF >${batch}
 put -r * ./incoming/
-put ${list} ./incoming/triggers/upload${key}.list
 EOF
-
 sftp -b "${batch}" uploader@upload-packages.edgedb.com
+
+cd "$(dirname ${list})"
+cat <<EOF >${batch}
+put ${rellist} incoming/triggers/upload${key}.list
+EOF
+sftp -b "${batch}" uploader@upload-packages.edgedb.com
+
 rm "${list}" "${batch}"
