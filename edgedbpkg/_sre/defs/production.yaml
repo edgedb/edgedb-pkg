@@ -229,9 +229,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
-          subPath: apt
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -272,9 +269,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
-          subPath: rpm
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -315,8 +309,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -336,12 +328,6 @@ spec:
         - containerPort: 2224
 
       volumes:
-      - name: csi-gcs-pvc
-        persistentVolumeClaim:
-          claimName: csi-gcs-pvc
-      - name: nginx-conf
-        configMap:
-          name: "<service-name>-nginx-conf"
       - name: root-authorized-keys
         secret:
           defaultMode: 0400
