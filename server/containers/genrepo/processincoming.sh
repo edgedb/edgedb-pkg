@@ -46,7 +46,9 @@ while read -r -u 10 filename; do
     fi
 
     targetdir="${basedir}/dist/${pkgdir}"
-    gsutil -m cp "${stgdir}/${leafname}"* "${targetdir}/${distname}"
+    gsutil -m cp "${stgdir}/${leafname}" "${targetdir}/${distname}"
+    gsutil -m cp "${stgdir}/${leafname}.asc" "${targetdir}/${distname}.asc"
+    gsutil -m cp "${stgdir}/${leafname}.sha256" "${targetdir}/${distname}.sha256"
 
     rm -rf "${tempdir}"
 
