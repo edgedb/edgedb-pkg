@@ -284,6 +284,9 @@ spec:
         - name: host-keys
           readOnly: true
           mountPath: /etc/ssh/
+        - name: storage-credentials
+          readOnly: true
+          mountPath: /root/storage-credentials/
         ports:
         - containerPort: 2223
 
@@ -353,6 +356,12 @@ spec:
         secret:
           defaultMode: 0444
           secretName: <service-name>-gpg-pub-keys
+      - name: storage-credentials
+        secret:
+          secretName: cloudstorage-mount-bot-credentials
+          items:
+          - key: key
+            path: service-account-key.json
 ---
 
 apiVersion: v1

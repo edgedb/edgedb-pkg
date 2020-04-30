@@ -11,12 +11,7 @@ fi
 list=$1
 incomingdir="%%REPO_INCOMING_DIR%%"
 localdir="%%REPO_LOCAL_DIR%%"
-basedir="%%REPO_BASE_DIR%%"
-
-# createrepo seems to be really broken on gcsfuse
-# https://github.com/GoogleCloudPlatform/gcsfuse/issues/321
-# so, as a workaround, update the repo using a local copy,
-# and rsync the final result to gcs.
+basedir="gs://packages.edgedb-infra.magic.io/rpm"
 
 while read -r -u 10 pkgname; do
 
@@ -43,10 +38,10 @@ while read -r -u 10 pkgname; do
 
     mkdir -p "${local_dist}"
 
-    if [ ! -e "${shared_dist}" ]; then
+    gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
+
+    if [ ! -e "${local_dist}/repodata/repomd.xml" ]; then
         createrepo --database "${local_dist}"
-    else
-        rsync -av "${shared_dist}/" "${local_dist}/"
     fi
 
     mkdir -p /tmp/repo-staging/
@@ -64,6 +59,6 @@ while read -r -u 10 pkgname; do
     createrepo --update "${local_dist}"
     gpg --yes --batch --detach-sign --armor "${local_dist}/repodata/repomd.xml"
 
-    rsync -av --delete "${local_dist}/" "${shared_dist}/"
+    gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
 
 done 10<"${list}"
