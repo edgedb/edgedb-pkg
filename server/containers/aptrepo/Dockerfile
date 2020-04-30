@@ -9,6 +9,8 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash inoticoming gosu gnupg \
+            gcc python3-dev python3-setuptools python3-pip libffi-dev \
+    && pip3 install gsutil \
     && addgroup --gid 2000 reprepro \
     && adduser --uid 2000 --gid 2000 reprepro \
     && addgroup uploaders \

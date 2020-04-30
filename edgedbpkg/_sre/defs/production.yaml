@@ -244,6 +244,9 @@ spec:
         - name: host-keys
           readOnly: true
           mountPath: /etc/ssh/
+        - name: storage-credentials
+          readOnly: true
+          mountPath: /root/storage-credentials/
         ports:
         - containerPort: 2222
 
@@ -326,6 +329,9 @@ spec:
         - name: host-keys
           readOnly: true
           mountPath: /etc/ssh/
+        - name: storage-credentials
+          readOnly: true
+          mountPath: /root/storage-credentials/
         ports:
         - containerPort: 2224
 

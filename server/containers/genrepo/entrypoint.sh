@@ -40,6 +40,17 @@ if [ -e "/root/gpg-keys/" ]; then
     done < <(find "/root/gpg-keys/" -maxdepth 1 -name '*.asc' -print0)
 fi
 
+if [ -e "/root/storage-credentials/service-account-key.json" ]; then
+    cp "/root/storage-credentials/service-account-key.json" \
+        "/home/repomgr/.service-account-key.json"
+    chown repomgr:repomgr "/home/repomgr/.service-account-key.json"
+    chmod 600 "/home/repomgr/.service-account-key.json"
+    cat >"/home/repomgr/.boto" <<EOF
+[Credentials]
+gs_service_key_file = /home/repomgr/.service-account-key.json
+EOF
+fi
+
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"
 else

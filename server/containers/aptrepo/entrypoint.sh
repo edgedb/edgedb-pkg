@@ -32,6 +32,17 @@ while IFS= read -r -d '' path; do
     fi
 done < <(find "/etc/ssh/" -name 'ssh_host_*_key' -print0)
 
+if [ -e "/root/storage-credentials/service-account-key.json" ]; then
+    cp "/root/storage-credentials/service-account-key.json" \
+        "/home/repomgr/.service-account-key.json"
+    chown repomgr:repomgr "/home/repomgr/.service-account-key.json"
+    chmod 600 "/home/repomgr/.service-account-key.json"
+    cat >"/home/repomgr/.boto" <<EOF
+[Credentials]
+gs_service_key_file = /home/repomgr/.service-account-key.json
+EOF
+fi
+
 if [ "$DEBUG" == 'true' ]; then
     echo "LogLevel DEBUG2" >> "/etc/ssh.default/sshd_config"
 fi
