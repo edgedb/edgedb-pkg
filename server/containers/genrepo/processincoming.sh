@@ -9,7 +9,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 list=$1
-basedir="gs://packages.edgedb-infra.magic.io/"
+basedir="gs://packages.edgedb-infra.magic.io"
 re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_(.*)(\.pkg|\.zip|\.tar\..*)?$"
 cd /var/spool/repo/incoming
 
