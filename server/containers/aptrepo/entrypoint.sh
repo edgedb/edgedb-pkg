@@ -6,8 +6,6 @@ set -e
 
 DAEMON=sshd
 
-chown reprepro:reprepro "${REPREPRO_BASE_DIR}"
-
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
 fi
@@ -34,12 +32,12 @@ done < <(find "/etc/ssh/" -name 'ssh_host_*_key' -print0)
 
 if [ -e "/root/storage-credentials/service-account-key.json" ]; then
     cp "/root/storage-credentials/service-account-key.json" \
-        "/home/repomgr/.service-account-key.json"
-    chown repomgr:repomgr "/home/repomgr/.service-account-key.json"
-    chmod 600 "/home/repomgr/.service-account-key.json"
-    cat >"/home/repomgr/.boto" <<EOF
+        "/home/reprepro/.service-account-key.json"
+    chown reprepro:reprepro "/home/reprepro/.service-account-key.json"
+    chmod 600 "/home/reprepro/.service-account-key.json"
+    cat >"/home/reprepro/.boto" <<EOF
 [Credentials]
-gs_service_key_file = /home/repomgr/.service-account-key.json
+gs_service_key_file = /home/reprepro/.service-account-key.json
 EOF
 fi
 
@@ -100,7 +98,7 @@ if [ "$(basename $1)" == "$DAEMON" ]; then
             "${REPREPRO_INCOMING_DIR}" \
             --suffix '.changes' \
             --chdir "${REPREPRO_INCOMING_DIR}" \
-            reprepro -v -v --waitforlock 100 processincoming main {} \;
+            /usr/local/bin/processincoming.sh {} \;
 else
     exec "$@"
 fi
