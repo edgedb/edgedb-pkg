@@ -26,7 +26,6 @@ RUN apt-get update \
     && chown reprepro:reprepro $REPREPRO_INCOMING_TMP_DIR \
     && mkdir -p $REPREPRO_BASE_DIR \
     && chown -R reprepro:reprepro $REPREPRO_BASE_DIR \
-    && chmod -R g+ws $REPREPRO_BASE_DIR \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
     && mkdir -p /etc/ssh.default/ \
     && rm -rf /var/lib/apt/lists/*
