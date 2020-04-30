@@ -5,7 +5,11 @@ set -e
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)
 
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
-echo "${PACKAGE_UPLOAD_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
+if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then
+    cp "${PACKAGE_UPLOAD_SSH_KEY_FILE}" "${HOME}/.ssh/id_ed25519"
+else
+    echo "${PACKAGE_UPLOAD_SSH_KEY}" > "${HOME}/.ssh/id_ed25519"
+fi
 chmod 400 "${HOME}/.ssh/id_ed25519"
 
 set -ex
@@ -16,6 +20,10 @@ Host upload-packages.edgedb.com
     Port 2222
     StrictHostKeyChecking no
 EOF
+
+if [ "$1" == "bash" ]; then
+    exec /bin/bash
+fi
 
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then

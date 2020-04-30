@@ -1,4 +1,4 @@
-FROM debian:stretch-slim
+FROM debian:buster
 
 ENV REPO_BASE_DIR=/var/lib/repos/
 ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
@@ -7,6 +7,8 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
             openssh-server bash incron sudo gnupg \
+            gcc python3-dev python3-setuptools python3-pip libffi-dev \
+    && pip3 install gsutil \
     && addgroup --gid 2000 repomgr \
     && adduser --uid 2000 --gid 2000 repomgr \
     && addgroup uploaders \
