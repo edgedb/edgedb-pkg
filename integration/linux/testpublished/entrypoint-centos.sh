@@ -23,6 +23,10 @@ gpgcheck=1
 gpgkey=https://packages.edgedb.com/keys/edgedb.asc
 EOF
 
+if [ "$1" == "bash" ]; then
+    exec /bin/bash
+fi
+
 try=1
 while [ $try -le 30 ]; do
     yum makecache && yum install --verbose -y edgedb-${slot} && break || true

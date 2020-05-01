@@ -30,6 +30,10 @@ gpgcheck=1\n\
 gpgkey=https://packages.edgedb.com/keys/edgedb.asc\n\
 EOF\n\
 \n\
+if [ "$1" == "bash" ]; then\n\
+    exec /bin/bash\n\
+fi\n\
+\n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
     yum makecache && yum install --verbose -y edgedb-${slot} && break || true\n\
@@ -38,7 +42,8 @@ while [ $try -le 30 ]; do\n\
     sleep 10\n\
 done\n\
 \n\
-edgedb-server --help\n\' >/entrypoint.sh
+edgedb-server --help\n\
+edgedb --help\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
