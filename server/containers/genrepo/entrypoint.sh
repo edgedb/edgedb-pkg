@@ -4,8 +4,6 @@ set -e
 
 [ "$DEBUG" == 'true' ] && set -x
 
-chown repomgr:repomgr "${REPO_BASE_DIR}"
-
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
 fi
