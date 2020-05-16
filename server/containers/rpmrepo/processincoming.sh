@@ -36,8 +36,9 @@ while read -r -u 10 pkgname; do
 
     local_dist="${localdir}/${dist}"
     shared_dist="${basedir}/${dist}"
+    seendist=${dists[${dist}]+"${dists[${dist}]}"}
 
-    if [ -z "${dists[${dist}]}" ]; then
+    if [ -z "${seendist}" ]; then
         dists["${dist}"]="true"
         mkdir -p "${local_dist}"
         gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
