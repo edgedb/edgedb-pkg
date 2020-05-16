@@ -62,7 +62,7 @@ while read -r -u 10 pkgname; do
     makeindex.py "${localdir}" "${localdir}/jsonindexes/" "${dist}"
 
     gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
-    gsutil -m rsync -r -d \
-        "${localdir}/jsonindexes/" "${shared_dist}/jsonindexes/"
+    gsutil -m rsync -r \
+        "${localdir}/jsonindexes/" "${basedir}/jsonindexes/"
 
 done 10<"${list}"
