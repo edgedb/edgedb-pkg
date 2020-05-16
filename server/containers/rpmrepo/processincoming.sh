@@ -12,6 +12,7 @@ list=$1
 incomingdir="%%REPO_INCOMING_DIR%%"
 localdir="%%REPO_LOCAL_DIR%%"
 basedir="gs://packages.edgedb-infra.magic.io/rpm"
+declare -A dists
 
 while read -r -u 10 pkgname; do
 
@@ -36,9 +37,11 @@ while read -r -u 10 pkgname; do
     local_dist="${localdir}/${dist}"
     shared_dist="${basedir}/${dist}"
 
-    mkdir -p "${local_dist}"
-
-    gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
+    if [ -z "${dists[${dist}]}" ]; then
+        dists["${dist}"]="true"
+        mkdir -p "${local_dist}"
+        gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
+    fi
 
     if [ ! -e "${local_dist}/repodata/repomd.xml" ]; then
         createrepo --database "${local_dist}"
@@ -58,11 +61,31 @@ while read -r -u 10 pkgname; do
 
     createrepo --update "${local_dist}"
     gpg --yes --batch --detach-sign --armor "${local_dist}/repodata/repomd.xml"
-    mkdir -p "${localdir}/jsonindexes/"
-    makeindex.py "${localdir}" "${localdir}/jsonindexes/" "${dist}"
+
+done 10<"${list}"
+
+
+for dist in "${!dists[@]}"; do
+    local_dist="${localdir}/${dist}"
+    shared_dist="${basedir}/${dist}"
+
+    mkdir -p "${localdir}/.jsonindexes/"
+    makeindex.py "${localdir}" "${localdir}/.jsonindexes/" "${dist}"
 
     gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
     gsutil -m rsync -r \
-        "${localdir}/jsonindexes/" "${basedir}/jsonindexes/"
+        "${localdir}/.jsonindexes/" "${basedir}/.jsonindexes/"
 
-done 10<"${list}"
+    gsutil -m setmeta \
+        -h "Cache-Control:no-store, no-cache, private, max-age=0" \
+        "${shared_dist}/repodata/**"
+
+    gsutil -m setmeta \
+        -h "Cache-Control:public, no-transform, max-age=315360000" \
+        "${shared_dist}/*.rpm"
+done
+
+
+gsutil -m setmeta \
+    -h "Cache-Control:no-store, no-cache, private, max-age=0" \
+    "${basedir}/.jsonindexes/**"

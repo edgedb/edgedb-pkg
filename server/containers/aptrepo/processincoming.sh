@@ -17,6 +17,14 @@ shared_dist="${basedir}/"
 
 gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
 reprepro -v -v --waitforlock 100 processincoming main "${changes}"
-mkdir -p "${local_dist}/jsonindexes/"
-makeindex.py "${local_dist}" "${local_dist}/jsonindexes"
+mkdir -p "${local_dist}/.jsonindexes/"
+makeindex.py "${local_dist}" "${local_dist}/.jsonindexes"
 gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
+gsutil -m setmeta \
+    -h "Cache-Control:no-store, no-cache, private, max-age=0" \
+    "${basedir}/pool/db/**" \
+    "${basedir}/pool/dists/**" \
+    "${basedir}/.jsonindexes/**"
+gsutil -m setmeta \
+    -h "Cache-Control:public, no-transform, max-age=315360000" \
+    "${basedir}/pool/**"

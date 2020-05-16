@@ -80,7 +80,7 @@ def main():
                 'installref': '{}={}-{}'.format(pkgname, relver, revver),
             })
 
-        out = os.path.join(args.outputdir, '.{}-index.json'.format(dist))
+        out = os.path.join(args.outputdir, '{}.json'.format(dist))
         with open(out, 'w') as f:
             json.dump({'packages': index}, f)
 
