@@ -22,8 +22,8 @@ makeindex.py "${local_dist}" "${local_dist}/.jsonindexes"
 gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
 gsutil -m setmeta \
     -h "Cache-Control:no-store, no-cache, private, max-age=0" \
-    "${basedir}/pool/db/**" \
-    "${basedir}/pool/dists/**" \
+    "${basedir}/db/**" \
+    "${basedir}/dists/**" \
     "${basedir}/.jsonindexes/**"
 gsutil -m setmeta \
     -h "Cache-Control:public, no-transform, max-age=315360000" \
