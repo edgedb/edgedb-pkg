@@ -34,6 +34,7 @@ COPY config/incron/incron.allow /etc/
 COPY config/incron/incrontab /var/spool/incron/repomgr
 COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
+COPY makeindex.py /usr/local/bin/
 RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
         /usr/local/bin/processincoming.sh \
     && sed -i -e "s|%%REPO_LOCAL_DIR%%|${REPO_LOCAL_DIR}|g" \

@@ -35,6 +35,8 @@ COPY config/incron/incron.allow /etc/
 COPY config/incron/incrontab /var/spool/incron/repomgr
 COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
+COPY makeindex.py /usr/local/bin/
+COPY findold.py /usr/local/bin/
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 700 /home/repomgr/.gnupg \

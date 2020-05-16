@@ -17,4 +17,6 @@ shared_dist="${basedir}/"
 
 gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
 reprepro -v -v --waitforlock 100 processincoming main "${changes}"
+mkdir -p "${local_dist}/jsonindexes/"
+makeindex.py "${local_dist}" "${local_dist}/jsonindexes"
 gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"

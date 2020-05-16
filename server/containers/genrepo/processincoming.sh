@@ -10,24 +10,25 @@ fi
 
 list=$1
 basedir="gs://packages.edgedb-infra.magic.io"
-re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_(.*)(\.pkg|\.zip|\.tar\..*)?$"
+re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_([^.]*)(.*)?$"
 cd /var/spool/repo/incoming
+dists=()
 
 while read -r -u 10 filename; do
     dist=${filename%%/*}
-    pkg=${filename#*/}
+    distbase=${dist%-*}
+    dists+=("${distbase}")
     leafname=$(basename ${filename})
-    pkgname="$(echo ${pkg} | sed -n -E "s/${re}/\1/p")"
+    pkgname="$(echo ${leafname} | sed -n -E "s/${re}/\1/p")"
     if [ -z "${pkgname}" ]; then
-        echo "Cannot parse artifact filename: ${pkg}" >&2
+        echo "Cannot parse artifact filename: ${filename}" >&2
         exit 1
     fi
-    slot="$(echo ${pkg} | sed -n -E "s/${re}/\3/p")"
-    release="$(echo ${pkg} | sed -n -E "s/${re}/\7/p")"
-    ext="$(echo ${pkg} | sed -n -E "s/${re}/\8/p")"
+    slot="$(echo ${leafname} | sed -n -E "s/${re}/\3/p")"
+    release="$(echo ${leafname} | sed -n -E "s/${re}/\7/p")"
+    ext="$(echo ${leafname} | sed -n -E "s/${re}/\8/p")"
     subdist=$(echo ${release} | sed 's/[[:digit:]]\+//')
     pkgdir="${dist}"
-    pkg=${pkg%%/*}
     tempdir=$(mktemp -d)
     stgdir="${tempdir}/${pkgdir}"
     distname="${pkgname}${slot}_latest${subdist}${ext}"
@@ -39,11 +40,9 @@ while read -r -u 10 filename; do
     cat "${stgdir}/${leafname}" \
         | sha256sum | cut -f1 -d ' ' > "${stgdir}/${leafname}.sha256"
 
-    if [ "${subdist}" != ".nightly" ]; then
-        archivedir="${basedir}/archive/${pkgdir}"
-        mkdir -p "${archivedir}/"
-        gsutil -m cp "${stgdir}/${leafname}"* "${archivedir}/"
-    fi
+    archivedir="${basedir}/archive/${pkgdir}"
+    mkdir -p "${archivedir}/"
+    gsutil -m cp "${stgdir}/${leafname}"* "${archivedir}/"
 
     targetdir="${basedir}/dist/${pkgdir}"
     gsutil -m cp "${stgdir}/${leafname}" "${targetdir}/${distname}"
@@ -53,3 +52,18 @@ while read -r -u 10 filename; do
     rm -rf "${tempdir}"
 
 done 10<"${list}"
+
+for dist in "${dists[@]}"; do
+    gsutil ls "${basedir}/archive/${dist}*" \
+        | grep -v "\(.sha256\|.asc\)$" \
+        | findold.py --keep=3 --subdist=nightly \
+        | xargs gsutil -m rm
+
+    gsutil ls "${basedir}/archive/${dist}*" \
+        | sed -e "s|${basedir}/archive/||" \
+        | grep -v "\(.sha256\|.asc\)$" \
+        | makeindex.py --prefix=/archive/ > "${stgdir}/index.json"
+
+    gsutil -m cp "${stgdir}/index.json" \
+        "${basedir}/archive/.${dist}-index.json"
+done

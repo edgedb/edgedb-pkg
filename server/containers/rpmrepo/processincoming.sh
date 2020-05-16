@@ -58,7 +58,11 @@ while read -r -u 10 pkgname; do
 
     createrepo --update "${local_dist}"
     gpg --yes --batch --detach-sign --armor "${local_dist}/repodata/repomd.xml"
+    mkdir -p "${localdir}/jsonindexes/"
+    makeindex.py "${localdir}" "${localdir}/jsonindexes/" "${dist}"
 
     gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
+    gsutil -m rsync -r -d \
+        "${localdir}/jsonindexes/" "${shared_dist}/jsonindexes/"
 
 done 10<"${list}"

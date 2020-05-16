@@ -35,6 +35,7 @@ COPY config/sshd/* /etc/ssh.default/
 COPY config/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
+COPY makeindex.py /usr/local/bin/
 RUN sed -i -e "s|%%REPREPRO_BASE_DIR%%|${REPREPRO_BASE_DIR}|g" \
         /usr/local/bin/processincoming.sh
 
