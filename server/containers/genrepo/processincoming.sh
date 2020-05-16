@@ -42,7 +42,9 @@ while read -r -u 10 filename; do
 
     archivedir="${basedir}/archive/${pkgdir}"
     mkdir -p "${archivedir}/"
-    gsutil -m cp "${stgdir}/${leafname}"* "${archivedir}/"
+    gsutil -m cp "${stgdir}/${leafname}" "${archivedir}/${leafname}"
+    gsutil -m cp "${stgdir}/${leafname}.asc" "${archivedir}/${leafname}.asc"
+    gsutil -m cp "${stgdir}/${leafname}.sha256" "${archivedir}/${leafname}.sha256"
 
     targetdir="${basedir}/dist/${pkgdir}"
     gsutil -m cp "${stgdir}/${leafname}" "${targetdir}/${distname}"
@@ -57,7 +59,7 @@ for dist in "${dists[@]}"; do
     gsutil ls "${basedir}/archive/${dist}*" \
         | grep -v "\(.sha256\|.asc\)$" \
         | findold.py --keep=3 --subdist=nightly \
-        | xargs gsutil -m rm
+        | gsutil -m rm -I
 
     gsutil ls "${basedir}/archive/${dist}*" \
         | sed -e "s|${basedir}/archive/||" \
