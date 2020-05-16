@@ -58,8 +58,8 @@ done 10<"${list}"
 for dist in "${dists[@]}"; do
     gsutil ls "${basedir}/archive/${dist}*" \
         | grep -v "\(.sha256\|.asc\)$" \
-        | findold.py --keep=3 --subdist=nightly \
-        | gsutil -m rm -I
+        | findold.py --keep=3 --subdist=nightly
+        | gsutil -m rm -I || true
 
     gsutil ls "${basedir}/archive/${dist}*" \
         | sed -e "s|${basedir}/archive/||" \
