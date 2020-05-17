@@ -30,7 +30,7 @@ function _no_cache() {
 while read -r -u 10 filename; do
     dist=${filename%%/*}
     distbase=${dist%-*}
-    dists+=("${distbase}")
+    arch=${dist##*-}
     leafname=$(basename ${filename})
     pkgname="$(echo ${leafname} | sed -n -E "s/${re}/\1/p")"
     if [ -z "${pkgname}" ]; then
@@ -38,11 +38,13 @@ while read -r -u 10 filename; do
         exit 1
     fi
     slot="$(echo ${leafname} | sed -n -E "s/${re}/\3/p")"
+    version="$(echo ${leafname} | sed -n -E "s/${re}/\3/p")"
     release="$(echo ${leafname} | sed -n -E "s/${re}/\7/p")"
     ext="$(echo ${leafname} | sed -n -E "s/${re}/\8/p")"
     subdist=$(echo ${release} | sed 's/[[:digit:]]\+//')
-    subdist="${subdist/~/_}"
-    pkgdir="${dist}"
+    subdist="${subdist/\~/_}"
+    pkgdir="${dist}${subdist/_/.}"
+    dists+=("${pkgdir}")
     tempdir=$(mktemp -d)
     stgdir="${tempdir}/${pkgdir}"
     distname="${pkgname}${slot}_latest${subdist}${ext}"
