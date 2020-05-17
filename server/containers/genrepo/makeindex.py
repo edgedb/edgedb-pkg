@@ -51,8 +51,8 @@ def main():
 
         index.append({
             'basename': pkgname,
-            'slot': slot.lstrip('-'),
-            'name': '{}{}'.format(pkgname, slot),
+            'slot': slot.lstrip('-') if slot else None,
+            'name': '{}{}'.format(pkgname, slot if slot else ''),
             'version': version,
             'revision': revision,
             'architecture': arch,

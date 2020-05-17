@@ -75,6 +75,7 @@ done 10<"${list}"
 
 
 for dist in "${dists[@]}"; do
+    tempdir=$(mktemp -d)
     gsutil ls "${basedir}/archive/${dist}*" \
         | grep -v "\(.sha256\|.asc\)$" \
         | findold.py --keep=3 --subdist=nightly \
@@ -83,10 +84,11 @@ for dist in "${dists[@]}"; do
     gsutil ls "${basedir}/archive/${dist}*" \
         | sed -e "s|${basedir}/archive/||" \
         | grep -v "\(.sha256\|.asc\)$" \
-        | makeindex.py --prefix=/archive/ > "${stgdir}/index.json"
+        | makeindex.py --prefix=/archive/ > "${tempdir}/index.json"
 
-    gsutil -m cp "${stgdir}/index.json" \
+    gsutil -m cp "${tempdir}/index.json" \
         "${basedir}/archive/.jsonindexes/${dist}.json"
 
     _no_cache "${basedir}/archive/.jsonindexes/${dist}.json"
+    rm -rf "${tempdir}"
 done
