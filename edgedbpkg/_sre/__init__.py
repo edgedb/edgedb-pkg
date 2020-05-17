@@ -56,6 +56,25 @@ class PubPackagesServiceInstance(services.ServiceInstance):
         )
 
         self.add_required_resource(
+            resources.StaticBackend(
+                name=self.name,
+                storage_bucket='packages.edgedb-infra.magic.io',
+                enable_cdn=True,
+            )
+        )
+
+        self.add_required_resource(
+            resources.HTTPProxy(
+                name=self.name,
+                static_backend=self.name,
+                ssl=True,
+                ssl_redirect=True,
+                dns_name=self.hostname,
+                ip_address_name=self.name,
+            )
+        )
+
+        self.add_required_resource(
             resources.StaticIP(
                 name=f'{self.name}-upload',
                 region=env.region,
@@ -154,6 +173,14 @@ class PubPackagesServiceInstance(services.ServiceInstance):
         signing_public_keydata = base64.b64encode(signing_public_key).decode()
 
         self.add_required_resource(
+            resources.StorageBlob(
+                name='keys/edgedb.asc',
+                bucket='packages.edgedb-infra.magic.io',
+                data=signing_public_key,
+            )
+        )
+
+        self.add_required_resource(
             k8s_platform.K8SResource(
                 name=f'{self.name}-gpg-pub-keys',
                 definition=textwrap.dedent(f'''\
@@ -175,7 +202,7 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             key_in_secret=f'cloudstorage-mount-bot-credentials',
         ))
 
-        for fn in ('production.yaml', 'tls.yaml', 'ingress.yaml'):
+        for fn in ('production.yaml', ):
             with open(defs / fn) as f:
                 definition = f.read()
 

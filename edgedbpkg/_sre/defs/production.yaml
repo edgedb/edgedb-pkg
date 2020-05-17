@@ -4,191 +4,6 @@ metadata:
   name: "<service-name>"
 ---
 
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: "<service-name>-nginx-conf"
-  labels:
-    app: "<service-name>"
-data:
-  nginx.conf: |
-    user nginx;
-    worker_processes  1;
-    error_log  /dev/stderr warn;
-    pid        /var/run/nginx.pid;
-    events {
-      worker_connections  1024;
-    }
-    http {
-      default_type  application/octet-stream;
-      log_format  main
-              'remote_addr:$remote_addr\t'
-              'time_local:$time_local\t'
-              'method:$request_method\t'
-              'uri:$request_uri\t'
-              'host:$host\t'
-              'status:$status\t'
-              'bytes_sent:$body_bytes_sent\t'
-              'referer:$http_referer\t'
-              'useragent:$http_user_agent\t'
-              'forwardedfor:$http_x_forwarded_for\t'
-              'forwardedproto:$http_x_forwarded_proto\t'
-              'request_time:$request_time';
-      access_log  /dev/stdout main;
-      sendfile        on;
-      keepalive_timeout  65;
-
-      map $request_filename $expires {
-        default          off;
-        ~*^.*\.rpm$      max;
-        ~*^.*\.deb$      max;
-        ~*^.*\.pkg$      max;
-        ~*^.*\.tar\..*$  max;
-      }
-
-      map $request_filename $cache_control {
-        default          "no-store, no-cache, private";
-        ~*^.*\.rpm$      "public, no-transform";
-        ~*^.*\.deb$      "public, no-transform";
-        ~*^.*\.pkg$      "public, no-transform";
-        ~*^.*\.tar\..*$  "public, no-transform";
-      }
-
-      server {
-          listen 80;
-          server_name  _;
-
-          location /__healthz {
-            return 200 "OK";
-          }
-
-          location / {
-            if ($http_x_forwarded_proto != "https") {
-              return 307 https://$host$request_uri;
-            }
-            root /srv/www/packages;
-            add_header Cache-Control $cache_control;
-            expires $expires;
-            autoindex on;
-          }
-
-          location /keys {
-            if ($http_x_forwarded_proto != "https") {
-              return 307 https://$host$request_uri;
-            }
-            root /srv/www/;
-            expires 2d;
-            add_header Cache-Control "public, no-transform";
-          }
-
-          location /apt/db {
-            deny all;
-            return 403;
-          }
-       }
-    }
----
-
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: csi-gcs-pv
-spec:
-  accessModes:
-  - ReadWriteMany
-  capacity:
-    storage: 500Gi
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: csi-gcs-rw
-  csi:
-    driver: gcs.csi.ofek.dev
-    volumeHandle: packages.edgedb-infra.magic.io
-    volumeAttributes:
-      uid: "2000"
-      gid: "2000"
-    nodePublishSecretRef:
-      name: cloudstorage-mount-bot-credentials
-      namespace: default
----
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: csi-gcs-pvc
-spec:
-  accessModes:
-  - ReadWriteMany
-  resources:
-    requests:
-      storage: 500Gi
-  storageClassName: csi-gcs-rw
----
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: "<service-name>-sshd-config"
-  labels:
-    app: "<service-name>"
-data:
-  sshd_config: |
-    StrictModes no;
----
-
-apiVersion: "extensions/v1beta1"
-kind: "Deployment"
-metadata:
-  name: "<service-name>"
-  namespace: "default"
-  labels:
-    app: "<service-name>"
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: "<service-name>"
-  template:
-    metadata:
-      labels:
-        app: "<service-name>"
-    spec:
-      containers:
-      - name: "nginx"
-        image: "nginx:latest"
-        resources:
-          requests:
-            cpu: "10m"
-        readinessProbe:
-          httpGet:
-            path: /__healthz
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /srv/www/packages
-          readOnly: true
-        - name: nginx-conf
-          mountPath: /etc/nginx
-          readOnly: true
-        - name: gpg-pub-keys
-          mountPath: /srv/www/keys
-          readOnly: true
-      volumes:
-      - name: csi-gcs-pvc
-        persistentVolumeClaim:
-          claimName: csi-gcs-pvc
-      - name: nginx-conf
-        configMap:
-          name: "<service-name>-nginx-conf"
-      - name: gpg-pub-keys
-        secret:
-          defaultMode: 0444
-          secretName: <service-name>-gpg-pub-keys
----
-
 apiVersion: "extensions/v1beta1"
 kind: "Deployment"
 metadata:
@@ -229,9 +44,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
-          subPath: apt
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -272,10 +84,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
-          subPath: rpm
-          readOnly: true
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -316,9 +124,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         volumeMounts:
-        - name: csi-gcs-pvc
-          mountPath: /var/lib/repos
-          readOnly: true
         - name: root-authorized-keys
           readOnly: true
           mountPath: /root/.ssh/
@@ -338,9 +143,6 @@ spec:
         - containerPort: 2224
 
       volumes:
-      - name: csi-gcs-pvc
-        persistentVolumeClaim:
-          claimName: csi-gcs-pvc
       - name: root-authorized-keys
         secret:
           defaultMode: 0400
@@ -372,24 +174,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: "<service-name>"
-  annotations:
-    beta.cloud.google.com/backend-config: '{"ports": {"80":"<service-name>-backend-config"}}'
-
-spec:
-  type: NodePort
-  selector:
-    app: "<service-name>"
-  ports:
-  - protocol: TCP
-    name: http-port
-    port: 80
-    targetPort: 80
----
-
-apiVersion: v1
-kind: Service
-metadata:
   name: "<service-name>-upload"
   annotations:
     edbsre.edgedb.com/service.lb-static-ip-name: "<service-name>-upload"
@@ -411,15 +195,3 @@ spec:
     port: 2224
     targetPort: 2224
 ---
-
-apiVersion: cloud.google.com/v1beta1
-kind: BackendConfig
-metadata:
-  name: "<service-name>-backend-config"
-spec:
-  cdn:
-    enabled: true
-    cachePolicy:
-      includeHost: true
-      includeProtocol: true
-      includeQueryString: false
