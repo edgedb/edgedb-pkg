@@ -17,6 +17,28 @@ fi
 re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.rpm"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 
+dist='el$releasever'
+if [ -n "${PKG_SUBDIST}" ]; then
+    dist+=".${PKG_SUBDIST}"
+fi
+
+cat <<EOF >/etc/yum.repos.d/edgedb.repo
+[edgedb]
+name=edgedb
+baseurl=https://packages.edgedb.com/rpm/${dist}/
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.edgedb.com/keys/edgedb.asc
+EOF
+
+try=1
+while [ $try -le 30 ]; do
+    yum makecache && yum install --verbose -y edgedb-cli && break || true
+    try=$(( $try + 1 ))
+    echo "Retrying in 10 seconds (try #${try})"
+    sleep 10
+done
+
 yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \
                "${dest}"/edgedb-server-${slot}*.x86_64.rpm
 su edgedb -c "/usr/lib64/edgedb-server-${slot}/bin/python3 \

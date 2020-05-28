@@ -15,6 +15,19 @@ slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 fwpath="/Library/Frameworks/EdgeDB.framework/"
 python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"
 
+# Install the CLI tools.
+dist="${PKG_PLATFORM_VERSION}"
+if [ -n "${PKG_SUBDIST}" ]; then
+    dist+=".${PKG_SUBDIST}"
+fi
+
+curl "https://packages.edgedb.com/dist/${dist}/edgedb-cli_latest_nightly" \
+    > edgedb-cli
+
+sudo mkdir -p /usr/local/bin
+sudo cp edgedb-cli /usr/local/bin/edgedb
+sudo chmod +x /usr/local/bin/edgedb
+
 sudo installer -dumplog -verbose \
     -pkg "${dest}"/*.pkg \
     -target / || (sudo cat /var/log/install.log && exit 1)

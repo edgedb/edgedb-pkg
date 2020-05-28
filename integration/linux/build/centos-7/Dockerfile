@@ -18,10 +18,12 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en
+	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en \
+    perl-Getopt-Long sudo
+
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.8.2
+ENV PYTHON_VERSION 3.8.3
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
@@ -88,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 20.0.2
+ENV PYTHON_PIP_VERSION 20.1.1
 
 RUN set -ex; \
 	\

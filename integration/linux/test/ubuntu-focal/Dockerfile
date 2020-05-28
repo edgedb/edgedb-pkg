@@ -25,7 +25,25 @@ re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.deb"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
 echo "SLOT=$slot"\n\
 \n\
+dist="${PKG_PLATFORM_VERSION}"\n\
+if [ -n "${PKG_SUBDIST}" ]; then\n\
+    dist+=".${PKG_SUBDIST}"\n\
+fi\n\
+\n\
 apt-get update\n\
+apt-get install -y curl gnupg apt-transport-https\n\
+curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
+echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \\\n\
+    >> /etc/apt/sources.list.d/edgedb.list\n\
+\n\
+try=1\n\
+while [ $try -le 30 ]; do\n\
+    apt-get update && apt-get install -y edgedb-cli && break || true\n\
+    try=$(( $try + 1 ))\n\
+    echo "Retrying in 10 seconds (try #${try})"\n\
+    sleep 10\n\
+done\n\
+\n\
 apt install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \\\n\
                ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\

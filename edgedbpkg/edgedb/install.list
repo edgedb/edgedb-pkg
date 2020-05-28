@@ -1,3 +1,4 @@
 {libdir}/postgresql/*.so
 {datadir}/postgresql/extension/*
+{datadir}/data/**
 {datadir}/tests/**

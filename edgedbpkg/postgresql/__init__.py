@@ -142,6 +142,7 @@ class PostgreSQL(packages.BundledPackage):
             {make}
             {make} -C contrib
             {make} DESTDIR=$(pwd)/_install install
+            {make} -C contrib DESTDIR=$(pwd)/_install install
             {make_pg_config_wrapper}
         ''')
 

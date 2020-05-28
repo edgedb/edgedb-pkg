@@ -13,6 +13,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
 # Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
 		libssl-dev \
 		tk-dev \
+		sudo \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY %%PLACEHOLDER%%
