@@ -84,10 +84,14 @@ class EdgeDB(packages.BundledPythonPackage):
         # Run edgedb-server --bootstrap to produce stdlib cache
         # for the benefit of faster bootstrap in the package.
         common_script = super().get_build_script(build)
+
+        pg_pkg = build.get_package('postgresql-edgedb')
+        icu_pkg = build.get_package('icu')
+        openssl_pkg = build.get_package('openssl')
+
         build_python = build.sh_get_command('python')
         temp_dir = build.get_temp_dir(self, relative_to='pkgbuild')
         cachedir = temp_dir / '_datacache'
-        pg_pkg = build.get_package('postgresql-edgedb')
         pg_temp_install_path = build.get_build_dir(
             pg_pkg, relative_to='pkgbuild') / '_install'
         bindir = build.get_install_path('bin').relative_to('/')
@@ -116,6 +120,22 @@ class EdgeDB(packages.BundledPythonPackage):
         else:
             ldpath = 'LD_LIBRARY_PATH'
 
+        if build.is_bundled(icu_pkg):
+            icu_path = build.get_install_dir(
+                icu_pkg, relative_to='pkgbuild')
+            icu_path /= build.get_full_install_prefix().relative_to('/')
+            icu_lib_path = icu_path / 'lib'
+        else:
+            icu_lib_path = ''
+
+        if build.is_bundled(openssl_pkg):
+            openssl_path = build.get_install_dir(
+                openssl_pkg, relative_to='pkgbuild')
+            openssl_path /= build.get_full_install_prefix().relative_to('/')
+            openssl_lib_path = openssl_path / 'lib'
+        else:
+            openssl_lib_path = ''
+
         data_cache_script = textwrap.dedent(f'''\
             mkdir -p "{cachedir}"
             _tempdir=$("{build_python}" -c '{runstatescript}')
@@ -130,13 +150,24 @@ class EdgeDB(packages.BundledPythonPackage):
             _pythonpath=$("{build_python}" -c '{abspath}' "${{_pythonpath}}")
             _cachedir=$("{build_python}" -c '{abspath}' "{cachedir}")
             _pg_config=$("{build_python}" -c '{abspath}' "{pg_config}")
-            _pg_libpath=$("{build_python}" -c '{abspath}' "{pg_libpath}")
+            _ldlibpath=$("{build_python}" -c '{abspath}' "{pg_libpath}")
             _build_python=$("{build_python}" -c '{abspath}' "{build_python}")
+
+            if [ -n "{icu_lib_path}" ]; then
+                _icu_path=$("{build_python}" -c '{abspath}' "{icu_lib_path}")
+                _ldlibpath="${{_ldlibpath}}:${{_icu_path}}"
+            fi
+
+            if [ -n "{openssl_lib_path}" ]; then
+                _openssl_path=$("{build_python}" -c '{abspath}' \\
+                                "{openssl_lib_path}")
+                _ldlibpath="${{_ldlibpath}}:${{_openssl_path}}"
+            fi
 
             (
                 cd ../;
                 ${{_sudo}} env \\
-                    {ldpath}="${{_pg_libpath}}" \\
+                    {ldpath}="${{_ldlibpath}}" \\
                     PYTHONPATH="${{_pythonpath}}" \\
                     EDGEDB_DEBUG_PGSERVER=true \\
                     _EDGEDB_BUILDMETA_PG_CONFIG_PATH="${{_pg_config}}" \\

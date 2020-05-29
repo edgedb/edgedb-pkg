@@ -78,7 +78,7 @@ class Python(packages.BundledPackage):
 
         return build.sh_format_command(configure, configure_flags)
 
-    def _get_make_env(self, build) -> str:
+    def _get_bundled_openssl_lib_path(self, build) -> Optional[str]:
         openssl_pkg = build.get_package('openssl')
         if build.is_bundled(openssl_pkg):
             # Make sure bundled libssl gets found, since it's only a
@@ -90,21 +90,9 @@ class Python(packages.BundledPackage):
                 / build.get_install_path('lib').relative_to('/')
             )
 
-            if platform.system() == 'Darwin':
-                fw_root = build.target.get_framework_root(build).parent
-                openssl_fw_root = openssl_root / fw_root.relative_to('/')
-                env = [
-                    f'DYLD_LIBRARY_PATH="$(pwd)/{openssl_lib_path}"',
-                    f'DYLD_FRAMEWORK_PATH="$(pwd)/{openssl_fw_root}"',
-                ]
-            else:
-                env = [
-                    f'LD_LIBRARY_PATH="$(pwd)/{openssl_lib_path}"'
-                ]
+            return openssl_lib_path
         else:
-            env = []
-
-        return ' '.join(env)
+            return None
 
     def get_build_script(self, build) -> str:
         make = build.sh_get_command('make')
@@ -123,14 +111,27 @@ class Python(packages.BundledPackage):
             f'site.getsitepackages([\\"${{p}}\\"])[0]).resolve())'
         )
 
+        abspath = (
+            'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())'
+        )
+
         python = f'python{exe_suffix}'
 
-        env = self._get_make_env(build)
+        bundled_openssl_lib_path = self._get_bundled_openssl_lib_path(build)
+
+        if platform.system() == 'Darwin':
+            ldpath_var = 'DYLD_LIBRARY_PATH'
+        else:
+            ldpath_var = 'LD_LIBRARY_PATH'
 
         make_wrapper = textwrap.dedent(f'''\
             echo '#!/bin/sh' > python-wrapper
             echo 'unset __PYVENV_LAUNCHER__' >> python-wrapper
-            {f"echo export {env} >> python-wrapper" if env else ""}
+            if [ -n "{bundled_openssl_lib_path}" ]; then
+                _openssl_path=$(./{python} -c '{abspath}' \\
+                                "{bundled_openssl_lib_path}")
+                echo 'export {ldpath_var}="'${{_openssl_path}}':${{{ldpath_var}}}"' >> python-wrapper
+            fi
             echo 'd=$(dirname $0)' >> python-wrapper
             echo 'p=${{d}}/{dest}/{prefix}' >> python-wrapper
             echo 's=$(${{d}}/{python} -c "{sitescript}")' >> python-wrapper
@@ -141,6 +142,11 @@ class Python(packages.BundledPackage):
         ''')
 
         disabled_modules = '_sqlite3 _tkinter _dbm _gdbm _lzma _bz2'
+
+        if bundled_openssl_lib_path:
+            env = f"{ldpath_var}=$(pwd)/{bundled_openssl_lib_path}"
+        else:
+            env = ''
 
         return textwrap.dedent(f'''\
             # make sure no funny business is going on if metapkg
@@ -187,7 +193,15 @@ class Python(packages.BundledPackage):
         else:
             extra_install = ''
 
-        env = self._get_make_env(build)
+        bundled_openssl_lib_path = self._get_bundled_openssl_lib_path(build)
+        if bundled_openssl_lib_path:
+            if platform.system() == 'Darwin':
+                ldpath_var = 'DYLD_LIBRARY_PATH'
+            else:
+                ldpath_var = 'LD_LIBRARY_PATH'
+            env = f"{ldpath_var}=$(pwd)/{bundled_openssl_lib_path}"
+        else:
+            env = ''
 
         return textwrap.dedent(f'''\
             {make} -j1 DESTDIR=$(pwd)/"{installdest}" {env} \
