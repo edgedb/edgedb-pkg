@@ -115,26 +115,7 @@ class EdgeDB(packages.BundledPythonPackage):
             'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())'
         )
 
-        if platform.system() == 'Darwin':
-            ldpath = 'DYLD_LIBRARY_PATH'
-        else:
-            ldpath = 'LD_LIBRARY_PATH'
-
-        if build.is_bundled(icu_pkg):
-            icu_path = build.get_install_dir(
-                icu_pkg, relative_to='pkgbuild')
-            icu_path /= build.get_full_install_prefix().relative_to('/')
-            icu_lib_path = icu_path / 'lib'
-        else:
-            icu_lib_path = ''
-
-        if build.is_bundled(openssl_pkg):
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to='pkgbuild')
-            openssl_path /= build.get_full_install_prefix().relative_to('/')
-            openssl_lib_path = openssl_path / 'lib'
-        else:
-            openssl_lib_path = ''
+        ld_env = ' '.join(build.get_ld_env([icu_pkg, openssl_pkg], '${_wd}'))
 
         data_cache_script = textwrap.dedent(f'''\
             mkdir -p "{cachedir}"
@@ -152,22 +133,12 @@ class EdgeDB(packages.BundledPythonPackage):
             _pg_config=$("{build_python}" -c '{abspath}' "{pg_config}")
             _ldlibpath=$("{build_python}" -c '{abspath}' "{pg_libpath}")
             _build_python=$("{build_python}" -c '{abspath}' "{build_python}")
-
-            if [ -n "{icu_lib_path}" ]; then
-                _icu_path=$("{build_python}" -c '{abspath}' "{icu_lib_path}")
-                _ldlibpath="${{_ldlibpath}}:${{_icu_path}}"
-            fi
-
-            if [ -n "{openssl_lib_path}" ]; then
-                _openssl_path=$("{build_python}" -c '{abspath}' \\
-                                "{openssl_lib_path}")
-                _ldlibpath="${{_ldlibpath}}:${{_openssl_path}}"
-            fi
+            _wd=$("{build_python}" -c '{abspath}' "$(pwd)")
 
             (
                 cd ../;
                 ${{_sudo}} env \\
-                    {ldpath}="${{_ldlibpath}}" \\
+                    {ld_env} \\
                     PYTHONPATH="${{_pythonpath}}" \\
                     EDGEDB_DEBUG_PGSERVER=true \\
                     _EDGEDB_BUILDMETA_PG_CONFIG_PATH="${{_pg_config}}" \\
