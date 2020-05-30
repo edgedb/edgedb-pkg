@@ -115,7 +115,13 @@ class EdgeDB(packages.BundledPythonPackage):
             'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())'
         )
 
-        ld_env = ' '.join(build.get_ld_env([icu_pkg, openssl_pkg], '${_wd}'))
+        ld_env = ' '.join(
+            build.get_ld_env(
+                deps=[icu_pkg, openssl_pkg],
+                wd='${_wd}',
+                extra=['${_ldlibpath}'],
+            )
+        )
 
         data_cache_script = textwrap.dedent(f'''\
             mkdir -p "{cachedir}"
