@@ -129,8 +129,9 @@ class PostgreSQL(packages.BundledPackage):
         wrapper_cmd = build.sh_get_command(
             'pg_config_wrapper', relative_to='pkgbuild')
 
+        bash = build.sh_get_command('bash')
         make_pg_config_wrapper = textwrap.dedent(f'''\
-            echo '#!/bin/bash' >> "{wrapper_path}"
+            echo '#!{bash}' >> "{wrapper_path}"
             echo 'set -ex' >> "{wrapper_path}"
             echo 'pushd "$(dirname $0)/../" >/dev/null' >> "{wrapper_path}"
             echo '{wrapper_cmd}' '"${{@}}"' >> "{wrapper_path}"

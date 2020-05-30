@@ -103,9 +103,10 @@ class Python(packages.BundledPackage):
         python = f'python{exe_suffix}'
 
         wrapper_env = self._get_make_env(build, '${d}')
+        bash = build.sh_get_command('bash')
 
         make_wrapper = textwrap.dedent(f'''\
-            echo '#!/bin/sh' > python-wrapper
+            echo '#!{bash}' > python-wrapper
             echo 'd=$(dirname $0)' >> python-wrapper
             echo 'unset __PYVENV_LAUNCHER__' >> python-wrapper
             {f"echo 'export {wrapper_env}' >> python-wrapper"
