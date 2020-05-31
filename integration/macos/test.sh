@@ -16,7 +16,13 @@ fwpath="/Library/Frameworks/EdgeDB.framework/"
 python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"
 
 # Install the CLI tools.
-dist="${PKG_PLATFORM_VERSION}"
+dist=""
+if [ -n "${PKG_PLATFORM}" ]; then
+    dist+="${PKG_PLATFORM}"
+fi
+if [ -n "${PKG_PLATFORM_VERSION}" ]; then
+    dist+="-${PKG_PLATFORM_VERSION}"
+fi
 if [ -n "${PKG_SUBDIST}" ]; then
     dist+=".${PKG_SUBDIST}"
 fi
