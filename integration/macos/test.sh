@@ -66,7 +66,7 @@ sudo su edgedb -c \
 sudo su edgedb -c \
     "${python} -m edb.tools --no-devmode test \
      ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
-     -e cqa_ -e tools_ --output-format=verbose"
+     -e cqa_ -e tools_ --verbose"
 
 sudo su edgedb -c \
     "${python} -m edb.cli --admin \
