@@ -1,8 +1,8 @@
-From 008bb78da44a1c2249c3f78f3f3e781d2581b3af Mon Sep 17 00:00:00 2001
+From 6e9eb45e7d86d573f5589f0fbbff44f368be5d60 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Sat, 30 May 2020 18:53:22 -0700
-Subject: [PATCH] Add a version of popen() that respects the SHELL environment
- variable
+Subject: [PATCH 2/2] Add a version of popen() that respects the SHELL
+ environment variable
 
 The main motivation here is to workaround SIP on macOS, where all
 binaries in `/bin` will not inherit `DYLD_LIBRARY_PATH`, including
@@ -41,7 +41,7 @@ index acf610808e..e796381eca 100644
  		pg_log_error("could not execute command \"%s\": %m", command);
  	return cmdfd;
 diff --git a/src/bin/pg_ctl/pg_ctl.c b/src/bin/pg_ctl/pg_ctl.c
-index dfb6c19f5a..af55f9edba 100644
+index a6b0cc63e5..da675c999d 100644
 --- a/src/bin/pg_ctl/pg_ctl.c
 +++ b/src/bin/pg_ctl/pg_ctl.c
 @@ -28,6 +28,7 @@
@@ -52,7 +52,7 @@ index dfb6c19f5a..af55f9edba 100644
  #include "utils/pidfile.h"
  
  #ifdef WIN32					/* on Unix, we don't need libpq */
-@@ -812,7 +813,7 @@ do_init(void)
+@@ -847,7 +848,7 @@ do_init(void)
  		snprintf(cmd, MAXPGPATH, "\"%s\" %s%s > \"%s\"",
  				 exec_path, pgdata_opt, post_opts, DEVNULL);
  
@@ -62,7 +62,7 @@ index dfb6c19f5a..af55f9edba 100644
  		write_stderr(_("%s: database system initialization failed\n"), progname);
  		exit(1);
 diff --git a/src/common/Makefile b/src/common/Makefile
-index 2f22b9b101..9f5c0b690d 100644
+index e2b69b9620..e74d70b6ee 100644
 --- a/src/common/Makefile
 +++ b/src/common/Makefile
 @@ -50,7 +50,7 @@ OBJS_COMMON = base64.o config_info.o controldata_utils.o d2s.o exec.o f2s.o \

@@ -1,7 +1,7 @@
-From 2241d0676b695c8a04a0657a77266f4b1ddb1da7 Mon Sep 17 00:00:00 2001
+From 70181975d41b0071895b6fb70d73aa7050a7c5d6 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
-Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
+Subject: [PATCH 1/2] Make it possible to pass OpenSSL lib path to configure
 
 ---
  configure                     | 110 +++++++++++++++++++++++++++++++++-
@@ -17,10 +17,10 @@ Subject: [PATCH] Make it possible to pass OpenSSL lib path to configure
  10 files changed, 137 insertions(+), 4 deletions(-)
 
 diff --git a/configure b/configure
-index c22d3de89a..f5de47f300 100755
+index 25d9248869..57ffdd1fd2 100755
 --- a/configure
 +++ b/configure
-@@ -709,6 +709,8 @@ UUID_EXTRA_OBJS
+@@ -711,6 +711,8 @@ UUID_EXTRA_OBJS
  with_uuid
  with_systemd
  with_selinux
@@ -29,16 +29,16 @@ index c22d3de89a..f5de47f300 100755
  with_openssl
  with_ldap
  with_krb_srvnam
-@@ -889,6 +891,8 @@ PKG_CONFIG_PATH
+@@ -891,6 +893,8 @@ PKG_CONFIG_PATH
  PKG_CONFIG_LIBDIR
  ICU_CFLAGS
  ICU_LIBS
 +OPENSSL_CFLAGS
 +OPENSSL_LIBS
  XML2_CONFIG
- LDFLAGS_EX
- LDFLAGS_SL
-@@ -1593,6 +1597,10 @@ Some influential environment variables:
+ XML2_CFLAGS
+ XML2_LIBS
+@@ -1597,6 +1601,10 @@ Some influential environment variables:
                path overriding pkg-config's built-in search path
    ICU_CFLAGS  C compiler flags for ICU, overriding pkg-config
    ICU_LIBS    linker flags for ICU, overriding pkg-config
@@ -47,9 +47,9 @@ index c22d3de89a..f5de47f300 100755
 +  OPENSSL_LIBS
 +              linker flags for OPENSSL, overriding pkg-config
    XML2_CONFIG path to xml2-config utility
-   LDFLAGS_EX  extra linker flags for linking executables only
-   LDFLAGS_SL  extra linker flags for linking shared libraries only
-@@ -7898,6 +7906,100 @@ fi
+   XML2_CFLAGS C compiler flags for XML2, overriding pkg-config
+   XML2_LIBS   linker flags for XML2, overriding pkg-config
+@@ -7907,6 +7915,100 @@ fi
  $as_echo "$with_openssl" >&6; }
  
  
@@ -150,7 +150,7 @@ index c22d3de89a..f5de47f300 100755
  #
  # SELinux
  #
-@@ -11917,7 +12019,11 @@ fi
+@@ -12011,7 +12113,11 @@ fi
  fi
  
  if test "$with_openssl" = yes ; then
@@ -163,7 +163,7 @@ index c22d3de89a..f5de47f300 100755
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
  if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
-@@ -12210,6 +12316,8 @@ $as_echo "$ac_cv_func_ssl_clear_options" >&6; }
+@@ -12304,6 +12410,8 @@ $as_echo "$ac_cv_func_ssl_clear_options" >&6; }
  $as_echo "#define HAVE_SSL_CLEAR_OPTIONS 1" >>confdefs.h
  
    fi
@@ -173,10 +173,10 @@ index c22d3de89a..f5de47f300 100755
  
  if test "$with_pam" = yes ; then
 diff --git a/configure.in b/configure.in
-index 976f90d45b..705dc6cbc6 100644
+index 7d63eb2fa3..9c0eeef306 100644
 --- a/configure.in
 +++ b/configure.in
-@@ -844,6 +844,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
+@@ -848,6 +848,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
  AC_MSG_RESULT([$with_openssl])
  AC_SUBST(with_openssl)
  
@@ -187,7 +187,7 @@ index 976f90d45b..705dc6cbc6 100644
  #
  # SELinux
  #
-@@ -1202,6 +1206,10 @@ fi
+@@ -1220,6 +1224,10 @@ fi
  
  if test "$with_openssl" = yes ; then
    dnl Order matters!
@@ -198,7 +198,7 @@ index 976f90d45b..705dc6cbc6 100644
    if test "$PORTNAME" != "win32"; then
       AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
-@@ -1234,6 +1242,8 @@ if test "$with_openssl" = yes ; then
+@@ -1252,6 +1260,8 @@ if test "$with_openssl" = yes ; then
    if test $ac_cv_func_ssl_clear_options = yes ; then
      AC_DEFINE(HAVE_SSL_CLEAR_OPTIONS, 1, [Define to 1 if you have SSL_clear_options()])
    fi
@@ -310,7 +310,7 @@ index 2f22b9b101..e2b69b9620 100644
  OBJS_COMMON += sha2.o
  endif
 diff --git a/src/interfaces/libpq/Makefile b/src/interfaces/libpq/Makefile
-index 4b0a8c719d..b66d7cc947 100644
+index 32a9fdfb7b..092b0e72a1 100644
 --- a/src/interfaces/libpq/Makefile
 +++ b/src/interfaces/libpq/Makefile
 @@ -36,6 +36,7 @@ OBJS += encnames.o wchar.o
