@@ -123,6 +123,13 @@ class EdgeDB(packages.BundledPythonPackage):
             )
         )
 
+        if platform.system() == 'Darwin':
+            # Workaround SIP madness on macOS and allow popen() calls
+            # in postgres to inherit DYLD_LIBRARY_PATH.
+            extraenv = 'PGOVERRIDESTDSHELL=1'
+        else:
+            extraenv = ''
+
         data_cache_script = textwrap.dedent(f'''\
             mkdir -p "{cachedir}"
             _tempdir=$("{build_python}" -c '{runstatescript}')
@@ -144,9 +151,8 @@ class EdgeDB(packages.BundledPythonPackage):
             (
                 cd ../;
                 ${{_sudo}} env \\
-                    {ld_env} \\
+                    {ld_env} {extraenv} \\
                     PYTHONPATH="${{_pythonpath}}" \\
-                    EDGEDB_DEBUG_PGSERVER=true \\
                     _EDGEDB_BUILDMETA_PG_CONFIG_PATH="${{_pg_config}}" \\
                     _EDGEDB_WRITE_DATA_CACHE_TO="${{_cachedir}}" \\
                     "${{_build_python}}" \\
