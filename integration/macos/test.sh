@@ -27,8 +27,12 @@ if [ -n "${PKG_SUBDIST}" ]; then
     dist+=".${PKG_SUBDIST}"
 fi
 
-curl "https://packages.edgedb.com/dist/${dist}/edgedb-cli_latest_nightly" \
-    > edgedb-cli
+clipath="edgedb-cli_latest"
+if [ -n "${PKG_SUBDIST}" ]; then
+    clipath="${clipath}_${PKG_SUBDIST}"
+fi
+
+curl --fail "https://packages.edgedb.com/dist/${dist}/${clipath}" > edgedb-cli
 
 sudo mkdir -p /usr/local/bin
 sudo cp edgedb-cli /usr/local/bin/edgedb
