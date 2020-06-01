@@ -21,7 +21,7 @@ RUN yum install -y \
 	curl-devel xz-devel libffi-devel gettext rsync glibc-langpack-en
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.8.2
+ENV PYTHON_VERSION 3.8.3
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
@@ -36,7 +36,9 @@ RUN set -ex \
 	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
+	&& (try=1; while [ $try -le 5 ]; do \
+		gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" && break || true; \
+		try=$(( $try + 1 )); sleep 1; done) \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
@@ -88,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 20.0.2
+ENV PYTHON_PIP_VERSION 20.1.1
 
 RUN set -ex; \
 	\

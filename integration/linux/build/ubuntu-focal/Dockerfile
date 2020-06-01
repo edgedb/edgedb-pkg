@@ -35,7 +35,9 @@ RUN set -ex \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-	&& gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" \
+	&& (try=1; while [ $try -le 5 ]; do \
+		gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$GPG_KEY" && break || true; \
+		try=$(( $try + 1 )); sleep 1; done) \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
