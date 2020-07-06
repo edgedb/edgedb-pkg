@@ -1,4 +1,4 @@
-name: 'Publishe EdgeDB Package'
+name: 'Publish EdgeDB Package'
 author: 'EdgeDB'
 runs:
   using: 'docker'
