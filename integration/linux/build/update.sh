@@ -24,14 +24,44 @@
 set -Eeuo pipefail
 shopt -s nullglob
 
+if which xcode-select >/dev/null; then
+	# macOS
+	SED="$(which gsed)"
+	JQ="$(which jq)"
+	READLINK="$(which greadlink)"
+	AWK="$(which gawk)"
+	if [[ ! -e $SED ]]; then
+		echo "Install gnu-sed with 'brew install gnu-sed'"
+		exit 1
+	fi
+	if [[ ! -e $JQ ]]; then
+		echo "Install jq with 'brew install jq'"
+		exit 1
+	fi
+	if [[ ! -e $READLINK ]]; then
+		echo "Install gnu-readlink with 'brew install coreutils'"
+		exit 1
+	fi
+	if [[ ! -e $AWK ]]; then
+		echo "Install gnu-awk with 'brew install gawk'"
+		exit 1
+	fi
+else
+	SED="$(which sed)"
+	JQ="$(which jq)"
+	READLINK="$(which readlink)"
+	AWK="$(which awk)"
+fi
+
+
 declare -A gpgKeys=(
 	[3.8]='E3FF2839C048B25C084DEBE9B26995E310250568'
 )
 
-cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
+cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.8"
-pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | jq -r .info.version)"
+pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
 rustVersion="1.44.0"
 
 generated_warning() {
@@ -46,10 +76,10 @@ generated_warning() {
 }
 
 entrypoint="$(cat entrypoint.sh \
-				| sed -r -e 's/\\/\\\\/g' \
-				| sed -r -e 's/\x27/\x27\\\x27\x27/g' \
-				| sed -r -e 's/^(.*)$/\1\\n\\/g' \
-				| sed -r -e 's/&/\\&/g')"
+				| $SED -r -e 's/\\/\\\\/g' \
+				| $SED -r -e 's/\x27/\x27\\\x27\x27/g' \
+				| $SED -r -e 's/^(.*)$/\1\\n\\/g' \
+				| $SED -r -e 's/&/\\&/g')"
 entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
 
 tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
@@ -64,14 +94,14 @@ fi
 possibles=( $(
 	{
 		git ls-remote --tags https://github.com/python/cpython.git "refs/tags/v${rcVersion}.*" \
-			| sed -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
+			| $SED -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
 			| grep $rcGrepV -E -- '[a-zA-Z]+' \
 			|| :
 
 		# this page has a very aggressive varnish cache in front of it, which is why we also scrape tags from GitHub
 		curl -fsSL 'https://www.python.org/ftp/python/' \
 			| grep '<a href="'"$rcVersion." \
-			| sed -r 's!.*<a href="([^"/]+)/?".*!\1!' \
+			| $SED -r 's!.*<a href="([^"/]+)/?".*!\1!' \
 			| grep $rcGrepV -E -- '[a-zA-Z]+' \
 			|| :
 	} | sort -ruV
@@ -93,7 +123,7 @@ for possible in "${possibles[@]}"; do
 	possibleVersions=( $(
 		wget -qO- -o /dev/null "https://www.python.org/ftp/python/$rcPossible/" \
 			| grep '<a href="Python-'"$rcVersion"'.*\.tar\.xz"' \
-			| sed -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
+			| $SED -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
 			| grep $rcGrepV -E -- '[a-zA-Z]+' \
 			| sort -rV \
 			|| true
@@ -121,7 +151,7 @@ variant="$(dirname ${target})"
 
 { generated_warning; cat "${template}"; } > "${target}"
 
-sed -ri \
+$SED -ri \
 	-e 's/^(ENV GPG_KEY) .*/\1 '"${gpgKeys[$version]:-${gpgKeys[$rcVersion]}}"'/' \
 	-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
 	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
@@ -131,5 +161,5 @@ sed -ri \
 	-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
 	"${target}"
 
-awk -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
+$AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
 rm "${tmp}"
