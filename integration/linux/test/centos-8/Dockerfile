@@ -46,8 +46,7 @@ while [ $try -le 30 ]; do\n\
     sleep 10\n\
 done\n\
 \n\
-yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \\\n\
-               "${dest}"/edgedb-server-${slot}*.x86_64.rpm\n\
+yum install -y "${dest}"/edgedb-server-${slot}*.x86_64.rpm\n\
 su edgedb -c "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
               -m edb.tools --no-devmode test \\\n\
               /usr/share/edgedb-server-${slot}/tests \\\n\

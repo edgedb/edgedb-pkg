@@ -42,8 +42,7 @@ echo "SLOT=$slot"\n\
 \n\
 export DEBIAN_FRONTEND=noninteractive\n\
 apt-get update\n\
-apt install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \\\n\
-               ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
+apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
 systemctl enable --now edgedb-server-${slot} \\\n\
     || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\

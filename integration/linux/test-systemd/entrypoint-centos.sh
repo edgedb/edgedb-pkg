@@ -24,8 +24,7 @@ fi
 re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.rpm"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 
-yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \
-               "${dest}"/edgedb-server-${slot}*.x86_64.rpm
+yum install -y "${dest}"/edgedb-server-${slot}*.x86_64.rpm
 
 systemctl enable --now edgedb-server-${slot} \
     || (journalctl -u edgedb-server-${slot} && exit 1)
