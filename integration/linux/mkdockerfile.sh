@@ -2,6 +2,24 @@
 set -Eeuo pipefail
 shopt -s nullglob
 
+if which xcode-select >/dev/null; then
+	# macOS
+	SED="$(which gsed)"
+	AWK="$(which gawk)"
+	if [[ ! -e $SED ]]; then
+		echo "Install gnu-sed with 'brew install gnu-sed'"
+		exit 1
+	fi
+	if [[ ! -e $AWK ]]; then
+		echo "Install gnu-awk with 'brew install gawk'"
+		exit 1
+	fi
+else
+	SED="$(which sed)"
+	AWK="$(which awk)"
+fi
+
+
 generated_warning() {
 	cat <<-EOH
 		#
@@ -20,18 +38,18 @@ platform="${variant%%-*}"
 
 { generated_warning; cat "$template"; } > "${target}"
 
-sed -ri \
+$SED -ri \
 	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
 	"${target}"
 
 entrypoint="$(cat entrypoint-${platform}.sh \
-				| sed -r -e 's/\\/\\\\/g' \
-				| sed -r -e 's/\x27/\x27\\\x27\x27/g' \
-				| sed -r -e 's/^(.*)$/\1\\n\\/g' \
-				| sed -r -e 's/&/\\&/g')"
+				| $SED -r -e 's/\\/\\\\/g' \
+				| $SED -r -e 's/\x27/\x27\\\x27\x27/g' \
+				| $SED -r -e 's/^(.*)$/\1\\n\\/g' \
+				| $SED -r -e 's/&/\\&/g')"
 entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
 
 tmp=$(mktemp /tmp/mkdockerfile.XXXXXX)
 echo "${entrypoint_cmd}" >"${tmp}"
-awk -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
+$AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
 rm "${tmp}"

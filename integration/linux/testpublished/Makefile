@@ -1,6 +1,6 @@
 .PHONY: all
 
-DOCKERFILES = $(addsuffix /Dockerfile, $(shell find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n'))
+DOCKERFILES = $(addsuffix /Dockerfile, $(shell ../find.sh))
 DEPS = ../mkdockerfile.sh
 
 all: $(DOCKERFILES)
