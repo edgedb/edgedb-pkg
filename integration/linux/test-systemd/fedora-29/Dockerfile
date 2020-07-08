@@ -35,7 +35,7 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.rpm"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
 \n\
 yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \\\n\
@@ -44,7 +44,7 @@ yum install -y "${dest}"/edgedb-server-common*.x86_64.rpm \\\n\
 systemctl enable --now edgedb-server-${slot} \\\n\
     || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\
-python="/usr/lib64/edgedb-${slot}/bin/python3"\n\
+python="/usr/lib64/edgedb-server-${slot}/bin/python3"\n\
 edbcli="${python} -m edb.cli"\n\
 \n\
 su edgedb -c "${edbcli} --admin configure insert Auth \\\n\

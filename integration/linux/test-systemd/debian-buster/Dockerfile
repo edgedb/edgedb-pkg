@@ -36,7 +36,7 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.deb"\n\
+re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\\.deb"\n\
 slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
 echo "SLOT=$slot"\n\
 \n\
