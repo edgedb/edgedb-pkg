@@ -37,8 +37,8 @@ while [ $try -le 30 ]; do
     sleep 10
 done
 
-apt install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \
-               ./"${dest}"/edgedb-server-${slot}_*_amd64.deb
+apt-get install -y ./"${dest}"/edgedb-server-common_*_amd64.deb \
+                   ./"${dest}"/edgedb-server-${slot}_*_amd64.deb
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
               -m edb.tools --no-devmode test \
               /usr/share/edgedb-server-${slot}/tests \
