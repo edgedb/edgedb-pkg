@@ -6,7 +6,7 @@ if [[ $BASH_VERSION =~ ^[34] ]]; then
     exit 1
 fi
 
-if which xcode-select >/dev/null; then
+if which xcode-select >/dev/null 2>&1; then
 	# macOS
 	FIND="$(which gfind)"
 	if [[ ! -e $FIND ]]; then

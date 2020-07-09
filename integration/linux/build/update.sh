@@ -24,7 +24,7 @@
 set -Eeuo pipefail
 shopt -s nullglob
 
-if which xcode-select >/dev/null; then
+if which xcode-select >/dev/null 2>&1; then
 	# macOS
 	SED="$(which gsed)"
 	JQ="$(which jq)"
