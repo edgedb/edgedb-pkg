@@ -42,7 +42,7 @@ while [ $try -le 30 ]; do\n\
     sleep 10\n\
 done\n\
 \n\
-edgedb-server --help\n\
+edgedb-server-${slot} --help\n\
 edgedb --help\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
