@@ -11,7 +11,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>@@{bindir}/edgedb-server-@@{slot}</string>
+        <string>@@{bindir}/edgedb-server</string>
         <string>-D@@{localstatedir}/lib/edgedb/@@{slot}/data/</string>
         <string>--runstate-dir=@@{runstatedir}/edgedb/</string>
     </array>
