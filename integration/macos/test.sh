@@ -55,6 +55,7 @@ sudo launchctl print system/com.edgedb.edgedb-server-"${slot}"
 
 if [ ! -e "${socket}" ]; then
     echo "Server did not start within 10 seconds."
+    sudo cat /var/log/system.log | grep "com.edgedb.edgedb-server"
     exit 1
 fi
 
