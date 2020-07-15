@@ -27,6 +27,15 @@ by triggering a "nightly-build" repository dispatch:
         https://api.github.com/repos/edgedb/edgedb/dispatches
 
 
+Release
+=======
+
+Triggering a "release" repository dispatch works just like nightly builds
+but the passed ``--data`` is like::
+
+    --data '{"event_type": "release", "client_payload": {"branch": "releases/1.0a4"}}'
+
+
 Building Locally
 ================
 
