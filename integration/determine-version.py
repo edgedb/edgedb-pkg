@@ -47,6 +47,8 @@ def main():
         version = branch[1:]
     elif branch.startswith('release/'):
         version = branch[len('release/'):]
+    elif branch.startswith('releases/'):
+        version = branch[len('releases/'):]
     else:
         print(f'::set-output name=version::{branch}')
         return
