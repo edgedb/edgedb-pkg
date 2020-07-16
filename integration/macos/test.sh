@@ -47,20 +47,8 @@ source /etc/profile
 set -e
 
 sudo su edgedb -c \
-    "echo 'test' | \
-     ${python} -m edb.cli --admin \
-     alter-role edgedb --password-from-stdin"
-
-sudo su edgedb -c \
     "${python} -m edb.tools --no-devmode test \
      ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
      -e cqa_ -e tools_ --verbose"
-
-sudo su edgedb -c \
-    "${python} -m edb.cli --admin \
-     configure insert auth --method=trust --priority=0"
-
-[[ "$(echo 'SELECT 1 + 3;' | ${python} -m edb.cli -u edgedb)" == *4* ]] \
-    || exit 1
 
 echo "Success!"
