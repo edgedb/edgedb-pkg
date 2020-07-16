@@ -22,6 +22,7 @@ class PubPackagesService(services.Service):
     name = 'pub-packages'
     description = 'Service for EdgeDB release packages'
     hostname = 'packages.edgedb.com'
+    bootstrap_hostname = 'sh.edgedb.com'
 
     @classmethod
     def get_instance_class(cls):
@@ -63,14 +64,53 @@ class PubPackagesServiceInstance(services.ServiceInstance):
             )
         )
 
+        bootstrap_name = f'{self.name}-bootstrap'
+
         self.add_required_resource(
-            resources.HTTPProxy(
-                name=self.name,
-                static_backend=self.name,
+            resources.StaticIP(
+                name=bootstrap_name,
+            )
+        )
+
+        self.add_required_resource(
+            resources.DNSName(
+                name=bootstrap_name,
+                ip_address_name=bootstrap_name,
+                dns_name=service.bootstrap_hostname,
+            )
+        )
+
+        self.add_required_resource(
+            resources.StaticBackend(
+                name=bootstrap_name,
+                storage_bucket='edgedb-init.edgedb-infra.magic.io',
+                enable_cdn=True,
+            )
+        )
+
+        sites = [
+            # packages.edgedb.com
+            resources.StaticSite(
+                ip_address_name=self.name,
+                dns_name=self.hostname,
+                backend_name=self.name,
                 ssl=True,
                 ssl_redirect=True,
-                dns_name=self.hostname,
-                ip_address_name=self.name,
+            ),
+            # sh.edgedb.com
+            resources.StaticSite(
+                ip_address_name=bootstrap_name,
+                dns_name=service.bootstrap_hostname,
+                backend_name=bootstrap_name,
+                ssl=True,
+                ssl_redirect=True,
+            ),
+        ]
+
+        self.add_required_resource(
+            resources.HTTPProxy(
+                name=f'{self.name}',
+                sites=sites,
             )
         )
 
