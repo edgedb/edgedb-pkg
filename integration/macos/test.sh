@@ -42,23 +42,6 @@ sudo installer -dumplog -verbose \
     -pkg "${dest}"/*.pkg \
     -target / || (sudo cat /var/log/install.log && exit 1)
 
-socket="/var/run/edgedb/.s.EDGEDB.5656"
-
-try=1
-while [ $try -le 10 ]; do
-    [ -e "${socket}" ] && break
-    try=$(( $try + 1 ))
-    sleep 1
-done
-
-sudo launchctl print system/com.edgedb.edgedb-server-"${slot}"
-
-if [ ! -e "${socket}" ]; then
-    echo "Server did not start within 10 seconds."
-    sudo cat /var/log/system.log | grep "com.edgedb.edgedb-server"
-    exit 1
-fi
-
 set +e
 source /etc/profile
 set -e
