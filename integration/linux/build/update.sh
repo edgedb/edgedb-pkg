@@ -62,7 +62,7 @@ cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.8"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.44.0"
+rustVersion="1.45.0"
 
 generated_warning() {
 	cat <<-EOH
