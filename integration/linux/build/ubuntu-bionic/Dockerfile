@@ -23,11 +23,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.8.3
+ENV PYTHON_VERSION 3.8.4
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.44.0
+ENV RUST_VERSION 1.45.0
 
 RUN set -ex \
 	\

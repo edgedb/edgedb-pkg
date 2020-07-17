@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # This script is needed for macOS support.
 
-if [[ $BASH_VERSION =~ ^[34] ]]; then
+if [[ $BASH_VERSION =~ ^[3] ]]; then
     echo "Install a newer Bash version with 'brew install bash'"
     exit 1
 fi
