@@ -4,7 +4,23 @@ set -e
 
 [ "$DEBUG" == 'true' ] && set -x
 
-DAEMON=sshd
+echo REPREPRO_BASE_DIR=${REPREPRO_BASE_DIR} >> /etc/environment
+echo REPREPRO_CONFIG_DIR=${REPREPRO_CONFIG_DIR} >> /etc/environment
+
+sed -i -e "s|%%REPREPRO_BASE_DIR%%|${REPREPRO_BASE_DIR}|g" \
+    /usr/local/bin/processincoming.sh
+
+sed -i -e "s|%%REPREPRO_SPOOL_DIR%%|${REPREPRO_SPOOL_DIR}|g" \
+    /etc/reprepro/incoming
+
+sed -i -e "s|%%REPREPRO_INCOMING_TMP_DIR%%|${REPREPRO_INCOMING_TMP_DIR}|g" \
+    /etc/reprepro/incoming
+
+sed -i -e "s|%%REPREPRO_SPOOL_DIR%%|${REPREPRO_SPOOL_DIR}|g" \
+    /etc/ssh.default/sshd_config_conditional
+
+mkdir -p "${REPREPRO_BASE_DIR}"
+chown -R reprepro:reprepro "${REPREPRO_BASE_DIR}"
 
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
@@ -65,9 +81,7 @@ fi
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"
 
-echo REPREPRO_BASE_DIR=${REPREPRO_BASE_DIR} >> /etc/environment
-echo REPREPRO_CONFIG_DIR=${REPREPRO_CONFIG_DIR} >> /etc/environment
-
+DAEMON=sshd
 
 stop() {
     echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
@@ -95,9 +109,9 @@ if [ "$(basename $1)" == "$DAEMON" ]; then
 
     gosu reprepro:reprepro \
         inoticoming --initialsearch --foreground \
-            "${REPREPRO_INCOMING_DIR}" \
+            "${REPREPRO_SPOOL_DIR}/incoming" \
             --suffix '.changes' \
-            --chdir "${REPREPRO_INCOMING_DIR}" \
+            --chdir "${REPREPRO_SPOOL_DIR}" \
             /usr/local/bin/processincoming.sh {} \;
 else
     exec "$@"

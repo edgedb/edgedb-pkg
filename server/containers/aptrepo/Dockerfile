@@ -1,8 +1,8 @@
 FROM debian:buster
 
-ENV REPREPRO_BASE_DIR=/var/spool/repo/local/
+ENV REPREPRO_BASE_DIR=/var/tmp/repo/local/
 ENV REPREPRO_CONFIG_DIR=/etc/reprepro/
-ENV REPREPRO_INCOMING_DIR=/var/spool/reprepro/incoming/
+ENV REPREPRO_SPOOL_DIR=/var/spool/reprepro
 ENV REPREPRO_INCOMING_TMP_DIR=/var/tmp/incoming-staging/
 
 RUN apt-get update \
@@ -16,16 +16,14 @@ RUN apt-get update \
     && addgroup uploaders \
     && addgroup incoming \
     && adduser --ingroup uploaders \
-               --home $REPREPRO_INCOMING_DIR --no-create-home uploader \
+               --home $REPREPRO_SPOOL_DIR --no-create-home uploader \
     && adduser reprepro incoming \
     && adduser uploader incoming \
-    && mkdir -p $REPREPRO_INCOMING_DIR \
-    && chown reprepro:incoming $REPREPRO_INCOMING_DIR \
-    && chmod g+ws $REPREPRO_INCOMING_DIR \
+    && mkdir -p $REPREPRO_SPOOL_DIR/incoming \
+    && chown reprepro:incoming $REPREPRO_SPOOL_DIR/incoming \
+    && chmod g+ws $REPREPRO_SPOOL_DIR/incoming \
     && mkdir -p $REPREPRO_INCOMING_TMP_DIR \
     && chown reprepro:reprepro $REPREPRO_INCOMING_TMP_DIR \
-    && mkdir -p $REPREPRO_BASE_DIR \
-    && chown -R reprepro:reprepro $REPREPRO_BASE_DIR \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
     && mkdir -p /etc/ssh.default/ \
     && rm -rf /var/lib/apt/lists/*
@@ -36,12 +34,12 @@ COPY config/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
 COPY makeindex.py /usr/local/bin/
-RUN sed -i -e "s|%%REPREPRO_BASE_DIR%%|${REPREPRO_BASE_DIR}|g" \
-        /usr/local/bin/processincoming.sh
 
 RUN chown -R reprepro:reprepro /home/reprepro/.gnupg \
     && chmod 700 /home/reprepro/.gnupg \
     && chmod 600 /home/reprepro/.gnupg/*
+
+VOLUME /var/tmp/repo
 
 EXPOSE 22
 

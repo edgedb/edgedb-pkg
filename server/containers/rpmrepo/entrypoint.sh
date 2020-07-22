@@ -4,6 +4,10 @@ set -e
 
 [ "$DEBUG" == 'true' ] && set -x
 
+mkdir -p "${REPO_LOCAL_DIR}"
+chown -R repomgr:repomgr "${REPO_LOCAL_DIR}"
+chmod -R g+ws "${REPO_LOCAL_DIR}"
+
 if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
 fi

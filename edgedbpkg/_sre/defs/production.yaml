@@ -98,7 +98,7 @@ spec:
           readOnly: true
           mountPath: /root/storage-credentials/
         - name: aptrepo-scratch
-          mountPath: /var/spool/repo/local/
+          mountPath: /var/tmp/repo/
         ports:
         - containerPort: 2222
 
@@ -140,7 +140,7 @@ spec:
           readOnly: true
           mountPath: /root/storage-credentials/
         - name: rpmrepo-scratch
-          mountPath: /var/spool/repo/local/
+          mountPath: /var/tmp/repo/
         ports:
         - containerPort: 2223
 
@@ -182,7 +182,7 @@ spec:
           readOnly: true
           mountPath: /root/storage-credentials/
         - name: genrepo-scratch
-          mountPath: /var/spool/repo/local/
+          mountPath: /var/tmp/repo/
         ports:
         - containerPort: 2224
 

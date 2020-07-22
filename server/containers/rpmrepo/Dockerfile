@@ -1,6 +1,6 @@
 FROM centos:7
 
-ENV REPO_LOCAL_DIR=/var/spool/repo/local/
+ENV REPO_LOCAL_DIR=/var/tmp/repo/local/
 ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 
 RUN yum install -y \
@@ -16,9 +16,6 @@ RUN yum install -y \
     && useradd -G uploaders -d $REPO_INCOMING_DIR --no-create-home uploader \
     && gpasswd -a repomgr incoming \
     && gpasswd -a uploader incoming \
-    && mkdir -p $REPO_LOCAL_DIR \
-    && chown -R repomgr:repomgr $REPO_LOCAL_DIR \
-    && chmod -R g+ws $REPO_LOCAL_DIR \
     && mkdir -p $REPO_INCOMING_DIR/triggers \
     && chown -R repomgr:incoming $REPO_INCOMING_DIR \
     && chmod -R g+ws $REPO_INCOMING_DIR \
@@ -45,6 +42,8 @@ RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 600 /var/spool/incron/repomgr
 
 EXPOSE 22
+
+VOLUME /var/tmp/repo
 
 ENTRYPOINT ["/entrypoint.sh"]
 

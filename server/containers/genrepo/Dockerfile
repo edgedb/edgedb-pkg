@@ -1,6 +1,6 @@
 FROM debian:buster
 
-ENV REPO_LOCAL_DIR=/var/spool/repo/local/
+ENV REPO_LOCAL_DIR=/var/tmp/repo/local/
 ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 
 RUN apt-get update \
@@ -17,9 +17,6 @@ RUN apt-get update \
                --home $REPO_INCOMING_DIR --no-create-home uploader \
     && adduser repomgr incoming \
     && adduser uploader incoming \
-    && mkdir -p $REPO_LOCAL_DIR \
-    && chown -R repomgr:repomgr $REPO_LOCAL_DIR \
-    && chmod -R g+ws $REPO_LOCAL_DIR \
     && mkdir -p $REPO_INCOMING_DIR/triggers \
     && mkdir -p $REPO_INCOMING_DIR/macos \
     && mkdir -p $REPO_INCOMING_DIR/source \
@@ -51,6 +48,8 @@ RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 600 /var/spool/incron/repomgr
 
 EXPOSE 22
+
+VOLUME /var/tmp/repo
 
 ENTRYPOINT ["/entrypoint.sh"]
 
