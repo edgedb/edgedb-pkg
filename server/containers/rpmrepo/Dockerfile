@@ -1,6 +1,5 @@
 FROM centos:7
 
-ENV REPO_BASE_DIR=/var/lib/repos/
 ENV REPO_LOCAL_DIR=/var/spool/repo/local/
 ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 
@@ -38,8 +37,6 @@ COPY makeindex.py /usr/local/bin/
 RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
         /usr/local/bin/processincoming.sh \
     && sed -i -e "s|%%REPO_LOCAL_DIR%%|${REPO_LOCAL_DIR}|g" \
-        /usr/local/bin/processincoming.sh \
-    && sed -i -e "s|%%REPO_BASE_DIR%%|${REPO_BASE_DIR}|g" \
         /usr/local/bin/processincoming.sh
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
@@ -48,8 +45,6 @@ RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 600 /var/spool/incron/repomgr
 
 EXPOSE 22
-
-VOLUME $REPO_BASE_DIR
 
 ENTRYPOINT ["/entrypoint.sh"]
 

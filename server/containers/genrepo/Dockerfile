@@ -1,6 +1,6 @@
 FROM debian:buster
 
-ENV REPO_BASE_DIR=/var/lib/repos/
+ENV REPO_LOCAL_DIR=/var/spool/repo/local/
 ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 
 RUN apt-get update \
@@ -17,6 +17,9 @@ RUN apt-get update \
                --home $REPO_INCOMING_DIR --no-create-home uploader \
     && adduser repomgr incoming \
     && adduser uploader incoming \
+    && mkdir -p $REPO_LOCAL_DIR \
+    && chown -R repomgr:repomgr $REPO_LOCAL_DIR \
+    && chmod -R g+ws $REPO_LOCAL_DIR \
     && mkdir -p $REPO_INCOMING_DIR/triggers \
     && mkdir -p $REPO_INCOMING_DIR/macos \
     && mkdir -p $REPO_INCOMING_DIR/source \
@@ -37,6 +40,10 @@ COPY entrypoint.sh /entrypoint.sh
 COPY processincoming.sh /usr/local/bin/
 COPY makeindex.py /usr/local/bin/
 COPY findold.py /usr/local/bin/
+RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
+        /usr/local/bin/processincoming.sh \
+    && sed -i -e "s|%%REPO_LOCAL_DIR%%|${REPO_LOCAL_DIR}|g" \
+        /usr/local/bin/processincoming.sh
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 700 /home/repomgr/.gnupg \
@@ -44,8 +51,6 @@ RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 600 /var/spool/incron/repomgr
 
 EXPOSE 22
-
-VOLUME $REPO_BASE_DIR
 
 ENTRYPOINT ["/entrypoint.sh"]
 

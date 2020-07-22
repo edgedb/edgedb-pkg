@@ -8,10 +8,13 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+incomingdir="%%REPO_INCOMING_DIR%%"
+localdir="%%REPO_LOCAL_DIR%%"
+
 list=$1
 basedir="gs://packages.edgedb-infra.magic.io"
 re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_([^.]*)(.*)?$"
-cd /var/spool/repo/incoming
+cd "${incomingdir}"
 dists=()
 
 function _cache() {
@@ -45,7 +48,7 @@ while read -r -u 10 filename; do
     subdist="${subdist/\~/_}"
     pkgdir="${dist}${subdist/_/.}"
     dists+=("${pkgdir}")
-    tempdir=$(mktemp -d)
+    tempdir=$(mktemp -d "${localdir}/genrepo.XXXXXX")
     stgdir="${tempdir}/${pkgdir}"
     distname="${pkgname}${slot}_latest${subdist}${ext}"
 
@@ -77,7 +80,7 @@ done 10<"${list}"
 
 
 for dist in "${dists[@]}"; do
-    tempdir=$(mktemp -d)
+    tempdir=$(mktemp -d "${localdir}/genrepo.XXXXXX")
     gsutil ls "${basedir}/archive/${dist}" \
         | grep -v "\(.sha256\|.asc\)$" \
         | findold.py --keep=3 --subdist=nightly \

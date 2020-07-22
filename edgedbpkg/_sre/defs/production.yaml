@@ -4,6 +4,44 @@ metadata:
   name: "<service-name>"
 ---
 
+# Scratch space volumes for each repo.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: genrepo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rpmrepo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aptrepo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+
 apiVersion: "extensions/v1beta1"
 kind: "Deployment"
 metadata:
@@ -59,6 +97,8 @@ spec:
         - name: storage-credentials
           readOnly: true
           mountPath: /root/storage-credentials/
+        - name: aptrepo-scratch
+          mountPath: /var/spool/repo/local/
         ports:
         - containerPort: 2222
 
@@ -99,6 +139,8 @@ spec:
         - name: storage-credentials
           readOnly: true
           mountPath: /root/storage-credentials/
+        - name: rpmrepo-scratch
+          mountPath: /var/spool/repo/local/
         ports:
         - containerPort: 2223
 
@@ -139,6 +181,8 @@ spec:
         - name: storage-credentials
           readOnly: true
           mountPath: /root/storage-credentials/
+        - name: genrepo-scratch
+          mountPath: /var/spool/repo/local/
         ports:
         - containerPort: 2224
 
@@ -169,6 +213,15 @@ spec:
           items:
           - key: key
             path: service-account-key.json
+      - name: genrepo-scratch
+        persistentVolumeClaim:
+          claimName: genrepo-pvc
+      - name: rpmrepo-scratch
+        persistentVolumeClaim:
+          claimName: rpmrepo-pvc
+      - name: aptrepo-scratch
+        persistentVolumeClaim:
+          claimName: aptrepo-pvc
 ---
 
 apiVersion: v1

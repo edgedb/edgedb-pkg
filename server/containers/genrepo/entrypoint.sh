@@ -59,9 +59,6 @@ fi
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"
 
-echo REPO_BASE_DIR=${REPO_BASE_DIR} >> /etc/environment
-echo REPO_CONFIG_DIR=${REPO_CONFIG_DIR} >> /etc/environment
-
 
 stopdaemon() {
     local pid
