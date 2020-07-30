@@ -276,3 +276,10 @@ class EdgeDB(packages.BundledPythonPackage):
                 }
             )
         ]
+
+    def get_conflict_packages(
+        self,
+        build,
+        root_version: str,
+    ) -> typing.List[packages.MetaPackage]:
+        return ['edgedb-common']
