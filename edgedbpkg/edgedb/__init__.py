@@ -51,12 +51,24 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     @property
-    def slot(self) -> str:
+    def base_slot(self) -> str:
         if self.version.prerelease:
             stage, no = self.version.prerelease
             return f'{self.version.major}-{stage}{no}'
         else:
             return f'{self.version.major}'
+
+    @property
+    def slot(self) -> str:
+        # We want dev builds (nightlies) to be their separate slot.
+        # Sadly what we're looking for is not present in any pre-parsed fields.
+        v = self.version.text
+        i = v.find(".dev")
+        if i == -1:
+            return self.base_slot
+
+        dev, _rest = v[i + 1:].split("+", 1)
+        return self.base_slot + "-" + dev
 
     def get_bdist_wheel_command(self, build) -> list:
         bindir = build.get_install_path('bin')
