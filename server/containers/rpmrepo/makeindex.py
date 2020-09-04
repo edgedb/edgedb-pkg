@@ -8,7 +8,8 @@ import subprocess
 
 
 slot_regexp = re.compile(
-    r"^(\w+(?:-[a-zA-Z]*)*?)(?:-(\d+(?:-(?:dev|alpha|beta|rc)\d+))?)?$",
+    r"^(\w+(?:-[a-zA-Z]*)*?)"
+    r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
     re.A
 )
 
