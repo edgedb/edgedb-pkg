@@ -10,7 +10,7 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-server-([[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?).*\.pkg"
+re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\.pkg"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 fwpath="/Library/Frameworks/EdgeDB.framework/"
 python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"

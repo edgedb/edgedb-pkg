@@ -13,7 +13,7 @@ localdir="%%REPO_LOCAL_DIR%%"
 
 list=$1
 basedir="gs://packages.edgedb-infra.magic.io"
-re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(dev|alpha|beta|rc)[[:digit:]]+)?)?_([^_]*)_([^.]*)(.*)?$"
+re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?)?_([^_]*)_([^.]*)(.*)?$"
 cd "${incomingdir}"
 dists=()
 
@@ -42,8 +42,8 @@ while read -r -u 10 filename; do
     fi
     slot="$(echo ${leafname} | sed -n -E "s/${re}/\3/p")"
     version="$(echo ${leafname} | sed -n -E "s/${re}/\3/p")"
-    release="$(echo ${leafname} | sed -n -E "s/${re}/\7/p")"
-    ext="$(echo ${leafname} | sed -n -E "s/${re}/\8/p")"
+    release="$(echo ${leafname} | sed -n -E "s/${re}/\8/p")"
+    ext="$(echo ${leafname} | sed -n -E "s/${re}/\9/p")"
     subdist=$(echo ${release} | sed 's/[[:digit:]]\+//')
     subdist="${subdist/\~/_}"
     pkgdir="${dist}${subdist/_/.}"

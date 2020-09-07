@@ -10,7 +10,7 @@ import sys
 
 regexp = re.compile(
     r"^(\w+(-[a-zA-Z]*)?)"
-    r"(-\d+(-(dev|alpha|beta|rc)\d+)?)?"
+    r"(-\d+(-(alpha|beta|rc)\d+)?(-dev\d+)?)?"
     r"_([^_]*)_([^.]*)"
     r"(.*)?$",
     re.A
@@ -41,8 +41,8 @@ def main():
 
         pkgname = m.group(1)
         slot = m.group(3)
-        version = m.group(6)
-        revision = m.group(7)
+        version = m.group(7)
+        revision = m.group(8)
         revno, _, subdist = revision.rpartition('~')
 
         if args.subdist and subdist != args.subdist:
