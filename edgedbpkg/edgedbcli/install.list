@@ -1,1 +1,1 @@
-{systembindir}/edgedb
+{systembindir}/edgedb{exesuffix}
