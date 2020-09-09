@@ -11,5 +11,16 @@ test('test runs', () => {
         env: process.env
     };
     let output = cp.execSync(`node ${ip}`, options).toString().trim();
-    expect(output).toBe("::set-output name=version-slot,::1-alpha2")
+    expect(output).toEqual(expect.stringContaining("::set-output name=version-slot,::1-alpha2"))
+});
+
+test('test runs', () => {
+    process.env['INPUT_TARGET'] = 'ubuntu-xenial';
+    process.env['INPUT_PATH'] = __dirname;
+    const ip = path.join(__dirname, '..', 'lib', 'main.js');
+    const options: cp.ExecSyncOptions = {
+        env: process.env
+    };
+    let output = cp.execSync(`node ${ip}`, options).toString().trim();
+    expect(output).toEqual(expect.stringContaining("::set-output name=version-slot,::1-alpha6-dev5057"))
 });
