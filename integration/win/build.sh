@@ -2,8 +2,8 @@
 
 set -Exeo pipefail
 
-pip install -U git+https://github.com/edgedb/metapkg@win
-pip install -U git+https://github.com/edgedb/edgedb-pkg@win
+pip install -U git+https://github.com/edgedb/metapkg
+pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 # Circumvent a dubious practice of Windows intercepting
 # bare invocations of "bash" to mean "WSL", since make
