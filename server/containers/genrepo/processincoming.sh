@@ -13,7 +13,24 @@ localdir="%%REPO_LOCAL_DIR%%"
 
 list=$1
 basedir="gs://packages.edgedb-infra.magic.io"
-re="^([[:alnum:]]+(-[[:alpha:]][[:alnum:]]*)?)(-[[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?)?_([^_]*)_([^.]*)(.*)?$"
+re="^
+(
+    [[:alnum:]]+
+    (-[[:alpha:]][[:alnum:]]*)?
+)
+(
+    -[[:digit:]]+
+    (
+        -(alpha|beta|rc)[[:digit:]]+
+    )?
+    (-dev[[:digit:]]+)?
+)?
+_
+([^_]*)
+_
+([^.]*)
+(.*)?
+$"
 cd "${incomingdir}"
 dists=()
 

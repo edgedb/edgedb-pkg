@@ -17,7 +17,7 @@ set -ex
 cat <<EOF >"${HOME}/.ssh/config"
 Host upload-packages.edgedb.com
     User uploader
-    Port 2223
+    Port 2224
     StrictHostKeyChecking no
 EOF
 
@@ -37,7 +37,7 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
 fi
 
 cd "${dest}"
-ls *.rpm > "upload${key}.list"
+ls -1 *.rpm > "upload${key}.list"
 
 cat <<EOF >/tmp/sftp-batch
 put *.rpm ./incoming/

@@ -14,7 +14,7 @@ set -ex
 
 cat <<EOF >"${HOME}/.ssh/config"
 Host upload-packages.edgedb.com
-    Port 2224
+    Port 2222
     StrictHostKeyChecking no
 EOF
 

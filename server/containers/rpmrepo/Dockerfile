@@ -8,7 +8,7 @@ RUN yum install -y \
     && yum install -y \
         createrepo openssh-server bash incron sudo gnupg rpm-sign rsync \
         yum-utils gcc python3 python3-devel libffi-devel \
-    && pip3 install gsutil \
+    && pip3 install boto3 \
     && groupadd --gid 2000 repomgr \
     && useradd --uid 2000 --gid 2000 repomgr \
     && groupadd uploaders \

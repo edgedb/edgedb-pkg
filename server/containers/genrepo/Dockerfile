@@ -8,7 +8,8 @@ RUN apt-get update \
         apt-get install -y --no-install-recommends \
             openssh-server bash incron sudo gnupg \
             gcc python3-dev python3-setuptools python3-pip libffi-dev \
-    && pip3 install gsutil \
+    && pip3 install boto3 \
+    && pip3 install click \
     && addgroup --gid 2000 repomgr \
     && adduser --uid 2000 --gid 2000 repomgr \
     && addgroup uploaders \
@@ -18,29 +19,31 @@ RUN apt-get update \
     && adduser repomgr incoming \
     && adduser uploader incoming \
     && mkdir -p $REPO_INCOMING_DIR/triggers \
-    && mkdir -p $REPO_INCOMING_DIR/macos \
+    && mkdir -p $REPO_INCOMING_DIR/macos-x86_64 \
     && mkdir -p $REPO_INCOMING_DIR/source \
     && chown -R repomgr:incoming $REPO_INCOMING_DIR \
     && chmod g+ws $REPO_INCOMING_DIR \
-    && chmod g+ws $REPO_INCOMING_DIR/macos \
+    && chmod g+ws $REPO_INCOMING_DIR/macos-x86_64 \
     && chmod g+ws $REPO_INCOMING_DIR/source \
     && chmod g+ws $REPO_INCOMING_DIR/triggers \
+    && mkdir -p /etc/ssh/authorized_keys/ \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
     && mkdir -p /etc/ssh.default/ \
     && rm -rf /var/lib/apt/lists/*
 
 COPY config/sshd/* /etc/ssh.default/
+COPY config/ssh/pub-packages-prod--root /root/.ssh/authorized_keys
+COPY config/ssh/pub-packages-prod--uploader /etc/ssh/authorized_keys/uploaders
 COPY config/gnupg/* /home/repomgr/.gnupg/
 COPY config/incron/incron.allow /etc/
 COPY config/incron/incrontab /var/spool/incron/repomgr
 COPY entrypoint.sh /entrypoint.sh
-COPY processincoming.sh /usr/local/bin/
-COPY makeindex.py /usr/local/bin/
-COPY findold.py /usr/local/bin/
+COPY fetch_secrets.py /usr/local/bin/
+COPY process_incoming.py /usr/local/bin/
 RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
-        /usr/local/bin/processincoming.sh \
+        /usr/local/bin/process_incoming.py \
     && sed -i -e "s|%%REPO_LOCAL_DIR%%|${REPO_LOCAL_DIR}|g" \
-        /usr/local/bin/processincoming.sh
+        /usr/local/bin/process_incoming.py
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 700 /home/repomgr/.gnupg \

@@ -17,7 +17,7 @@ set -ex
 cat <<EOF >"${HOME}/.ssh/config"
 Host upload-packages.edgedb.com
     User uploader
-    Port 2224
+    Port 2222
     StrictHostKeyChecking no
 EOF
 
@@ -44,6 +44,7 @@ cat <<EOF >${batch}
 put -r * incoming/
 put -p ${list} incoming/triggers/upload${key}.list
 EOF
+
 sftp -b "${batch}" uploader@upload-packages.edgedb.com
 
 rm "${list}" "${batch}"

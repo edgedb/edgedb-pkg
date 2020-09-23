@@ -28,6 +28,7 @@ async function run() {
         const path = process.env['INPUT_PATH'];
         const dest = `${path}/artifacts/${target}`;
         let version_slot = '';
+        let found_file = '';
         let files = [];
         try {
             files = fs.readdirSync(dest);
@@ -38,9 +39,12 @@ async function run() {
         for (let file of files) {
             let match = re.exec(file);
             if (match !== null) {
+                found_file = file;
                 version_slot = match[1];
+                break;
             }
         }
+        console.log(`File ${found_file} yields version slot ${version_slot}`);
         console.log(`::set-output name=version-slot,::${version_slot}`);
     }
     catch (error) {

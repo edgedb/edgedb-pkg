@@ -58,6 +58,7 @@ cat <<EOF >${batch}\n\
 put -r * incoming/\n\
 put -p ${list} incoming/triggers/upload${key}.list\n\
 EOF\n\
+\n\
 sftp -b "${batch}" uploader@upload-packages.edgedb.com\n\
 \n\
 rm "${list}" "${batch}"\n\' >/entrypoint.sh

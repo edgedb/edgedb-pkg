@@ -10,7 +10,8 @@ RUN apt-get update \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash inoticoming gosu gnupg \
             gcc python3-dev python3-setuptools python3-pip libffi-dev \
-    && pip3 install gsutil \
+    && pip3 install boto3 \
+    && pip3 install click \
     && addgroup --gid 2000 reprepro \
     && adduser --uid 2000 --gid 2000 reprepro \
     && addgroup uploaders \
@@ -32,16 +33,24 @@ COPY config/reprepro/* /etc/reprepro/
 COPY config/sshd/* /etc/ssh.default/
 COPY config/gnupg/* /home/reprepro/.gnupg/
 COPY entrypoint.sh /entrypoint.sh
-COPY processincoming.sh /usr/local/bin/
-COPY makeindex.py /usr/local/bin/
+COPY fetch_secrets.py /usr/local/bin/
+COPY process_incoming.py /usr/local/bin/
+RUN sed -i -e "s|%%REPREPRO_BASE_DIR%%|${REPREPRO_BASE_DIR}|g" \
+        /usr/local/bin/process_incoming.py \
+    & sed -i -e "s|%%REPREPRO_SPOOL_DIR%%|${REPREPRO_SPOOL_DIR}|g" \
+        /etc/reprepro/incoming \
+    & sed -i -e "s|%%REPREPRO_INCOMING_TMP_DIR%%|${REPREPRO_INCOMING_TMP_DIR}|g" \
+        /etc/reprepro/incoming \
+    & sed -i -e "s|%%REPREPRO_SPOOL_DIR%%|${REPREPRO_SPOOL_DIR}|g" \
+        /etc/ssh.default/sshd_config_conditional
 
 RUN chown -R reprepro:reprepro /home/reprepro/.gnupg \
     && chmod 700 /home/reprepro/.gnupg \
     && chmod 600 /home/reprepro/.gnupg/*
 
-VOLUME /var/tmp/repo
-
 EXPOSE 22
+
+VOLUME /var/tmp/repo
 
 ENTRYPOINT ["/entrypoint.sh"]
 
