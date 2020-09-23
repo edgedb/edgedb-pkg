@@ -17,11 +17,18 @@ if [ -w ~/.ssh/authorized_keys ]; then
     chmod 400 ~/.ssh/authorized_keys
 fi
 
-if ls /etc/ssh/ssh_host_* 1> /dev/null 2>&1; then
-    echo "Found ssh host keys in /etc/ssh/"
+fetch_secrets.py server-host-key- /etc/ssh/
+
+if ls /etc/ssh/server-host-key-* 1> /dev/null 2>&1; then
+    echo "Found shared ssh host keys in /etc/ssh/"
+    SSH_KEY_WILDCARD="'server-host-key-*'"
+elif ls /etc/ssh/ssh_host_* 1> /dev/null 2>&1; then
+    echo "Found custom ssh host keys in /etc/ssh/"
+    SSH_KEY_WILDCARD="'ssh_host_*_key'"
 else
     echo "No ssh host keys found in /etc/ssh.  Generating."
     ssh-keygen -A
+    SSH_KEY_WILDCARD="'ssh_host_*_key'"
 fi
 
 while IFS= read -r -d '' path; do
@@ -30,28 +37,26 @@ while IFS= read -r -d '' path; do
         chown root:root "${path}"
         chmod 400 "${path}"
     fi
-done < <(find "/etc/ssh/" -name 'ssh_host_*_key' -print0)
+done < <(find "/etc/ssh/" -name $SSH_KEY_WILDCARD -print0)
 
 if [ "$DEBUG" == 'true' ]; then
     echo "LogLevel DEBUG2" >> "/etc/ssh.default/sshd_config"
 fi
 
+fetch_secrets.py release-signing- /root/gpg-keys/
+
 if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
         cat "${path}" | sudo -u repomgr gpg --import
-    done < <(find "/root/gpg-keys/" -maxdepth 1 -name '*.asc' -print0)
+    done < <(find "/root/gpg-keys/" -maxdepth 1 -type f -print0)
 fi
 
-if [ -e "/root/storage-credentials/service-account-key.json" ]; then
-    cp "/root/storage-credentials/service-account-key.json" \
-        "/home/repomgr/.service-account-key.json"
-    chown repomgr:repomgr "/home/repomgr/.service-account-key.json"
-    chmod 600 "/home/repomgr/.service-account-key.json"
-    cat >"/home/repomgr/.boto" <<EOF
-[Credentials]
-gs_service_key_file = /home/repomgr/.service-account-key.json
-EOF
-fi
+mkdir -p /home/repomgr/.aws
+echo "[default]" >/home/repomgr/.aws/credentials
+echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >>/home/repomgr/.aws/credentials
+echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >>/home/repomgr/.aws/credentials
+chown -R repomgr:repomgr /home/repomgr/.aws
+chmod 400 /home/repomgr/.aws/credentials
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"
