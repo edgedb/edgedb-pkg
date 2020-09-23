@@ -2,19 +2,23 @@
 
 set -e
 
-# https://cloud.google.com/sdk/gcloud/reference/auth/activate-service-account
-printf "%s" "${GCP_SERVICE_KEY}" > "${HOME}/.gcpkey.json"
-gcloud auth activate-service-account \
-    "${GCP_SERVICE_ACCOUNT}" --key-file="${HOME}/.gcpkey.json"
+if [ -z ${AWS_ACCOUNT+x} ]; then
+    echo "Set \$AWS_ACCOUNT to use this."
+    exit 1
+fi
 
-gcloud auth configure-docker
+AWS_URL="${AWS_ACCOUNT}.dkr.ecr.us-east-2.amazonaws.com"
+
+# Requires local credentials to be present or the use of the
+# aws-actions/configure-aws-credentials@v1 GitHub action.
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin $AWS_URL
 
 set -ex
 
 containers="$(dirname $0)/containers/"
 
 for container in $(ls "${containers}"); do
-    repo="gcr.io/edgedb-infra/${container}"
+    repo="${AWS_URL}/${container}"
     tag="latest"
     docker build -t "${repo}:${tag}" "${containers}/${container}"
     docker push "${repo}"

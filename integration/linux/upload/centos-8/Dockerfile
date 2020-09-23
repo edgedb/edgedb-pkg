@@ -47,7 +47,7 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
 fi\n\
 \n\
 cd "${dest}"\n\
-ls *.rpm > "upload${key}.list"\n\
+ls -1 *.rpm > "upload${key}.list"\n\
 \n\
 cat <<EOF >/tmp/sftp-batch\n\
 put *.rpm ./incoming/\n\
