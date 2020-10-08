@@ -15,25 +15,16 @@ Nightly Builds
 ==============
 
 The nightly package builds are performed at 00:00 UTC every day, or on demand
-by triggering a "nightly-build" repository dispatch:
-
-.. code-block:: shell
-
-    curl \
-        -H "Accept: application/vnd.github.everest-preview+json" \
-        -H "Authorization: Bearer <your-github-token>" \
-        -H "Content-Type: application/json" \
-        --data '{"event_type": "nightly-build"}' \
-        https://api.github.com/repos/edgedb/edgedb/dispatches
+by triggering a "Build Test and Publish Nightly Packages" workflow dispatch
+from the GitHub UI.  You can choose which branch to fire up a build from.
 
 
 Release
 =======
 
-Triggering a "release" repository dispatch works just like nightly builds
-but the passed ``--data`` is like::
-
-    --data '{"event_type": "release", "client_payload": {"branch": "releases/1.0a4"}}'
+Triggering a "release" workflow dispatch works just like nightly builds
+but you're looking for the "Build Test and Publish a Release" workflow.
+Choose a branch like "releases/1.0a6".
 
 
 Building Locally
