@@ -43,6 +43,11 @@ def main():
         sys.exit(1)
 
     branch = sys.argv[1].strip()
+    if branch.startswith("refs/heads/"):
+        branch = branch[len("refs/heads/"):]
+
+    print(f'::set-output name=branch::{branch}')
+
     if branch.startswith('v'):
         version = branch[1:]
     elif branch.startswith('release/'):
