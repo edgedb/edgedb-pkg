@@ -12,6 +12,9 @@ if [ -w ~/.ssh ]; then
     chown root:root ~/.ssh && chmod 700 ~/.ssh/
 fi
 
+fetch_secrets.py client-keys-root /root/.ssh -f authorized_keys
+fetch_secrets.py client-keys-uploaders /etc/ssh/authorized_keys -f uploaders
+
 if [ -w ~/.ssh/authorized_keys ]; then
     chown root:root ~/.ssh/authorized_keys
     chmod 400 ~/.ssh/authorized_keys
