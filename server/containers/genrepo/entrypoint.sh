@@ -89,10 +89,14 @@ startdaemon() {
     local status
 
     shift
-    $@ &
+    echo "Starting $@"
+    mkfifo ${daemon}_pipe
+    $@ >${daemon}_pipe 2>&1 &
     status=$?
     pid="$!"
+    echo "Running $daemon at $! ($?)"
     mkdir -p /var/run/$daemon && echo "${pid}" > /var/run/$daemon/$daemon.pid
+    grep -v "Did not receive identification string from" <${daemon}_pipe &
     return $status
 }
 
@@ -101,7 +105,6 @@ stop() {
     stopdaemon incrond
 }
 
-echo "Running $@"
 if [ "$(basename $1)" == "sshd" ]; then
     if [ "$DEBUG" == 'true' ]; then
         echo "sshd_config"
