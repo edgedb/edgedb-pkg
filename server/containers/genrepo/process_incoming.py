@@ -120,9 +120,7 @@ def remove_old(
             bucket.objects.filter(Prefix=obj_key).delete()
 
 
-def make_index(
-    bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str
-) -> None:
+def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
     print("make_index", bucket, prefix, pkg_dir)
     index = Packages(packages=[])
     for obj in bucket.objects.filter(Prefix=str(prefix / pkg_dir)):
@@ -143,16 +141,16 @@ def make_index(
             return
 
         dist, _, arch = path.parent.name.rpartition("-")
-        basename = m.group('basename')
-        slot = m.group('slot') or ''
+        basename = m.group("basename")
+        slot = m.group("slot") or ""
 
         index["packages"].append(
             Package(
                 basename=basename,
-                slot=slot.lstrip('-') if slot else None,
+                slot=slot.lstrip("-") if slot else None,
                 name=f"{basename}{slot}",
-                version=m.group('version'),
-                revision=m.group('release'),
+                version=m.group("version"),
+                revision=m.group("release"),
                 architecture=arch,
                 installref=obj.key,
             )
@@ -205,6 +203,7 @@ def put(
 def main(upload_listing: str) -> None:
     with open(upload_listing) as upload_listing_file:
         uploads = upload_listing_file.read().splitlines()
+    os.unlink(upload_listing)
     region = os.environ.get("AWS_REGION", "us-east-2")
     session = boto3.session.Session(region_name=region)
     s3 = session.resource("s3")
@@ -212,50 +211,59 @@ def main(upload_listing: str) -> None:
     pkg_directories = set()
     os.chdir(INCOMING_DIR)
     for path_str in uploads:
-        print("Looking at", path_str)
-        # macos-x86_64/edgedb-1-alpha6-dev5081_1.0a6.dev5081+ga0106974_2020092316~nightly.pkg
         path = pathlib.Path(path_str)
-        dist = path.parent  # macos-x86_64
-        dist_base = arch = ""
-        if "-" in str(dist):
-            dist_base, arch = str(dist).split("-", 1)
-        leaf = path.name
-        m = PACKAGE_RE.match(leaf)
-        if not m:
-            raise click.ClickException(
-                f"Cannot parse artifact filename: {path_str}"
-            )
-        basename = m.group("basename")
-        slot = m.group("slot")
-        subdist = m.group("release")
-        subdist = re.sub(r"[0-9]+", "", subdist)
-        subdist = subdist.replace("~", "_")
-        pkg_dir = str(dist) + subdist.replace("_", ".")
-        pkg_directories.add(pkg_dir)
-        ext = m.group("ext")
-        print(f"dist={dist} leaf={leaf}")
-        print(f"basename={basename} slot={slot}")
-        print(f"subdist={subdist} pkg_dir={pkg_dir}")
-        print(f"ext={ext}")
-        with tempfile.TemporaryDirectory(
-            prefix="genrepo", dir=LOCAL_DIR
-        ) as temp_dir:
-            staging_dir = pathlib.Path(temp_dir) / pkg_dir
-            os.makedirs(staging_dir)
-            shutil.copy(path_str, staging_dir)
-            asc_path = gpg_detach_sign(staging_dir / leaf)
-            sha256_path = sha256(staging_dir / leaf)
+        if not path.is_file():
+            print("File not found:", path)
+            continue
 
-            archive_dir = ARCHIVE / pkg_dir
-            put(bucket, staging_dir / leaf, archive_dir, cache=True)
-            put(bucket, asc_path, archive_dir, cache=True)
-            put(bucket, sha256_path, archive_dir, cache=True)
+        print("Looking at", path)
+        # macos-x86_64/edgedb-1-alpha6-dev5081_1.0a6.dev5081+ga0106974_2020092316~nightly.pkg
+        try:
+            dist = path.parent  # macos-x86_64
+            dist_base = arch = ""
+            if "-" in str(dist):
+                dist_base, arch = str(dist).split("-", 1)
+            leaf = path.name
+            m = PACKAGE_RE.match(leaf)
+            if not m:
+                raise click.ClickException(
+                    f"Cannot parse artifact filename: {path_str}"
+                )
+            basename = m.group("basename")
+            slot = m.group("slot")
+            subdist = m.group("release")
+            subdist = re.sub(r"[0-9]+", "", subdist)
+            subdist = subdist.replace("~", "_")
+            pkg_dir = str(dist) + subdist.replace("_", ".")
+            pkg_directories.add(pkg_dir)
+            ext = m.group("ext")
+            print(f"dist={dist} leaf={leaf}")
+            print(f"basename={basename} slot={slot}")
+            print(f"subdist={subdist} pkg_dir={pkg_dir}")
+            print(f"ext={ext}")
+            with tempfile.TemporaryDirectory(
+                prefix="genrepo", dir=LOCAL_DIR
+            ) as temp_dir:
+                staging_dir = pathlib.Path(temp_dir) / pkg_dir
+                os.makedirs(staging_dir)
+                shutil.copy(path_str, staging_dir)
+                asc_path = gpg_detach_sign(staging_dir / leaf)
+                sha256_path = sha256(staging_dir / leaf)
 
-            target_dir = DIST / pkg_dir
-            dist_name = f"{basename}{slot}_latest{subdist}{ext}"
-            put(bucket, staging_dir / leaf, target_dir, name=dist_name)
-            put(bucket, asc_path, target_dir, name=dist_name + ".asc")
-            put(bucket, sha256_path, target_dir, name=dist_name + ".sha256")
+                archive_dir = ARCHIVE / pkg_dir
+                put(bucket, staging_dir / leaf, archive_dir, cache=True)
+                put(bucket, asc_path, archive_dir, cache=True)
+                put(bucket, sha256_path, archive_dir, cache=True)
+
+                target_dir = DIST / pkg_dir
+                dist_name = f"{basename}{slot}_latest{subdist}{ext}"
+                put(bucket, staging_dir / leaf, target_dir, name=dist_name)
+                put(bucket, asc_path, target_dir, name=dist_name + ".asc")
+                put(
+                    bucket, sha256_path, target_dir, name=dist_name + ".sha256"
+                )
+        finally:
+            os.unlink(path)
         print(path)
 
     for pkg_dir in pkg_directories:
