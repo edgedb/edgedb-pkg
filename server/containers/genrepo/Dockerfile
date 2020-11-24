@@ -33,8 +33,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY config/sshd/* /etc/ssh.default/
-COPY config/ssh/pub-packages-prod--root /root/.ssh/authorized_keys
-COPY config/ssh/pub-packages-prod--uploader /etc/ssh/authorized_keys/uploaders
 COPY config/gnupg/* /home/repomgr/.gnupg/
 COPY config/incron/incron.allow /etc/
 COPY config/incron/incrontab /var/spool/incron/repomgr
