@@ -96,9 +96,10 @@ def get_secret_string(
 
 
 @click.command()
+@click.option("-f", "filename", default="")
 @click.argument("secret_id_prefix")
 @click.argument("target_directory")
-def main(secret_id_prefix: str, target_directory: str) -> None:
+def main(filename: str, secret_id_prefix: str, target_directory: str) -> None:
     region = os.environ.get("AWS_REGION", "us-east-2")
     session = boto3.session.Session(region_name=region)
     secretsmanager = session.client(service_name="secretsmanager")
@@ -114,10 +115,22 @@ def main(secret_id_prefix: str, target_directory: str) -> None:
     target_dir_path = pathlib.Path(target_directory)
     os.makedirs(target_directory, exist_ok=True)
 
-    click.echo(
-        f"{len(secret_ids)} secrets with prefix {secret_id_prefix!r} in region"
-        f" {region!r} to copy from AWS SecretsManager to {target_directory}"
-    )
+    if filename:
+        if len(secret_ids) > 1:
+            raise click.ClickException(
+                f"More than one secret ID matched {secret_id_prefix} thus"
+                f" a custom filename {filename} cannot be used."
+            )
+        click.echo(
+            f"secret named {secret_id_prefix!r} in region {region!r} to be"
+            f" copied from AWS SecretsManager to {target_directory}/{filename}"
+        )
+    else:
+        click.echo(
+            f"{len(secret_ids)} secrets with prefix {secret_id_prefix!r} in"
+            f" region {region!r} to copy from AWS SecretsManager to"
+            f" {target_directory}"
+        )
 
     for secret_id in secret_ids:
         try:
@@ -129,6 +142,8 @@ def main(secret_id_prefix: str, target_directory: str) -> None:
 
         if secret_id.startswith(APP_PREFIX):
             secret_id = secret_id[len(APP_PREFIX):]
+        if filename:
+            secret_id = filename
         with open(target_dir_path / secret_id, "w") as target_file:
             target_file.write(secret)
 
