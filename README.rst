@@ -93,3 +93,10 @@ build.
 
 Adding support for new distributions requires implementing a new target
 in `metapkg <https://github.com/edgedb/metapkg/>`_.
+
+
+How does uploading work?
+========================
+
+The upload stage for GitHub Actions is in linux/upload, macos/publish.sh,
+and win/publish.sh.  The server-side code is in server/.
