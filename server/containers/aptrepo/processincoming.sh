@@ -10,7 +10,7 @@ fi
 
 changes=$1
 localdir="%%REPREPRO_BASE_DIR%%"
-basedir="gs://packages.edgedb-infra.magic.io/apt"
+basedir="s3://edgedb-packages/apt"
 
 local_dist="${localdir}/"
 shared_dist="${basedir}/"

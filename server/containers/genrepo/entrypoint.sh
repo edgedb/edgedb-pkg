@@ -94,7 +94,7 @@ startdaemon() {
     shift
     echo "Starting $@"
     mkfifo ${daemon}_pipe
-    $@ >${daemon}_pipe 2>&1 &
+    $@ &>${daemon}_pipe &
     status=$?
     pid="$!"
     echo "Running $daemon at $! ($?)"
