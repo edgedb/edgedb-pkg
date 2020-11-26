@@ -10,8 +10,8 @@ RUN apt-get update \
         apt-get install -y --no-install-recommends \
             reprepro openssh-server bash inoticoming gosu gnupg \
             gcc python3-dev python3-setuptools python3-pip libffi-dev \
-    && pip3 install gsutil \
     && pip3 install boto3 \
+    && pip3 install awscli \
     && pip3 install click \
     && addgroup --gid 2000 reprepro \
     && adduser --uid 2000 --gid 2000 reprepro \

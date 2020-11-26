@@ -63,12 +63,18 @@ fi
 
 chown -R reprepro:reprepro "${REPREPRO_BASE_DIR}"
 
-mkdir -p /home/reprepro/.aws
-echo "[default]" >/home/reprepro/.aws/credentials
-echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >>/home/reprepro/.aws/credentials
-echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >>/home/reprepro/.aws/credentials
-chown -R reprepro:reprepro /home/reprepro/.aws
-chmod 400 /home/reprepro/.aws/credentials
+if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
+    mkdir -p /home/reprepro/.aws
+    echo "[default]" >/home/reprepro/.aws/credentials
+    echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >>/home/reprepro/.aws/credentials
+    echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >>/home/reprepro/.aws/credentials
+    chown -R reprepro:reprepro /home/reprepro/.aws
+    chmod 400 /home/reprepro/.aws/credentials
+    cat /home/reprepro/.aws/credentials
+fi
+
+pwd
+gosu reprepro:reprepro aws s3 sync s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"

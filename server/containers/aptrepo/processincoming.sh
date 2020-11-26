@@ -15,16 +15,19 @@ basedir="s3://edgedb-packages/apt"
 local_dist="${localdir}/"
 shared_dist="${basedir}/"
 
-gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
+aws s3 sync --recursive --delete "${shared_dist}" "${local_dist}"
 reprepro -v -v --waitforlock 100 processincoming main "${changes}"
 mkdir -p "${local_dist}/.jsonindexes/"
 makeindex.py "${local_dist}" "${local_dist}/.jsonindexes"
-gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
-gsutil -m setmeta \
-    -h "Cache-Control:no-store, no-cache, private, max-age=0" \
-    "${basedir}/db/**" \
-    "${basedir}/dists/**" \
-    "${basedir}/.jsonindexes/**"
-gsutil -m setmeta \
-    -h "Cache-Control:public, no-transform, max-age=315360000" \
-    "${basedir}/pool/**"
+aws s3 sync --recursive --delete \
+            --cache-control "no-store, no-cache, private, max-age=0" \
+            "${local_dist}db/" "${shared_dist}db/"
+aws s3 sync --recursive --delete \
+            --cache-control "no-store, no-cache, private, max-age=0" \
+            "${local_dist}dists/" "${shared_dist}dists/"
+aws s3 sync --recursive --delete \
+            --cache-control "no-store, no-cache, private, max-age=0" \
+            "${local_dist}.jsonindexes/" "${shared_dist}.jsonindexes/"
+aws s3 sync --recursive --delete \
+            --cache-control "public, no-transform, max-age=315360000" \
+            "${local_dist}pool/" "${shared_dist}pool/"
