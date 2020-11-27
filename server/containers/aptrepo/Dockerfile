@@ -38,6 +38,7 @@ COPY entrypoint.sh /entrypoint.sh
 COPY fetch_secrets.py /usr/local/bin/
 COPY processincoming.sh /usr/local/bin/
 COPY makeindex.py /usr/local/bin/
+COPY visor.py /usr/local/bin/
 RUN sed -i -e "s|%%REPREPRO_BASE_DIR%%|${REPREPRO_BASE_DIR}|g" \
         /usr/local/bin/processincoming.sh \
     && sed -i -e "s|%%REPREPRO_SPOOL_DIR%%|${REPREPRO_SPOOL_DIR}|g" \
