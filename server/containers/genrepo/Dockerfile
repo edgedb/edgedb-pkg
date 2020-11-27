@@ -6,7 +6,7 @@ ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
-            openssh-server bash incron sudo gnupg \
+            openssh-server bash inoticoming gosu sudo gnupg \
             gcc python3-dev python3-setuptools python3-pip libffi-dev \
     && pip3 install boto3 \
     && pip3 install click \
@@ -34,11 +34,10 @@ RUN apt-get update \
 
 COPY config/sshd/* /etc/ssh.default/
 COPY config/gnupg/* /home/repomgr/.gnupg/
-COPY config/incron/incron.allow /etc/
-COPY config/incron/incrontab /var/spool/incron/repomgr
 COPY entrypoint.sh /entrypoint.sh
 COPY fetch_secrets.py /usr/local/bin/
 COPY process_incoming.py /usr/local/bin/
+COPY visor.py /usr/local/bin/
 RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
         /usr/local/bin/process_incoming.py \
     && sed -i -e "s|%%REPO_LOCAL_DIR%%|${REPO_LOCAL_DIR}|g" \
@@ -46,8 +45,7 @@ RUN sed -i -e "s|%%REPO_INCOMING_DIR%%|${REPO_INCOMING_DIR}|g" \
 
 RUN chown -R repomgr:repomgr /home/repomgr/.gnupg \
     && chmod 700 /home/repomgr/.gnupg \
-    && chmod 600 /home/repomgr/.gnupg/* \
-    && chmod 600 /var/spool/incron/repomgr
+    && chmod 600 /home/repomgr/.gnupg/*
 
 EXPOSE 22
 

@@ -71,42 +71,7 @@ fi
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"
 
-
-stopdaemon() {
-    local pid
-
-    echo "Received SIGINT or SIGTERM. Shutting down $1"
-    # Get PID
-    pid=$(cat /var/run/$1/$1.pid)
-    # Set TERM
-    kill -SIGTERM "${pid}"
-    # Wait for exit
-    wait "${pid}"
-    # All done.
-    echo "Done."
-}
-
-startdaemon() {
-    local daemon=$1
-    local pid
-    local status
-
-    shift
-    echo "Starting $@"
-    mkfifo ${daemon}_pipe
-    $@ &>${daemon}_pipe &
-    status=$?
-    pid="$!"
-    echo "Running $daemon at $! ($?)"
-    mkdir -p /var/run/$daemon && echo "${pid}" > /var/run/$daemon/$daemon.pid
-    grep -v "Did not receive identification string from" <${daemon}_pipe &
-    return $status
-}
-
-stop() {
-    stopdaemon sshd
-    stopdaemon incrond
-}
+mkdir -p /var/run/sshd
 
 if [ "$(basename $1)" == "sshd" ]; then
     if [ "$DEBUG" == 'true' ]; then
@@ -114,11 +79,8 @@ if [ "$(basename $1)" == "sshd" ]; then
         echo "-----------"
         cat "/etc/ssh.default/sshd_config"
     fi
-    trap stop SIGINT SIGTERM
-    startdaemon sshd $@
-    startdaemon incrond incrond -n
-
-    wait $(cat /var/run/sshd/sshd.pid)
+    export PYTHONUNBUFFERED=1
+    /usr/local/bin/visor.py $@
 else
     exec "$@"
 fi
