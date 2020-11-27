@@ -73,7 +73,6 @@ if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
     cat /home/reprepro/.aws/credentials
 fi
 
-pwd
 gosu reprepro:reprepro aws s3 sync s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
 
 if [ -n "${PORT}" ]; then
@@ -86,40 +85,33 @@ fi
 cat "/etc/ssh.default/sshd_config_conditional" >> \
     "/etc/ssh.default/sshd_config"
 
-DAEMON=sshd
+mkdir -p /var/run/sshd
 
-stop() {
-    echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
-    # Get PID
-    pid=$(cat /var/run/$DAEMON/$DAEMON.pid)
-    # Set TERM
-    kill -SIGTERM "${pid}"
-    # Wait for exit
-    wait "${pid}"
-    # All done.
-    echo "Done."
-}
-
-echo "Running $@"
-if [ "$(basename $1)" == "$DAEMON" ]; then
+if [ "$(basename $1)" == "sshd" ]; then
     if [ "$DEBUG" == 'true' ]; then
         echo "sshd_config"
         echo "-----------"
         cat "/etc/ssh.default/sshd_config"
     fi
-    trap stop SIGINT SIGTERM
-    mkfifo ${DAEMON}_pipe
-    $@ &>${DAEMON}_pipe &
-    pid="$!"
-    mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
-    grep -v "Did not receive identification string from" <${DAEMON}_pipe &
-
-    gosu reprepro:reprepro \
-        inoticoming --initialsearch --foreground \
-            "${REPREPRO_SPOOL_DIR}/incoming" \
-            --suffix '.changes' \
-            --chdir "${REPREPRO_SPOOL_DIR}" \
-            /usr/local/bin/processincoming.sh {} \;
+    export PYTHONUNBUFFERED=1
+    /usr/local/bin/visor.py << EOF
+        [sshd]
+        cmd = $@
+        [inoticoming]
+        user = reprepro:reprepro
+        cmd =
+            inoticoming
+            --initialsearch
+            --foreground
+            ${REPREPRO_SPOOL_DIR}/incoming
+            --suffix
+            ".changes"
+            --chdir
+            "${REPREPRO_SPOOL_DIR}"
+            /usr/local/bin/processincoming.sh
+            {}
+            \;
+EOF
 else
     exec "$@"
 fi
