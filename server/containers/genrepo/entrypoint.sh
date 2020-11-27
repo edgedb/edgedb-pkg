@@ -50,7 +50,7 @@ fetch_secrets.py release-signing- /root/gpg-keys/
 
 if [ -e "/root/gpg-keys/" ]; then
     while IFS= read -r -d '' path; do
-        cat "${path}" | sudo -u repomgr gpg --import
+        cat "${path}" | gosu repomgr:repomgr gpg --import
     done < <(find "/root/gpg-keys/" -maxdepth 1 -type f -print0)
 fi
 

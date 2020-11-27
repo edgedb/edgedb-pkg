@@ -79,8 +79,9 @@ async def run(cmd: List[str], user: str = "") -> int:
     return await proc.wait()
 
 
-def stop_processes() -> None:
-    out("Received SIGINT or SIGTERM, shutting down...")
+def stop_processes(quiet: bool = False) -> None:
+    if not quiet:
+        out("Received SIGINT or SIGTERM, shutting down...")
     for proc in PROCESSES:
         try:
             proc.terminate()
@@ -109,7 +110,7 @@ async def async_main() -> int:
     for coro in asyncio.as_completed(commands):
         earliest_return_code = await coro
         if earliest_return_code and return_code == 0:
-            stop_processes()
+            stop_processes(quiet=True)
             return_code = earliest_return_code
             loop.call_later(5, sys.exit, return_code)  # time out
 
