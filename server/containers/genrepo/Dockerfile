@@ -6,7 +6,7 @@ ENV REPO_INCOMING_DIR=/var/spool/repo/incoming/
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y --no-install-recommends \
-            openssh-server bash inoticoming gosu sudo gnupg \
+            openssh-server bash inoticoming gosu gnupg \
             gcc python3-dev python3-setuptools python3-pip libffi-dev \
     && pip3 install boto3 \
     && pip3 install click \
