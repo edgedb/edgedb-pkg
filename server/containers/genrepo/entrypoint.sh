@@ -80,7 +80,20 @@ if [ "$(basename $1)" == "sshd" ]; then
         cat "/etc/ssh.default/sshd_config"
     fi
     export PYTHONUNBUFFERED=1
-    /usr/local/bin/visor.py $@
+    /usr/local/bin/visor.py << EOF
+        [sshd]
+        cmd = $@
+        [inoticoming]
+        user = repomgr:repomgr
+        cmd =
+            inoticoming
+            --initialsearch
+            --foreground
+            ${REPO_INCOMING_DIR}/triggers/
+            /usr/local/bin/process_incoming.py
+            triggers/{}
+            \;
+EOF
 else
     exec "$@"
 fi

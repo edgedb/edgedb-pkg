@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import *
 
 import asyncio
+import configparser
 import ctypes
 import ctypes.util
 import datetime
-import os
+import shlex
 import signal
 import subprocess
 import sys
-
 
 FILTER_OUT = ["Did not receive identification string from"]
 PROCESSES = []
@@ -50,7 +50,10 @@ async def keep_printing(prefix: str, stream: asyncio.StreamReader) -> None:
 async def run(cmd: List[str], user: str = "") -> int:
     """Run a command and stream its stdout and stderr."""
     cmd_name, args = cmd[0], cmd[1:]
-    out("Starting", cmd)
+    if user:
+        out("Starting", cmd, "with", user)
+    else:
+        out("Starting", cmd)
     run_cmd = cmd_name
     if user:
         run_cmd = "gosu"
@@ -69,8 +72,8 @@ async def run(cmd: List[str], user: str = "") -> int:
     out("Running", cmd_name, "at", proc.pid)
     await asyncio.wait(
         [
-            keep_printing(cmd_name + " OUT", proc.stdout),
-            keep_printing(cmd_name + " ERR", proc.stderr),
+            keep_printing("O " + cmd_name, proc.stdout),
+            keep_printing("E " + cmd_name, proc.stderr),
         ]
     )
     return await proc.wait()
@@ -90,20 +93,17 @@ async def async_main() -> int:
     loop.add_signal_handler(signal.SIGINT, stop_processes)
     loop.add_signal_handler(signal.SIGTERM, stop_processes)
 
-    commands = [run(sys.argv[1:])]
-
-    if not os.environ.get("SKIP_INOTICOMING"):
-        spool_dir = "/var/spool/repo"
-        inoticoming_cmd_line = [
-            "inoticoming",
-            "--initialsearch",
-            "--foreground",
-            f"{spool_dir}/incoming/triggers/",
-            "/usr/local/bin/process_incoming.py",
-            r"triggers/{}",
-            ";",
-        ]
-        commands.append(run(inoticoming_cmd_line, user="repomgr:repomgr"))
+    commands = []
+    cfg = configparser.ConfigParser()
+    cfg.read_file(sys.stdin)
+    for sect_name, sect in cfg.items():
+        if sect_name == cfg.default_section:
+            continue
+        cmd = shlex.split(sect["cmd"])
+        if "user" in sect:
+            commands.append(run(cmd, user=sect["user"]))
+        else:
+            commands.append(run(cmd))
 
     return_code = 0
     for coro in asyncio.as_completed(commands):
