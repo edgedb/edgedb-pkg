@@ -11,7 +11,7 @@ fi
 list=$1
 incomingdir="%%REPO_INCOMING_DIR%%"
 localdir="%%REPO_LOCAL_DIR%%"
-basedir="gs://packages.edgedb-infra.magic.io/rpm"
+basedir="s3://edgedb-packages/rpm"
 declare -A dists
 
 while read -r -u 10 pkgname; do
@@ -41,7 +41,7 @@ while read -r -u 10 pkgname; do
     if [ -z "${seendist}" ]; then
         dists["${dist}"]="true"
         mkdir -p "${local_dist}"
-        gsutil -m rsync -r -d "${shared_dist}/" "${local_dist}/"
+        aws s3 sync --recursive --delete "${shared_dist}/" "${local_dist}/"
     fi
 
     if [ ! -e "${local_dist}/repodata/repomd.xml" ]; then
@@ -73,20 +73,13 @@ for dist in "${!dists[@]}"; do
     mkdir -p "${localdir}/.jsonindexes/"
     makeindex.py "${localdir}" "${localdir}/.jsonindexes/" "${dist}"
 
-    gsutil -m rsync -r -d "${local_dist}/" "${shared_dist}/"
-    gsutil -m rsync -r \
-        "${localdir}/.jsonindexes/" "${basedir}/.jsonindexes/"
-
-    gsutil -m setmeta \
-        -h "Cache-Control:no-store, no-cache, private, max-age=0" \
-        "${shared_dist}/repodata/**"
-
-    gsutil -m setmeta \
-        -h "Cache-Control:public, no-transform, max-age=315360000" \
-        "${shared_dist}/*.rpm"
+    aws s3 sync --recursive --delete \
+                --cache-control "public, no-transform, max-age=315360000" \
+                "${local_dist}/*.rpm" "${shared_dist}/"
+    aws s3 sync --recursive --delete \
+                --cache-control "no-store, no-cache, private, max-age=0" \
+                "${local_dist}/repodata/" "${shared_dist}/repodata/"
+    aws s3 sync --recursive --delete \
+                --cache-control "no-store, no-cache, private, max-age=0" \
+                "${localdir}/.jsonindexes/" "${basedir}/.jsonindexes/"
 done
-
-
-gsutil -m setmeta \
-    -h "Cache-Control:no-store, no-cache, private, max-age=0" \
-    "${basedir}/.jsonindexes/**"
