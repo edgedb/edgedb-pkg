@@ -12,7 +12,11 @@ import signal
 import subprocess
 import sys
 
-FILTER_OUT = ["Did not receive identification string from"]
+FILTER_OUT = [
+    "Did not receive identification string from",
+    "kex_exchange_identification: Connection closed by remote host",
+    "kex_exchange_identification: read: Connection reset by peer",
+]
 PROCESSES = []
 
 

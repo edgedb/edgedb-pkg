@@ -85,6 +85,7 @@ if [ "$(basename $1)" == "sshd" ]; then
         echo "-----------"
         cat "/etc/ssh.default/sshd_config"
     fi
+    rm /run/nologin
     export PYTHONUNBUFFERED=1
     /usr/local/bin/visor.py << EOF
         [sshd]
