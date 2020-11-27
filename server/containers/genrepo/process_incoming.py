@@ -201,6 +201,7 @@ def put(
 @click.command()
 @click.argument("upload_listing")  # a single file with a listing of many files
 def main(upload_listing: str) -> None:
+    os.chdir(INCOMING_DIR)
     with open(upload_listing) as upload_listing_file:
         uploads = upload_listing_file.read().splitlines()
     os.unlink(upload_listing)
@@ -209,7 +210,6 @@ def main(upload_listing: str) -> None:
     s3 = session.resource("s3")
     bucket = s3.Bucket("edgedb-packages")
     pkg_directories = set()
-    os.chdir(INCOMING_DIR)
     for path_str in uploads:
         path = pathlib.Path(path_str)
         if not path.is_file():
