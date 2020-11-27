@@ -41,7 +41,7 @@ while read -r -u 10 pkgname; do
     if [ -z "${seendist}" ]; then
         dists["${dist}"]="true"
         mkdir -p "${local_dist}"
-        aws s3 sync --recursive --delete "${shared_dist}/" "${local_dist}/"
+        aws s3 sync --delete "${shared_dist}/" "${local_dist}/"
     fi
 
     if [ ! -e "${local_dist}/repodata/repomd.xml" ]; then
@@ -73,13 +73,13 @@ for dist in "${!dists[@]}"; do
     mkdir -p "${localdir}/.jsonindexes/"
     makeindex.py "${localdir}" "${localdir}/.jsonindexes/" "${dist}"
 
-    aws s3 sync --recursive --delete \
+    aws s3 sync --delete \
                 --cache-control "public, no-transform, max-age=315360000" \
                 "${local_dist}/*.rpm" "${shared_dist}/"
-    aws s3 sync --recursive --delete \
+    aws s3 sync --delete \
                 --cache-control "no-store, no-cache, private, max-age=0" \
                 "${local_dist}/repodata/" "${shared_dist}/repodata/"
-    aws s3 sync --recursive --delete \
+    aws s3 sync --delete \
                 --cache-control "no-store, no-cache, private, max-age=0" \
                 "${localdir}/.jsonindexes/" "${basedir}/.jsonindexes/"
 done
