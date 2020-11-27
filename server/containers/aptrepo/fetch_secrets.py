@@ -146,6 +146,8 @@ def main(filename: str, secret_id_prefix: str, target_directory: str) -> None:
             secret_id = filename
         with open(target_dir_path / secret_id, "w") as target_file:
             target_file.write(secret)
+            if secret.endswith("-----END OPENSSH PRIVATE KEY-----"):
+                target_file.write("\n")
 
 
 if __name__ == "__main__":

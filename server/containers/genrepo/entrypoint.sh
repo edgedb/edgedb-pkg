@@ -24,14 +24,14 @@ fetch_secrets.py server-host-key- /etc/ssh/
 
 if ls /etc/ssh/server-host-key-* 1> /dev/null 2>&1; then
     echo "Found shared ssh host keys in /etc/ssh/"
-    SSH_KEY_WILDCARD="'server-host-key-*'"
+    SSH_KEY_WILDCARD="server-host-key-*"
 elif ls /etc/ssh/ssh_host_* 1> /dev/null 2>&1; then
     echo "Found custom ssh host keys in /etc/ssh/"
-    SSH_KEY_WILDCARD="'ssh_host_*_key'"
+    SSH_KEY_WILDCARD="ssh_host_*_key"
 else
     echo "No ssh host keys found in /etc/ssh.  Generating."
     ssh-keygen -A
-    SSH_KEY_WILDCARD="'ssh_host_*_key'"
+    SSH_KEY_WILDCARD="ssh_host_*_key"
 fi
 
 while IFS= read -r -d '' path; do
