@@ -27,7 +27,7 @@ set -ex\n\
 cat <<EOF >"${HOME}/.ssh/config"\n\
 Host upload-packages.edgedb.com\n\
     User uploader\n\
-    Port 2223\n\
+    Port 2224\n\
     StrictHostKeyChecking no\n\
 EOF\n\
 \n\
