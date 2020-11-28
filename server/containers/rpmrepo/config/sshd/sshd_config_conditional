@@ -1,6 +1,6 @@
 Match Group uploaders
         ChrootDirectory /var/spool/repo/
-        ForceCommand internal-sftp
+        ForceCommand internal-sftp -u 0002
         AllowTcpForwarding no
         PermitTunnel no
         X11Forwarding no
