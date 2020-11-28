@@ -86,7 +86,7 @@ if [ "$(basename $1)" == "sshd" ]; then
         [sshd]
         cmd = $@
         [inoticoming]
-        user = repomgr:repomgr
+        user = repomgr
         cmd =
             inoticoming
             --initialsearch
