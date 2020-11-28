@@ -38,6 +38,7 @@ fi
 
 cd "${dest}"
 ls -1 *.rpm > "upload${key}.list"
+chmod g+rw "upload${key}.list"
 
 cat <<EOF >/tmp/sftp-batch
 put *.rpm ./incoming/
