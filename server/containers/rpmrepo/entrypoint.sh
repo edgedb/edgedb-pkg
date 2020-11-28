@@ -97,6 +97,8 @@ if [ "$(basename $1)" == "sshd" ]; then
             --initialsearch
             --foreground
             ${REPO_INCOMING_DIR}/triggers/
+            --chdir
+            ${REPO_INCOMING_DIR}
             /usr/local/bin/processincoming.sh
             triggers/{}
             \;
