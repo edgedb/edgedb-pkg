@@ -98,11 +98,9 @@ def remove_old(
             if subdist != _subdist:
                 continue
 
-        key = PACKAGE_NAME_NO_DEV_RE.sub(
-            r"\1\2",
-            f"{m.group('basename')}{m.group('slot')}",
-        )
-        print(key)
+        key_with_dev = f"{m.group('basename')}{m.group('slot') or ''}"
+        key = PACKAGE_NAME_NO_DEV_RE.sub(r"\1\2", key_with_dev)
+
         version = f"{m.group('version')}_{m.group('release')}"
         index.setdefault(key, []).append((version, obj.key))
 

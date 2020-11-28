@@ -39,6 +39,7 @@ COPY config/gnupg/* /home/repomgr/.gnupg/
 COPY config/rpm/rpmmacros /home/repomgr/.rpmmacros
 COPY entrypoint.sh /entrypoint.sh
 COPY fetch_secrets.py /usr/local/bin/
+COPY remove_old_dev_pkg.py /usr/local/bin/
 COPY processincoming.sh /usr/local/bin/
 COPY makeindex.py /usr/local/bin/
 COPY visor.py /usr/local/bin/

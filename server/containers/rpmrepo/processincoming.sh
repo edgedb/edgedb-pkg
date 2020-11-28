@@ -59,6 +59,7 @@ while read -r -u 10 pkgname; do
         if [ -n "${old_rpms}" ]; then
             rm "${old_rpms}"
         fi
+        remove_old_dev_pkg.py --keep=3 ${local_dist}
     fi
 
     createrepo --update "${local_dist}"
@@ -76,7 +77,9 @@ for dist in "${!dists[@]}"; do
 
     aws s3 sync --delete \
                 --cache-control "public, no-transform, max-age=315360000" \
-                ${local_dist}/*.rpm ${shared_dist}/
+                --exclude "*" \
+                --include "*.rpm" \
+                ${local_dist}/ ${shared_dist}/
     aws s3 sync --delete \
                 --cache-control "no-store, no-cache, private, max-age=0" \
                 ${local_dist}/repodata/ ${shared_dist}/repodata/
