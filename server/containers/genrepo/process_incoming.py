@@ -228,7 +228,7 @@ def main(upload_listing: str) -> None:
                     f"Cannot parse artifact filename: {path_str}"
                 )
             basename = m.group("basename")
-            slot = m.group("slot")
+            slot = m.group("slot") or ""
             subdist = m.group("release")
             subdist = re.sub(r"[0-9]+", "", subdist)
             subdist = subdist.replace("~", "_")
