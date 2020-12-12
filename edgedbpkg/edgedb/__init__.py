@@ -171,7 +171,7 @@ class EdgeDB(packages.BundledPythonPackage):
                         -m edb.server.main \\
                         --data-dir="${{_tempdir}}" \\
                         --runstate-dir="${{_tempdir}}" \\
-                        --bootstrap
+                        --bootstrap-only
                     rm -rf "${{_tempdir}}"
             )
 
@@ -227,44 +227,6 @@ class EdgeDB(packages.BundledPythonPackage):
             description='EdgeDB Server')
 
         return user_script
-
-    def get_after_install_script(self, build) -> str:
-
-        ensuredir = build.target.get_action('ensuredir', build)
-
-        dataroot = build.get_install_path('localstate') / 'lib' / 'edgedb'
-        dataroot_script = ensuredir.get_script(
-            path=dataroot, owner_user='edgedb', owner_group='edgedb',
-            owner_recursive=True)
-
-        datadir = dataroot / self.slot / 'data'
-        datadir_script = ensuredir.get_script(
-            path=datadir, owner_user='edgedb', owner_group='edgedb',
-            mode=0o700)
-
-        ctl = build.get_install_path('bin') / 'edgedb-server'
-        bootstrap_script = build.sh_format_command(
-            ctl, {'-D': datadir, '--bootstrap': None})
-
-        error = (
-            f'Error: could not create default EdgeDB cluster. '
-            f'Please create it manually with '
-            f'"sudo -u edgedb {bootstrap_script}"'
-        )
-
-        bootstrap_script = (
-            f'if [ -z "${{_EDGEDB_INSTALL_SKIP_BOOTSTRAP}}" ]; then '
-            f'{bootstrap_script} || echo {error} >&2; fi'
-        )
-
-        script = '\n'.join([datadir_script, dataroot_script])
-        script += '\n' + build.get_su_script(bootstrap_script, user='edgedb')
-
-        bindir = build.get_install_path('bin')
-        pathfile = f'{dataroot}/current'
-        script += '\n' + f'[ -e "{pathfile}" ] || echo {bindir} > "{pathfile}"'
-
-        return script
 
     def get_exposed_commands(self, build) -> list:
         bindir = build.get_install_path('bin')
