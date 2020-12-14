@@ -48,7 +48,7 @@ class Package(TypedDict):
     name: str  # edgedb-server-1-alpha6-dev5069
     version: str  # 1.0a6.dev5069+g0839d6e8
     revision: str  # 2020091300~nightly
-    architecture: str  # x86_64.nightly
+    architecture: str  # x86_64
     installref: str  # /archive/macos-x86_64.nightly/edgedb-server ... .pkg
 
 
@@ -125,6 +125,10 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
         path = pathlib.Path(obj.key)
         leaf = path.name
 
+        if path.parent.name != pkg_dir:
+            print(leaf, "wrong dist")
+            continue
+
         m = PACKAGE_RE.match(leaf)
         if not m:
             print(leaf, "doesn't match PACKAGE_RE")
@@ -138,7 +142,9 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
             print(f"cannot parse: {obj.key}", file=sys.stderr)
             return
 
-        dist, _, arch = path.parent.name.rpartition("-")
+        dist, _, arch_subdist = path.parent.name.rpartition("-")
+        arch, _, _ = arch_subdist.partition('.')
+
         basename = m.group("basename")
         slot = m.group("slot") or ""
 
