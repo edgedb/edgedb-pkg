@@ -147,6 +147,9 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
 
         basename = m.group("basename")
         slot = m.group("slot") or ""
+        installref = obj.key
+        if not installref.startswith('/'):
+            installref = f'/{installref}'
 
         index["packages"].append(
             Package(
@@ -156,7 +159,7 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
                 version=m.group("version"),
                 revision=m.group("release"),
                 architecture=arch,
-                installref=obj.key,
+                installref=installref,
             )
         )
 
