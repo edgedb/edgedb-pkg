@@ -39,8 +39,8 @@ class PostgreSQL(packages.BundledPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL(version='1.1.1g'),
-        icu.ICU(version='65.1'),
+        openssl.OpenSSL(version='1.1.1i'),
+        icu.ICU(version='68.2'),
     ]
 
     @classmethod

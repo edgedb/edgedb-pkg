@@ -21,12 +21,12 @@ RUN yum install -y \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.8.4
+ENV PYTHON_VERSION 3.9.1
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.45.0
+ENV RUST_VERSION 1.50.0
 
 RUN set -ex \
 	\
@@ -90,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 20.1.1
+ENV PYTHON_PIP_VERSION 21.0.1
 
 RUN set -ex; \
 	\
