@@ -32,7 +32,7 @@ if [ -n "${PKG_SUBDIST}" ]; then
     clipath="${clipath}_${PKG_SUBDIST}"
 fi
 
-curl --fail "https://packages.edgedb.com/dist/${dist}/${clipath}" > edgedb-cli
+curl -fL "https://packages.edgedb.com/dist/${dist}/${clipath}" > edgedb-cli
 
 sudo mkdir -p /usr/local/bin
 sudo cp edgedb-cli /usr/local/bin/edgedb
