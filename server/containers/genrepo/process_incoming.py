@@ -217,6 +217,7 @@ def main(upload_listing: str) -> None:
     s3 = session.resource("s3")
     bucket = s3.Bucket("edgedb-packages")
     pkg_directories = set()
+    rrules = {}
     for path_str in uploads:
         path = pathlib.Path(path_str)
         if not path.is_file():
@@ -257,18 +258,30 @@ def main(upload_listing: str) -> None:
                 asc_path = gpg_detach_sign(staging_dir / leaf)
                 sha256_path = sha256(staging_dir / leaf)
 
+                # Store the fully-qualified artifact to archive/
                 archive_dir = ARCHIVE / pkg_dir
                 put(bucket, staging_dir / leaf, archive_dir, cache=True)
                 put(bucket, asc_path, archive_dir, cache=True)
                 put(bucket, sha256_path, archive_dir, cache=True)
 
+                # And record a copy of it in the dist/ directory
+                # as an unversioned "*_latest" key for ease of reference
+                # in download scripts.  Note: the archive/ entry is cached,
+                # but the dist/ entry MUST NOT be cached for obvious reasons.
+                # However, we still want the benefit of CDN for it, so we
+                # generate a bucket-wide redirect policy for the dist/ object
+                # to point to the archive/ object.  See below for details.
                 target_dir = DIST / pkg_dir
                 dist_name = f"{basename}{slot}_latest{subdist}{ext}"
                 put(bucket, staging_dir / leaf, target_dir, name=dist_name)
-                put(bucket, asc_path, target_dir, name=dist_name + ".asc")
-                put(
-                    bucket, sha256_path, target_dir, name=dist_name + ".sha256"
-                )
+
+                asc_name = f"{dist_name}.asc"
+                put(bucket, asc_path, target_dir, name=asc_name)
+
+                sha_name = f"{dist_name}.sha256"
+                put(bucket, sha256_path, target_dir, name=sha_name)
+
+                rrules[target_dir / dist_name] = archive_dir / leaf
         finally:
             os.unlink(path)
         print(path)
@@ -276,6 +289,68 @@ def main(upload_listing: str) -> None:
     for pkg_dir in pkg_directories:
         remove_old(bucket, ARCHIVE / pkg_dir, keep=3, subdist="nightly")
         make_index(bucket, ARCHIVE, pkg_dir)
+
+    if rrules:
+        # We can't use per-object redirects, because in that case S3
+        # generates the `301 Moved Permanently` response, and, adding
+        # insult to injury, forgets to send the `Cache-Control` header,
+        # which makes the response cacheable and useless for the purpose.
+        # Luckily the "website" functionality of the bucket allows setting
+        # redirection rules centrally, so that's what we do.
+        #
+        # The redirection rules are key prefix-based, and so we can use just
+        # one redirect rule to handle both the main artifact and its
+        # accompanying signature and checksum files.
+        #
+        # NOTE: Amazon S3 has a limitation of 50 routing rules per
+        #       website configuration.
+        website = s3.BucketWebsite("edgedb-packages")
+        existing_rrules = list(website.routing_rules)
+        for src, tgt in rrules.items():
+            src_key = str(src)
+            tgt_key = str(tgt)
+            for rule in existing_rrules:
+                condition = rule.get("Condition")
+                if not condition:
+                    continue
+                if condition.get("KeyPrefixEquals") == src_key:
+                    try:
+                        redirect = rule["Redirect"]
+                    except KeyError:
+                        redirect = rule["Redirect"] = {}
+
+                    redirect["ReplaceKeyPrefixWith"] = tgt_key
+                    redirect["HttpRedirectCode"] = "307"
+                    break
+            else:
+                existing_rrules.append({
+                    "Condition": {
+                        "KeyPrefixEquals": src_key,
+                    },
+                    "Redirect": {
+                        "HttpRedirectCode": "307",
+                        "Protocol": "https",
+                        "HostName": "packages.edgedb.com",
+                        "ReplaceKeyPrefixWith": tgt_key,
+                    }
+                })
+
+        website_config = {
+            'RoutingRules': existing_rrules,
+        }
+
+        if website.error_document is not None:
+            website_config['ErrorDocument'] = website.error_document
+
+        if website.index_document is not None:
+            website_config['IndexDocument'] = website.index_document
+
+        if website.redirect_all_requests_to is not None:
+            website_config['RedirectAllRequestsTo'] = (
+                website.redirect_all_requests_to)
+
+        print("updating bucket website config:", website_config)
+        website.put(WebsiteConfiguration=website_config)
 
 
 if __name__ == "__main__":
