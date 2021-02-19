@@ -5,7 +5,7 @@ import json
 import os.path
 import re
 import subprocess
-
+import sys
 
 slot_regexp = re.compile(
     r"^(\w+(?:-[a-zA-Z]*)*?)"
@@ -57,6 +57,7 @@ def main():
                 basename = m.group(1)
                 slot = m.group(2)
 
+            installref = '{}-{}-{}.{}'.format(pkgname, pkgver, release, arch)
             index.append({
                 'basename': basename,
                 'slot': slot,
@@ -64,10 +65,10 @@ def main():
                 'version': pkgver,
                 'revision': release,
                 'architecture': arch,
-                'installref': '{}-{}-{}.{}'.format(
-                    pkgname, pkgver, release, arch
-                )
+                'installref': installref
             })
+
+            print('makeindex: noted {}'.format(installref))
 
         out = os.path.join(args.outputdir, '{}.json'.format(dist))
         with open(out, 'w') as f:
