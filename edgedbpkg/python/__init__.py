@@ -35,7 +35,7 @@ class Python(packages.BundledPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL(version='1.0.2o')
+        openssl.OpenSSL(version='1.1.1j')
     ]
 
     def get_configure_script(self, build) -> str:
