@@ -48,7 +48,9 @@ apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
 su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
               -m edb.tools --no-devmode test \\\n\
               /usr/share/edgedb-server-${slot}/tests \\\n\
-              -e cqa_ -e tools_ --output-format=simple"\n\
+              -e cqa_ -e tools_ \\\n\
+              -e test_server_ops_detect_postgres_pool_size \\\n\
+              --output-format=simple"\n\
 echo "Success!"\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
