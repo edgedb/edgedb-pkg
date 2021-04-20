@@ -1,4 +1,5 @@
 import datetime
+import pathlib
 import platform
 import textwrap
 import typing
@@ -82,13 +83,6 @@ class EdgeDB(packages.BundledPythonPackage):
             f'--runstatedir={runstate}',
             f'--shared-dir={shared_dir}',
         ]
-        if 'dev' not in str(self.version):
-            git_rev = self.resolve_version(build.io)
-            curdate = datetime.datetime.now(tz=datetime.timezone.utc)
-            curdate_str = curdate.strftime(r'%Y%m%d')
-            command += [
-                f'--version-suffix=g{git_rev[:9]}.d{curdate_str}'
-            ]
 
         return command + super().get_bdist_wheel_command(build)
 
@@ -257,3 +251,21 @@ class EdgeDB(packages.BundledPythonPackage):
         root_version: str,
     ) -> typing.List[packages.MetaPackage]:
         return ['edgedb-common']
+
+    def _get_edgedb_catalog_version(self, build) -> str:
+        source = build.get_source_dir(self, relative_to=None)
+        defines = pathlib.Path(source) / 'edb' / 'server' / 'defines.py'
+        with open(defines, 'r') as f:
+            for line in f:
+                if line.startswith('EDGEDB_CATALOG_VERSION = '):
+                    return str(int(line[len('EDGEDB_CATALOG_VERSION = '):]))
+            else:
+                raise RuntimeError('cannot determine EDGEDB_CATALOG_VERSION')
+
+    def get_provided_packages(
+        self,
+        build,
+        root_version: str,
+    ) -> typing.List[typing.Tuple[str, str]]:
+        catver = self._get_edgedb_catalog_version(build)
+        return [('edgedb-server-catalog', catver)]
