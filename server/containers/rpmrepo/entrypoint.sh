@@ -65,7 +65,7 @@ if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
     chmod 400 /home/repomgr/.aws/credentials
 fi
 
-gosu repomgr:repomgr aws s3 sync s3://edgedb-packages/rpm/ "${REPO_LOCAL_DIR}/"
+gosu repomgr:repomgr aws s3 sync --delete s3://edgedb-packages/rpm/ "${REPO_LOCAL_DIR}/"
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"

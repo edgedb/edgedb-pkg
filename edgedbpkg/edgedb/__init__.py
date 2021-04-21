@@ -61,15 +61,21 @@ class EdgeDB(packages.BundledPythonPackage):
 
     @property
     def slot(self) -> str:
-        # We want dev builds (nightlies) to be their separate slot.
+        # We need to be careful with dev builds an place ones with changed
+        # catalog version in a new slot.
         # Sadly what we're looking for is not present in any pre-parsed fields.
         v = self.version.text
         i = v.find(".dev")
         if i == -1:
             return self.base_slot
 
-        dev, _rest = v[i + 1:].split("+", 1)
-        return self.base_slot + "-" + dev
+        _, local = v[i + 1:].split("+", 1)
+        for entry in local.split("."):
+            if entry.startswith("cv"):
+                return f"{self.base_slot}-dev{entry[2:]}"
+
+        raise RuntimeError(
+            f"no catalog version in EdgeDB version: {self.version}")
 
     def get_bdist_wheel_command(self, build) -> list:
         bindir = build.get_install_path('bin')

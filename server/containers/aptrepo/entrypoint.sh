@@ -70,10 +70,9 @@ if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
     echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >>/home/reprepro/.aws/credentials
     chown -R reprepro:reprepro /home/reprepro/.aws
     chmod 400 /home/reprepro/.aws/credentials
-    cat /home/reprepro/.aws/credentials
 fi
 
-gosu reprepro:reprepro aws s3 sync s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
+gosu reprepro:reprepro aws s3 sync --delete s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"

@@ -1,17 +1,92 @@
 #!/usr/bin/env python3.8
+from __future__ import annotations
+from typing import *
+from typing_extensions import TypedDict
 
 import argparse
 import json
 import os.path
 import re
 import subprocess
-import sys
+
 
 slot_regexp = re.compile(
     r"^(\w+(?:-[a-zA-Z]*)*?)"
     r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
     re.A
 )
+
+
+version_regexp = re.compile(
+    r"""^
+    (?P<release>[0-9]+(?:\.[0-9]+)*)
+    (?P<pre>
+        [-_]?
+        (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+        [\.]?
+        (?P<pre_n>[0-9]+)?
+    )?
+    (?P<dev>
+        [\.]?
+        (?P<dev_l>dev)
+        [\.]?
+        (?P<dev_n>[0-9]+)?
+    )?
+    (?:\+(?P<local>[a-z0-9]+(?:[\.][a-z0-9]+)*))?
+    $""",
+    re.X | re.A
+)
+
+
+class Version(TypedDict):
+
+    major: int
+    minor: int
+    patch: int
+    stage: str
+    stage_no: int
+    local: Tuple[str, ...]
+
+
+def parse_version(ver: str) -> Version:
+    v = version_regexp.match(ver)
+    if v is None:
+        raise ValueError(f'cannot parse version: {ver}')
+    local = []
+    if v.group('pre'):
+        pre_l = v.group('pre_l')
+        if pre_l in {'a', 'alpha'}:
+            stage = 'alpha'
+        elif pre_l in {'b', 'beta'}:
+            stage = 'beta'
+        elif pre_l in {'c', 'rc'}:
+            stage = 'rc'
+        else:
+            raise ValueError(f'cannot determine release stage from {ver}')
+
+        stage_no = int(v.group('pre_n'))
+        if v.group('dev'):
+            local.extend([f'dev{v.group("dev_n")}'])
+    elif v.group('dev'):
+        stage = 'dev'
+        stage_no = int(v.group('dev_n'))
+    else:
+        stage = 'final'
+        stage_no = 0
+
+    if v.group('local'):
+        local.extend(v.group('local').split('.'))
+
+    release = [int(r) for r in v.group('release').split('.')]
+
+    return Version(
+        major=release[0],
+        minor=release[1],
+        patch=release[2] if len(release) == 3 else 0,
+        stage=stage,
+        stage_no=stage_no,
+        local=tuple(local),
+    )
 
 
 def main():
@@ -63,6 +138,7 @@ def main():
                 'slot': slot,
                 'name': pkgname,
                 'version': pkgver,
+                'parsed_version': parse_version(pkgver),
                 'revision': release,
                 'architecture': arch,
                 'installref': installref

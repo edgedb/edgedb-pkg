@@ -17,6 +17,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -e\n\
 \n\
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)\n\
+: ${PACKAGE_SERVER:=upload-packages.edgedb.com}\n\
 \n\
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"\n\
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then\n\
@@ -29,7 +30,7 @@ chmod 400 "${HOME}/.ssh/id_ed25519"\n\
 set -ex\n\
 \n\
 cat <<EOF >"${HOME}/.ssh/config"\n\
-Host upload-packages.edgedb.com\n\
+Host ${PACKAGE_SERVER}\n\
     User uploader\n\
     Port 2222\n\
     StrictHostKeyChecking no\n\
@@ -59,7 +60,7 @@ put -r * incoming/\n\
 put -p ${list} incoming/triggers/upload${key}.list\n\
 EOF\n\
 \n\
-sftp -b "${batch}" uploader@upload-packages.edgedb.com\n\
+sftp -b "${batch}" uploader@"$PACKAGE_SERVER"\n\
 \n\
 rm "${list}" "${batch}"\n\' >/entrypoint.sh
 

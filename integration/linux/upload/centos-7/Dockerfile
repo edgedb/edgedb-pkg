@@ -13,6 +13,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -e\n\
 \n\
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)\n\
+: ${PACKAGE_SERVER:=upload-packages.edgedb.com}\n\
 \n\
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"\n\
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then\n\
@@ -25,7 +26,7 @@ chmod 400 "${HOME}/.ssh/id_ed25519"\n\
 set -ex\n\
 \n\
 cat <<EOF >"${HOME}/.ssh/config"\n\
-Host upload-packages.edgedb.com\n\
+Host ${PACKAGE_SERVER}\n\
     User uploader\n\
     Port 2224\n\
     StrictHostKeyChecking no\n\
@@ -48,13 +49,14 @@ fi\n\
 \n\
 cd "${dest}"\n\
 ls -1 *.rpm > "upload${key}.list"\n\
+chmod g+rw "upload${key}.list"\n\
 \n\
 cat <<EOF >/tmp/sftp-batch\n\
 put *.rpm ./incoming/\n\
 put upload${key}.list ./incoming/triggers/\n\
 EOF\n\
 \n\
-sftp -b /tmp/sftp-batch uploader@upload-packages.edgedb.com\n\' >/entrypoint.sh
+sftp -b /tmp/sftp-batch uploader@"$PACKAGE_SERVER"\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

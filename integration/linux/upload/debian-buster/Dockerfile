@@ -23,6 +23,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -e\n\
 \n\
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)\n\
+: ${PACKAGE_SERVER:=upload-packages.edgedb.com}\n\
 \n\
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"\n\
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then\n\
@@ -35,7 +36,7 @@ chmod 400 "${HOME}/.ssh/id_ed25519"\n\
 set -ex\n\
 \n\
 cat <<EOF >>"${HOME}/.ssh/config"\n\
-Host upload-packages.edgedb.com\n\
+Host ${PACKAGE_SERVER}\n\
     User uploader\n\
     Port 2223\n\
     StrictHostKeyChecking no\n\
@@ -55,7 +56,7 @@ fi\n\
 \n\
 cat <<EOF >/tmp/dput.cf\n\
 [edgedb-prod]\n\
-fqdn                    = upload-packages.edgedb.com\n\
+fqdn                    = ${PACKAGE_SERVER}\n\
 incoming                = /incoming\n\
 login                   = uploader\n\
 allow_dcut              = 1\n\

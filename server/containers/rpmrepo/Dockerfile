@@ -8,7 +8,7 @@ RUN yum install -y \
     && yum install -y \
         createrepo openssh-server bash gnupg rpm-sign wget \
         yum-utils gcc gcc-c++ make python38 python38-devel libffi-devel \
-    && pip3.8 install boto3 awscli click \
+    && pip3.8 install boto3 awscli click typing-extensions \
     && groupadd --gid 2000 repomgr \
     && useradd --uid 2000 --gid 2000 repomgr \
     && groupadd uploaders \

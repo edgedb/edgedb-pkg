@@ -18,6 +18,7 @@ DISTRO = $(lastword $(subst -, ,$(TARGET)))
 OUTPUTDIR := /tmp/artifacts
 GET_SHELL :=
 SSH_KEY :=
+PACKAGE_SERVER :=
 
 EXTRAENV =
 EXTRAVOLUMES =
@@ -123,6 +124,7 @@ publish: check-target
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		-e PACKAGE_UPLOAD_SSH_KEY_FILE="/sshkey" \
+		-e PACKAGE_SERVER=$(PACKAGE_SERVER) \
 		-v $(SSH_KEY):/sshkey \
 		-v $(OUTPUTDIR):/artifacts \
 		edgedb-pkg/upload:$(TARGET) \

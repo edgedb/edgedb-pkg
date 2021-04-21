@@ -31,6 +31,27 @@ PACKAGE_RE = re.compile(
     r"(?P<ext>.*)?$",
     re.A,
 )
+
+VERSION_PATTERN = re.compile(
+    r"""^
+    (?P<release>[0-9]+(?:\.[0-9]+)*)
+    (?P<pre>
+        [-]?
+        (?P<pre_l>(a|b|c|rc|alpha|beta|pre|preview))
+        [\.]?
+        (?P<pre_n>[0-9]+)?
+    )?
+    (?P<dev>
+        [\.]?
+        (?P<dev_l>dev)
+        [\.]?
+        (?P<dev_n>[0-9]+)?
+    )?
+    (?:\+(?P<local>[a-z0-9]+(?:[\.][a-z0-9]+)*))?
+    $""",
+    re.X | re.A
+)
+
 PACKAGE_NAME_NO_DEV_RE = re.compile(r"([^-]+)((-[^-]+)*)-dev\d+")
 CACHE = "Cache-Control:public, no-transform, max-age=315360000"
 NO_CACHE = "Cache-Control:no-store, no-cache, private, max-age=0"
@@ -42,11 +63,22 @@ if TYPE_CHECKING:
     from mypy_boto3_s3 import service_resource as s3
 
 
+class Version(TypedDict):
+
+    major: int
+    minor: int
+    patch: int
+    stage: str
+    stage_no: int
+    local: Tuple[str, ...]
+
+
 class Package(TypedDict):
     basename: str  # edgedb-server
     slot: Optional[str]  # 1-alpha6-dev5069
     name: str  # edgedb-server-1-alpha6-dev5069
     version: str  # 1.0a6.dev5069+g0839d6e8
+    parsed_version: Version
     revision: str  # 2020091300~nightly
     architecture: str  # x86_64
     installref: str  # /archive/macos-x86_64.nightly/edgedb-server ... .pkg
@@ -74,6 +106,47 @@ def sha256(path: pathlib.Path) -> pathlib.Path:
         f.write(_hash.hexdigest())
         f.write("\n")
     return out_path
+
+
+def parse_version(ver: str) -> Version:
+    v = VERSION_PATTERN.match(ver)
+    if v is None:
+        raise ValueError(f'cannot parse version: {ver}')
+    local = []
+    if v.group('pre'):
+        pre_l = v.group('pre_l')
+        if pre_l in {'a', 'alpha'}:
+            stage = 'alpha'
+        elif pre_l in {'b', 'beta'}:
+            stage = 'beta'
+        elif pre_l in {'c', 'rc'}:
+            stage = 'rc'
+        else:
+            raise ValueError(f'cannot determine release stage from {ver}')
+
+        stage_no = int(v.group('pre_n'))
+        if v.group('dev'):
+            local.extend([f'dev{v.group("dev_n")}'])
+    elif v.group('dev'):
+        stage = 'dev'
+        stage_no = int(v.group('dev_n'))
+    else:
+        stage = 'final'
+        stage_no = 0
+
+    if v.group('local'):
+        local.extend(v.group('local').split('.'))
+
+    release = [int(r) for r in v.group('release').split('.')]
+
+    return Version(
+        major=release[0],
+        minor=release[1],
+        patch=release[2] if len(release) == 3 else 0,
+        stage=stage,
+        stage_no=stage_no,
+        local=tuple(local),
+    )
 
 
 def remove_old(
@@ -157,6 +230,7 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
                 slot=slot.lstrip("-") if slot else None,
                 name=f"{basename}{slot}",
                 version=m.group("version"),
+                parsed_version=parse_version(m.group("version")),
                 revision=m.group("release"),
                 architecture=arch,
                 installref=installref,
