@@ -112,7 +112,9 @@ class PostgreSQL(packages.BundledCPackage):
             uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
             uuid_path /= build.get_full_install_prefix().relative_to("/")
             uuid_rel_path = f'$(pwd)/"{uuid_path}"'
-            configure_flags["UUID_CFLAGS"] = f"!-I{uuid_rel_path}/include/"
+            configure_flags[
+                "UUID_CFLAGS"
+            ] = f"!-I{uuid_rel_path}/include/uuid/"
             uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
                 uuid_pkg, relative_to="pkgbuild"
             )

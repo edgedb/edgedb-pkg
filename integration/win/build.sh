@@ -36,6 +36,10 @@ if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi
 
+if [ -n "${PKG_PLATFORM_ARCH}" ]; then
+    extraopts+=" --arch=${PKG_PLATFORM_ARCH}"
+fi
+
 if [ -n "${PKG_BUILD_JOBS}" ]; then
     extraopts+=" --jobs=${PKG_BUILD_JOBS}"
 fi

@@ -1,19 +1,20 @@
-From cd8e4f3d9f1d5fbb9a747975d2fbc76e49cd5ce3 Mon Sep 17 00:00:00 2001
+From 48a02d556ab58a0f8851ea2f3c9a93f7d57d16c9 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Oct 2021 12:10:56 -0700
 Subject: [PATCH] Look up for zlib, libuuid and libffi with pkg-config
 
 This also enables external *_CFLAGS/*_LIBS override
 ---
- Makefile.pre.in |   8 +
- aclocal.m4      |   8 +-
- configure       | 473 +++++++++++++++++++++++++++++++++++++++++++++++-
- configure.ac    |  48 ++++-
- setup.py        |  60 ++++--
- 5 files changed, 567 insertions(+), 30 deletions(-)
+ Makefile.pre.in |    8 +
+ aclocal.m4      |    8 +-
+ configure       | 1122 ++++++++++++++++++++++++++++++++++++++++++-----
+ configure.ac    |  225 ++++++++--
+ pyconfig.h.in   |   10 +-
+ setup.py        |   60 ++-
+ 6 files changed, 1262 insertions(+), 171 deletions(-)
 
 diff --git a/Makefile.pre.in b/Makefile.pre.in
-index ee85f35b10..17af4d59e7 100644
+index ee85f35b10..f440aaab5d 100644
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
 @@ -200,6 +200,13 @@ RUNSHARED=       @RUNSHARED@
@@ -24,8 +25,8 @@ index ee85f35b10..17af4d59e7 100644
 +ZLIB_LIBS = @ZLIB_LIBS@
 +
 +# UUID options for setup.py so sysconfig can pick up AC_SUBST() vars.
-+UUID_LIBS=@UUID_LIBS@
-+UUID_CFLAGS=@UUID_CFLAGS@
++LIBUUID_LIBS=@LIBUUID_LIBS@
++LIBUUID_CFLAGS=@LIBUUID_CFLAGS@
 +
  # OpenSSL options for setup.py so sysconfig can pick up AC_SUBST() vars.
  OPENSSL_INCLUDES=@OPENSSL_INCLUDES@
@@ -70,7 +71,7 @@ index 2f1bd37528..8960899828 100644
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure b/configure
-index 82c3ef4987..7e96979d41 100755
+index 5568b674a5..2144a10486 100755
 --- a/configure
 +++ b/configure
 @@ -661,10 +661,17 @@ DTRACE
@@ -83,8 +84,8 @@ index 82c3ef4987..7e96979d41 100755
 +ZLIB_LIBS
 +ZLIB_CFLAGS
 +TZPATH
-+UUID_LIBS
-+UUID_CFLAGS
++LIBUUID_LIBS
++LIBUUID_CFLAGS
  PKG_CONFIG_LIBDIR
  PKG_CONFIG_PATH
  PKG_CONFIG
@@ -92,22 +93,14 @@ index 82c3ef4987..7e96979d41 100755
  SHLIBS
  CFLAGSFORSHARED
  LINKFORSHARED
-@@ -835,6 +842,7 @@ with_undefined_behavior_sanitizer
- with_hash_algorithm
- with_tzpath
- with_libs
-+with_system_zlib
- with_system_expat
- with_system_ffi
- with_system_libmpdec
-@@ -878,7 +886,13 @@ CPP
+@@ -878,7 +885,13 @@ CPP
  PROFILE_TASK
  PKG_CONFIG
  PKG_CONFIG_PATH
 -PKG_CONFIG_LIBDIR'
 +PKG_CONFIG_LIBDIR
-+UUID_CFLAGS
-+UUID_LIBS
++LIBUUID_CFLAGS
++LIBUUID_LIBS
 +ZLIB_CFLAGS
 +ZLIB_LIBS
 +LIBFFI_CFLAGS
@@ -115,21 +108,14 @@ index 82c3ef4987..7e96979d41 100755
  
  
  # Initialize some variables set by options.
-@@ -1567,6 +1581,8 @@ Optional Packages:
-                            Select the default time zone search path for zoneinfo.TZPATH
- 
-   --with-libs='lib1 ...'  link against additional libs (default is no)
-+  --with-system-zlib      build zlib module using an installed zlib library
-+                          (default is yes)
-   --with-system-expat     build pyexpat module using an installed expat
-                           library, see Doc/library/pyexpat.rst (default is no)
-   --with-system-ffi       build _ctypes module using an installed ffi library,
-@@ -1647,6 +1663,13 @@ Some influential environment variables:
+@@ -1647,6 +1660,15 @@ Some influential environment variables:
                directories to add to pkg-config's search path
    PKG_CONFIG_LIBDIR
                path overriding pkg-config's built-in search path
-+  UUID_CFLAGS C compiler flags for UUID, overriding pkg-config
-+  UUID_LIBS   linker flags for UUID, overriding pkg-config
++  LIBUUID_CFLAGS
++              C compiler flags for LIBUUID, overriding pkg-config
++  LIBUUID_LIBS
++              linker flags for LIBUUID, overriding pkg-config
 +  ZLIB_CFLAGS C compiler flags for ZLIB, overriding pkg-config
 +  ZLIB_LIBS   linker flags for ZLIB, overriding pkg-config
 +  LIBFFI_CFLAGS
@@ -138,7 +124,19 @@ index 82c3ef4987..7e96979d41 100755
  
  Use these variables to override the choices made by `configure' or to help
  it to find libraries and programs with nonstandard names/locations.
-@@ -8088,6 +8111,7 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
+@@ -2775,6 +2797,11 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+ 
++
++
++
++
++
+ if test "$srcdir" != . -a "$srcdir" != "$(pwd)"; then
+     # If we're building out-of-tree, we need to make sure the following
+     # resources get picked up before their $srcdir counterparts.
+@@ -8093,6 +8120,7 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
  
  fi
  
@@ -146,14 +144,74 @@ index 82c3ef4987..7e96979d41 100755
  for ac_header in asm/types.h crypt.h conio.h direct.h dlfcn.h errno.h \
  fcntl.h grp.h \
  ieeefp.h io.h langinfo.h libintl.h process.h pthread.h \
-@@ -10122,6 +10146,223 @@ _ACEOF
+@@ -10127,53 +10155,240 @@ _ACEOF
  fi
  	# Dynamic linking for HP-UX
  
+-# checks for uuid.h location
+-for ac_header in uuid/uuid.h uuid.h
 +
 +
 +
++have_uuid=missing
 +
++for ac_header in uuid.h
+ do :
+-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid.h" "ac_cv_header_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_h" = xyes; then :
+   cat >>confdefs.h <<_ACEOF
+-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
++#define HAVE_UUID_H 1
++_ACEOF
++
++  for ac_func in uuid_create uuid_enc_be
++do :
++  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
++ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
++if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
++  cat >>confdefs.h <<_ACEOF
++#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+ _ACEOF
+ 
++    have_uuid=yes
++    LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++    LIBUUID_LIBS=${LIBUUID_LIBS-""}
++
++fi
++done
++
++
+ fi
+ 
+ done
+ 
+ 
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time_safe" >&5
+-$as_echo_n "checking for uuid_generate_time_safe... " >&6; }
+-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <uuid/uuid.h>
+-int
+-main ()
+-{
+ 
+-#ifndef uuid_generate_time_safe
+-void *x = uuid_generate_time_safe
+-#endif
+ 
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_c_try_compile "$LINENO"; then :
+ 
+-$as_echo "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
+ 
+-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+-$as_echo "yes" >&6; }
 +
 +
 +
@@ -193,13 +251,14 @@ index 82c3ef4987..7e96979d41 100755
 +if test -n "$PKG_CONFIG"; then
 +  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
 +$as_echo "$PKG_CONFIG" >&6; }
-+else
-+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+$as_echo "no" >&6; }
+ else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+ $as_echo "no" >&6; }
 +fi
 +
-+
-+fi
+ 
+ fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 +if test -z "$ac_cv_path_PKG_CONFIG"; then
 +  ac_pt_PKG_CONFIG=$PKG_CONFIG
 +  # Extract the first word of "pkg-config", so it can be a program name with args.
@@ -270,21 +329,23 @@ index 82c3ef4987..7e96979d41 100755
 +		PKG_CONFIG=""
 +	fi
 +fi
++if test "x$have_uuid" = xmissing; then :
++
 +
 +pkg_failed=no
-+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for UUID" >&5
-+$as_echo_n "checking for UUID... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for LIBUUID" >&5
++$as_echo_n "checking for LIBUUID... " >&6; }
 +
-+if test -n "$UUID_CFLAGS"; then
-+    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
++if test -n "$LIBUUID_CFLAGS"; then
++    pkg_cv_LIBUUID_CFLAGS="$LIBUUID_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid" 2>/dev/null`
++  pkg_cv_LIBUUID_CFLAGS=`$PKG_CONFIG --cflags "uuid >= 2.20" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -292,16 +353,16 @@ index 82c3ef4987..7e96979d41 100755
 + else
 +    pkg_failed=untried
 +fi
-+if test -n "$UUID_LIBS"; then
-+    pkg_cv_UUID_LIBS="$UUID_LIBS"
++if test -n "$LIBUUID_LIBS"; then
++    pkg_cv_LIBUUID_LIBS="$LIBUUID_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid" 2>/dev/null`
++  pkg_cv_LIBUUID_LIBS=`$PKG_CONFIG --libs "uuid >= 2.20" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -322,84 +383,502 @@ index 82c3ef4987..7e96979d41 100755
 +        _pkg_short_errors_supported=no
 +fi
 +        if test $_pkg_short_errors_supported = yes; then
-+	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid" 2>&1`
++	        LIBUUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
 +        else
-+	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid" 2>&1`
++	        LIBUUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
 +        fi
 +	# Put the nasty error message in config.log where it belongs
-+	echo "$UUID_PKG_ERRORS" >&5
++	echo "$LIBUUID_PKG_ERRORS" >&5
+ 
+-# check for libuuid from util-linux
 +
-+	as_fn_error $? "Package requirements (uuid) were not met:
++      save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
+ save_LIBS=$LIBS
 +
-+$UUID_PKG_ERRORS
 +
-+Consider adjusting the PKG_CONFIG_PATH environment variable if you
-+installed software in a non-standard prefix.
++        CPPFLAGS="$CFLAGS $LIBUUID_CFLAGS"
++        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
++        for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
 +
-+Alternatively, you may set the environment variables UUID_CFLAGS
-+and UUID_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details." "$LINENO" 5
++          py_check_lib_save_LIBS=$LIBS
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
+ $as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
+ if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
+@@ -10211,97 +10426,266 @@ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
+ $as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
+ if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
+-  cat >>confdefs.h <<_ACEOF
+-#define HAVE_LIBUUID 1
+-_ACEOF
+-
+-  LIBS="-luuid $LIBS"
+-
++  have_uuid=yes
+ fi
+ 
+-LIBS=$save_LIBS
++LIBS=$py_check_lib_save_LIBS
+ 
+-# AIX provides support for RFC4122 (uuid) in libc.a starting with AIX 6.1 (anno 2007)
+-# FreeBSD and OpenBSD provides support in libc as well.
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_create" >&5
+-$as_echo_n "checking for uuid_create... " >&6; }
++          py_check_lib_save_LIBS=$LIBS
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time_safe in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time_safe in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time_safe+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+-#include <uuid.h>
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time_safe ();
+ int
+ main ()
+ {
+-
+-#ifndef uuid_create
+-void *x = uuid_create
+-#endif
+-
++return uuid_generate_time_safe ();
+   ;
+   return 0;
+ }
+ _ACEOF
+-if ac_fn_c_try_compile "$LINENO"; then :
+-
+-$as_echo "#define HAVE_UUID_CREATE 1" >>confdefs.h
+-
+-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+-$as_echo "yes" >&6; }
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time_safe=yes
+ else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+-$as_echo "no" >&6; }
++  ac_cv_lib_uuid_uuid_generate_time_safe=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time_safe" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time_safe" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time_safe" = xyes; then :
++  have_uuid=yes
++            $as_echo "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
++
+ 
+ fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ 
+-# Little-endian FreeBSD, OpenBSD and NetBSD needs encoding into an octet
+-# stream in big-endian byte-order
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_enc_be" >&5
+-$as_echo_n "checking for uuid_enc_be... " >&6; }
+-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <uuid.h>
+-int
+-main ()
+-{
++LIBS=$py_check_lib_save_LIBS
+ 
+-#ifndef uuid_enc_be
+-void *x = uuid_enc_be
+-#endif
+ 
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_c_try_compile "$LINENO"; then :
++fi
++
++done
+ 
+-$as_echo "#define HAVE_UUID_ENC_BE 1" >>confdefs.h
++        if test "x$have_uuid" = xyes; then :
+ 
+-   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+-$as_echo "yes" >&6; }
+-else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+-$as_echo "no" >&6; }
++          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
+ 
+ fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ 
+-# 'Real Time' functions on Solaris
+-# posix4 on Solaris 2.6
+-# pthread (first!) on Linux
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing sem_init" >&5
+-$as_echo_n "checking for library containing sem_init... " >&6; }
+-if ${ac_cv_search_sem_init+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-  ac_func_search_save_LIBS=$LIBS
+-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
+ 
+-/* Override any GCC internal prototype to avoid an error.
+-   Use char because int might match the return type of a GCC
+-   builtin and then its argument prototype would still apply.  */
+-#ifdef __cplusplus
+-extern "C"
++
++
++
 +elif test $pkg_failed = untried; then
 +     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 +$as_echo "no" >&6; }
-+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
-+is in your PATH or set the PKG_CONFIG environment variable to the full
-+path to pkg-config.
 +
-+Alternatively, you may set the environment variables UUID_CFLAGS
-+and UUID_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details.
++      save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
++save_LIBS=$LIBS
 +
-+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-+See \`config.log' for more details" "$LINENO" 5; }
++
++        CPPFLAGS="$CFLAGS $LIBUUID_CFLAGS"
++        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
++        for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++          py_check_lib_save_LIBS=$LIBS
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
++  $as_echo_n "(cached) " >&6
 +else
-+	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
-+	UUID_LIBS=$pkg_cv_UUID_LIBS
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time ();
++int
++main ()
++{
++return uuid_generate_time ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
++fi
++
++LIBS=$py_check_lib_save_LIBS
++
++          py_check_lib_save_LIBS=$LIBS
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time_safe in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time_safe in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time_safe+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time_safe ();
++int
++main ()
++{
++return uuid_generate_time_safe ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time_safe=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time_safe=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time_safe" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time_safe" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time_safe" = xyes; then :
++  have_uuid=yes
++            $as_echo "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
++
++
++fi
++
++LIBS=$py_check_lib_save_LIBS
++
++
++fi
++
++done
++
++        if test "x$have_uuid" = xyes; then :
++
++          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
++
++fi
++
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
++
++
++
++
++else
++	LIBUUID_CFLAGS=$pkg_cv_LIBUUID_CFLAGS
++	LIBUUID_LIBS=$pkg_cv_LIBUUID_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
 +
++                  have_uuid=yes
++      $as_echo "#define HAVE_UUID_H 1" >>confdefs.h
++
++      $as_echo "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
++
++
 +fi
 +
-+if test -n "$UUID_CFLAGS"; then
-+  ac_save_cppflags=$CPPFLAGS
-+  CPPFLAGS="$UUID_CFLAGS $CPPFLAGS"
 +fi
 +
- # checks for uuid.h location
- for ac_header in uuid/uuid.h uuid.h
- do :
-@@ -10280,6 +10521,10 @@ $as_echo "no" >&6; }
- fi
- rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
- 
-+if test -n "$UUID_CFLAGS"; then
-+  CPPFLAGS=$ac_save_cppflags
++if test "x$have_uuid" = xmissing; then :
++
++  for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++    ac_fn_c_check_func "$LINENO" "uuid_generate_time" "ac_cv_func_uuid_generate_time"
++if test "x$ac_cv_func_uuid_generate_time" = xyes; then :
++
++      have_uuid=yes
++      LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++      LIBUUID_LIBS=${LIBUUID_LIBS-""}
++
 +fi
 +
- # 'Real Time' functions on Solaris
- # posix4 on Solaris 2.6
- # pthread (first!) on Linux
-@@ -10771,6 +11016,125 @@ $as_echo "no" >&6; }
++
++fi
++
++done
++
++
++fi
++
++# 'Real Time' functions on Solaris
++# posix4 on Solaris 2.6
++# pthread (first!) on Linux
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing sem_init" >&5
++$as_echo_n "checking for library containing sem_init... " >&6; }
++if ${ac_cv_search_sem_init+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_func_search_save_LIBS=$LIBS
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
+ #endif
+ char sem_init ();
+ int
+@@ -10776,6 +11160,244 @@ $as_echo "no" >&6; }
  	fi
  fi
  
-+# Check for use of the system zlib library
-+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-system-zlib" >&5
-+$as_echo_n "checking for --with-system-zlib... " >&6; }
++have_zlib=missing
++save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
++save_LIBS=$LIBS
 +
-+# Check whether --with-system_zlib was given.
-+if test "${with_system_zlib+set}" = set; then :
-+  withval=$with_system_zlib;
++
++  CPPFLAGS="$CFLAGS $ZLIB_CFLAGS"
++  LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++  for ac_header in zlib.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
++if test "x$ac_cv_header_zlib_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_ZLIB_H 1
++_ACEOF
++
++    py_check_lib_save_LIBS=$LIBS
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for gzread in -lz" >&5
++$as_echo_n "checking for gzread in -lz... " >&6; }
++if ${ac_cv_lib_z_gzread+:} false; then :
++  $as_echo_n "(cached) " >&6
 +else
-+  with_system_zlib="yes"
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lz  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char gzread ();
++int
++main ()
++{
++return gzread ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_z_gzread=yes
++else
++  ac_cv_lib_z_gzread=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_gzread" >&5
++$as_echo "$ac_cv_lib_z_gzread" >&6; }
++if test "x$ac_cv_lib_z_gzread" = xyes; then :
++  have_zlib=yes
++else
++  have_zlib=missing
 +fi
 +
-+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_system_zlib" >&5
-+$as_echo "$with_system_zlib" >&6; }
++LIBS=$py_check_lib_save_LIBS
 +
-+if test "$with_system_zlib" != "no"; then
++
++else
++  have_zlib=missing
++fi
++
++done
++
++  if test "x$have_zlib" = xyes; then :
++
++    ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
++    ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
++    py_check_lib_save_LIBS=$LIBS
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for inflateCopy in -lz" >&5
++$as_echo_n "checking for inflateCopy in -lz... " >&6; }
++if ${ac_cv_lib_z_inflateCopy+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lz  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char inflateCopy ();
++int
++main ()
++{
++return inflateCopy ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_z_inflateCopy=yes
++else
++  ac_cv_lib_z_inflateCopy=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflateCopy" >&5
++$as_echo "$ac_cv_lib_z_inflateCopy" >&6; }
++if test "x$ac_cv_lib_z_inflateCopy" = xyes; then :
++  $as_echo "#define HAVE_ZLIB_COPY 1" >>confdefs.h
++
++fi
++
++LIBS=$py_check_lib_save_LIBS
++
++
++fi
++
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
++
++
++
++if test "x$have_zlib" = xmissing; then :
++
 +
 +pkg_failed=no
 +{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ZLIB" >&5
@@ -409,12 +888,12 @@ index 82c3ef4987..7e96979d41 100755
 +    pkg_cv_ZLIB_CFLAGS="$ZLIB_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib >= 1.2.0\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib >= 1.2.0") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib" 2>/dev/null`
++  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib >= 1.2.0" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -426,12 +905,12 @@ index 82c3ef4987..7e96979d41 100755
 +    pkg_cv_ZLIB_LIBS="$ZLIB_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib >= 1.2.0\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib >= 1.2.0") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib" 2>/dev/null`
++  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib >= 1.2.0" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -452,14 +931,14 @@ index 82c3ef4987..7e96979d41 100755
 +        _pkg_short_errors_supported=no
 +fi
 +        if test $_pkg_short_errors_supported = yes; then
-+	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "zlib" 2>&1`
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "zlib >= 1.2.0" 2>&1`
 +        else
-+	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "zlib" 2>&1`
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "zlib >= 1.2.0" 2>&1`
 +        fi
 +	# Put the nasty error message in config.log where it belongs
 +	echo "$ZLIB_PKG_ERRORS" >&5
 +
-+	as_fn_error $? "Package requirements (zlib) were not met:
++	as_fn_error $? "Package requirements (zlib >= 1.2.0) were not met:
 +
 +$ZLIB_PKG_ERRORS
 +
@@ -490,30 +969,37 @@ index 82c3ef4987..7e96979d41 100755
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
 +
-+fi
++    have_zlib=yes
++    $as_echo "#define HAVE_ZLIB_COPY 1" >>confdefs.h
++
++
 +fi
 +
-+if test "$with_system_zlib" == "yes"; then
-+  if test -n "$ZLIB_CFLAGS"; then
-+    ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
-+  else
-+    ZLIB_INCLUDEDIR=""
-+  fi
++fi
++
++if test "x$have_zlib" = xyes; then :
++
++  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
++
 +else
++
 +  ZLIB_INCLUDEDIR=":none:"
++
 +fi
 +
 +
  # Check for use of the system expat library
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-system-expat" >&5
  $as_echo_n "checking for --with-system-expat... " >&6; }
-@@ -10821,10 +11185,104 @@ $as_echo "$as_me: WARNING: --with(out)-system-ffi is ignored on this platform" >
+@@ -10826,10 +11448,307 @@ $as_echo "$as_me: WARNING: --with(out)-system-ffi is ignored on this platform" >
      with_system_ffi="yes"
  fi
  
 -if test "$with_system_ffi" = "yes" && test -n "$PKG_CONFIG"; then
 -    LIBFFI_INCLUDEDIR="`"$PKG_CONFIG" libffi --cflags-only-I 2>/dev/null | sed -e 's/^-I//;s/ *$//'`"
-+if test "$with_system_ffi" = "yes"; then
++have_libffi=missing
++if test "x$with_system_ffi" = xyes; then :
++
 +
 +pkg_failed=no
 +{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for LIBFFI" >&5
@@ -573,49 +1059,250 @@ index 82c3ef4987..7e96979d41 100755
 +	# Put the nasty error message in config.log where it belongs
 +	echo "$LIBFFI_PKG_ERRORS" >&5
 +
-+	as_fn_error $? "Package requirements (libffi) were not met:
 +
-+$LIBFFI_PKG_ERRORS
++    save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
++save_LIBS=$LIBS
 +
-+Consider adjusting the PKG_CONFIG_PATH environment variable if you
-+installed software in a non-standard prefix.
 +
-+Alternatively, you may set the environment variables LIBFFI_CFLAGS
-+and LIBFFI_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details." "$LINENO" 5
++      CPPFLAGS="$CFLAGS $LIBFFI_CFLAGS"
++      LDFLAGS="$LDFLAGS $LIBFFI_LIBS"
++      ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
++if test "x$ac_cv_header_ffi_h" = xyes; then :
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_call in -lffi" >&5
++$as_echo_n "checking for ffi_call in -lffi... " >&6; }
++if ${ac_cv_lib_ffi_ffi_call+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lffi  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char ffi_call ();
++int
++main ()
++{
++return ffi_call ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_ffi_ffi_call=yes
++else
++  ac_cv_lib_ffi_ffi_call=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_call" >&5
++$as_echo "$ac_cv_lib_ffi_ffi_call" >&6; }
++if test "x$ac_cv_lib_ffi_ffi_call" = xyes; then :
++
++          have_libffi=yes
++          LIBFFI_CFLAGS=${LIBFFI_CFLAGS-""}
++          LIBFFI_LIBS=${LIBFFI_LIBS-"-lffi"}
++
++else
++  have_libffi=no
++fi
++
++
++fi
++
++
++
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
++
++
++
 +elif test $pkg_failed = untried; then
 +     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 +$as_echo "no" >&6; }
-+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
-+is in your PATH or set the PKG_CONFIG environment variable to the full
-+path to pkg-config.
 +
-+Alternatively, you may set the environment variables LIBFFI_CFLAGS
-+and LIBFFI_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details.
++    save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
++save_LIBS=$LIBS
 +
-+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-+See \`config.log' for more details" "$LINENO" 5; }
++
++      CPPFLAGS="$CFLAGS $LIBFFI_CFLAGS"
++      LDFLAGS="$LDFLAGS $LIBFFI_LIBS"
++      ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
++if test "x$ac_cv_header_ffi_h" = xyes; then :
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_call in -lffi" >&5
++$as_echo_n "checking for ffi_call in -lffi... " >&6; }
++if ${ac_cv_lib_ffi_ffi_call+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lffi  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char ffi_call ();
++int
++main ()
++{
++return ffi_call ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_ffi_ffi_call=yes
++else
++  ac_cv_lib_ffi_ffi_call=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_call" >&5
++$as_echo "$ac_cv_lib_ffi_ffi_call" >&6; }
++if test "x$ac_cv_lib_ffi_ffi_call" = xyes; then :
++
++          have_libffi=yes
++          LIBFFI_CFLAGS=${LIBFFI_CFLAGS-""}
++          LIBFFI_LIBS=${LIBFFI_LIBS-"-lffi"}
++
++else
++  have_libffi=no
++fi
++
++
++fi
++
++
++
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
++
++
++
 +else
 +	LIBFFI_CFLAGS=$pkg_cv_LIBFFI_CFLAGS
 +	LIBFFI_LIBS=$pkg_cv_LIBFFI_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
++	have_libffi=yes
++fi
++
++else
++
++  if test "x$ac_sys_system" = xDarwin; then :
++
++    save_CFLAGS=$CFLAGS
++save_CPPFLAGS=$CPPFLAGS
++save_LDFLAGS=$LDFLAGS
++save_LIBS=$LIBS
++
++
++      CFLAGS="-I${SDKROOT}/usr/include/ffi $CFLAGS"
++      ac_fn_c_check_header_mongrel "$LINENO" "ffi.h" "ac_cv_header_ffi_h" "$ac_includes_default"
++if test "x$ac_cv_header_ffi_h" = xyes; then :
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ffi_call in -lffi" >&5
++$as_echo_n "checking for ffi_call in -lffi... " >&6; }
++if ${ac_cv_lib_ffi_ffi_call+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lffi  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char ffi_call ();
++int
++main ()
++{
++return ffi_call ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_ffi_ffi_call=yes
++else
++  ac_cv_lib_ffi_ffi_call=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ffi_ffi_call" >&5
++$as_echo "$ac_cv_lib_ffi_ffi_call" >&6; }
++if test "x$ac_cv_lib_ffi_ffi_call" = xyes; then :
++
++                    have_libffi=yes
++          LIBFFI_CFLAGS="-I${SDKROOT}/usr/include/ffi -DUSING_APPLE_OS_LIBFFI=1"
++          LIBFFI_LIBS="-lffi"
++
+ else
+-    LIBFFI_INCLUDEDIR=""
++  have_libffi=no
++fi
++
 +
 +fi
++
++
++
++CFLAGS=$save_CFLAGS
++CPPFLAGS=$save_CPPFLAGS
++LDFLAGS=$save_LDFLAGS
++LIBS=$save_LIBS
++
++
++
++fi
++
++fi
++
++if test "x$have_libffi" = xyes; then :
++
++    if test "x$ac_cv_lib_dl_dlopen" = xyes; then :
++  as_fn_append LIBFFI_LIBS " -ldl"
++fi
++
 +fi
 +
 +if test -n "$LIBFFI_CFLAGS"; then
 +  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
- else
--    LIBFFI_INCLUDEDIR=""
++else
 +  LIBFFI_INCLUDEDIR=""
  fi
  
  
-@@ -13814,6 +14272,7 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
+@@ -13819,6 +14738,7 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
  
  fi
  
@@ -623,7 +1310,7 @@ index 82c3ef4987..7e96979d41 100755
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether struct tm is in sys/time.h or time.h" >&5
  $as_echo_n "checking whether struct tm is in sys/time.h or time.h... " >&6; }
  if ${ac_cv_struct_tm+:} false; then :
-@@ -17775,8 +18234,8 @@ fi
+@@ -17747,8 +18667,8 @@ fi
      if ! $found; then
          OPENSSL_INCLUDES=
          for ssldir in $ssldirs; do
@@ -635,10 +1322,71 @@ index 82c3ef4987..7e96979d41 100755
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure.ac b/configure.ac
-index 879d47f0b2..38d5bd90db 100644
+index 632c39a087..b667c5923b 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -56,7 +56,7 @@ else
+@@ -18,6 +18,60 @@ m4_ifdef(
+     [AC_MSG_ERROR([Please install autoconf-archive package and re-run autoreconf])]
+ )
+ 
++dnl Helpers for saving and restoring environment variables:
++dnl - _SAVE_VAR([VAR])         Helper for SAVE_ENV; stores VAR as save_VAR
++dnl - _RESTORE_VAR([VAR])      Helper for RESTORE_ENV; restores VAR from save_VAR
++dnl - SAVE_ENV                 Saves CFLAGS, LDFLAGS, LIBS, and CPPFLAGS
++dnl - RESTORE_ENV              Restores CFLAGS, LDFLAGS, LIBS, and CPPFLAGS
++dnl - WITH_SAVE_ENV([SCRIPT])  Runs SCRIPT wrapped with SAVE_ENV/RESTORE_ENV
++AC_DEFUN([_SAVE_VAR], [AS_VAR_COPY([save_][$1], [$1])])dnl
++AC_DEFUN([_RESTORE_VAR], [AS_VAR_COPY([$1], [save_][$1])])dnl
++AC_DEFUN([SAVE_ENV],
++[_SAVE_VAR([CFLAGS])]
++[_SAVE_VAR([CPPFLAGS])]
++[_SAVE_VAR([LDFLAGS])]
++[_SAVE_VAR([LIBS])]
++)dnl
++AC_DEFUN([RESTORE_ENV],
++[_RESTORE_VAR([CFLAGS])]
++[_RESTORE_VAR([CPPFLAGS])]
++[_RESTORE_VAR([LDFLAGS])]
++[_RESTORE_VAR([LIBS])]
++)dnl
++AC_DEFUN([WITH_SAVE_ENV],
++[SAVE_ENV]
++[$1]
++[RESTORE_ENV]
++)dnl
++
++dnl PY_CHECK_FUNC(FUNCTION, [INCLUDES], [AC_DEFINE-VAR])
++AC_DEFUN([PY_CHECK_FUNC],
++[ AS_VAR_PUSHDEF([py_var], [ac_cv_func_$1])
++  AS_VAR_PUSHDEF([py_define], m4_ifblank([$3], [[HAVE_]m4_toupper($1)], [$3]))
++  AC_CACHE_CHECK(
++    [for $1],
++    [py_var],
++    [AC_COMPILE_IFELSE(
++      [AC_LANG_PROGRAM([$2], [void *x=$1])],
++      [AS_VAR_SET([py_var], [yes])],
++      [AS_VAR_SET([py_var], [no])])]
++  )
++  AS_VAR_IF(
++    [py_var],
++    [yes],
++    [AC_DEFINE([py_define], [1], [Define if you have the '$1' function.])])
++  AS_VAR_POPDEF([py_var])
++  AS_VAR_POPDEF([py_define])
++])
++
++dnl PY_CHECK_LIB(LIBRARY, FUNCTION, [ACTION-IF-FOUND], [ACTION-IF-NOT-FOUND], [OTHER-LIBRARIES])
++dnl Like AC_CHECK_LIB() but does not modify LIBS
++AC_DEFUN([PY_CHECK_LIB],
++[AS_VAR_COPY([py_check_lib_save_LIBS], [LIBS])]
++[AC_CHECK_LIB($1, $2, $3, $4, $5)]
++[AS_VAR_COPY([LIBS], [py_check_lib_save_LIBS])]
++)
++
+ AC_SUBST(BASECPPFLAGS)
+ if test "$srcdir" != . -a "$srcdir" != "$(pwd)"; then
+     # If we're building out-of-tree, we need to make sure the following
+@@ -56,7 +110,7 @@ else
  fi
  
  AC_CONFIG_SRCDIR([Include/object.h])
@@ -647,7 +1395,7 @@ index 879d47f0b2..38d5bd90db 100644
  
  AC_CANONICAL_HOST
  AC_SUBST(build)
-@@ -2212,6 +2212,7 @@ dnl AC_MSG_RESULT($cpp_type)
+@@ -2217,6 +2271,7 @@ dnl AC_MSG_RESULT($cpp_type)
  
  # checks for header files
  AC_HEADER_STDC
@@ -655,70 +1403,188 @@ index 879d47f0b2..38d5bd90db 100644
  AC_CHECK_HEADERS(asm/types.h crypt.h conio.h direct.h dlfcn.h errno.h \
  fcntl.h grp.h \
  ieeefp.h io.h langinfo.h libintl.h process.h pthread.h \
-@@ -2904,6 +2905,13 @@ AC_CHECK_LIB(sendfile, sendfile)
+@@ -2909,50 +2964,62 @@ AC_CHECK_LIB(sendfile, sendfile)
  AC_CHECK_LIB(dl, dlopen)	# Dynamic linking for SunOS/Solaris and SYSV
  AC_CHECK_LIB(dld, shl_load)	# Dynamic linking for HP-UX
  
-+PKG_CHECK_MODULES([UUID], [uuid])
+-# checks for uuid.h location
+-AC_CHECK_HEADERS([uuid/uuid.h uuid.h])
+-
+-AC_MSG_CHECKING(for uuid_generate_time_safe)
+-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <uuid/uuid.h>]], [[
+-#ifndef uuid_generate_time_safe
+-void *x = uuid_generate_time_safe
+-#endif
+-]])],
+-  [AC_DEFINE(HAVE_UUID_GENERATE_TIME_SAFE, 1, Define if uuid_generate_time_safe() exists.)
+-   AC_MSG_RESULT(yes)],
+-  [AC_MSG_RESULT(no)]
+-)
++dnl check for uuid dependencies
++AH_TEMPLATE([HAVE_UUID_H], [Define to 1 if you have the <uuid.h> header file.])
++AH_TEMPLATE([HAVE_UUID_UUID_H], [Define to 1 if you have the <uuid/uuid.h> header file.])
++AH_TEMPLATE([HAVE_UUID_GENERATE_TIME_SAFE], [Define if uuid_generate_time_safe() exists.])
++have_uuid=missing
 +
-+if test -n "$UUID_CFLAGS"; then
-+  ac_save_cppflags=$CPPFLAGS
-+  CPPFLAGS="$UUID_CFLAGS $CPPFLAGS"
-+fi
-+
- # checks for uuid.h location
- AC_CHECK_HEADERS([uuid/uuid.h uuid.h])
++dnl AIX provides support for RFC4122 (uuid) in libc.a starting with AIX 6.1
++dnl (anno 2007). FreeBSD and OpenBSD provides support in libc as well.
++dnl Little-endian FreeBSD, OpenBSD and NetBSD needs encoding into an octet
++dnl stream in big-endian byte-order
++AC_CHECK_HEADERS([uuid.h], [
++  AC_CHECK_FUNCS([uuid_create uuid_enc_be], [
++    have_uuid=yes
++    LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++    LIBUUID_LIBS=${LIBUUID_LIBS-""}
++  ])
++])
  
-@@ -2949,6 +2957,10 @@ void *x = uuid_enc_be
-   [AC_MSG_RESULT(no)]
- )
+-# check for libuuid from util-linux
+-save_LIBS=$LIBS
+-AC_CHECK_LIB([uuid], [uuid_generate_time])
+-LIBS=$save_LIBS
+-
+-# AIX provides support for RFC4122 (uuid) in libc.a starting with AIX 6.1 (anno 2007)
+-# FreeBSD and OpenBSD provides support in libc as well.
+-AC_MSG_CHECKING(for uuid_create)
+-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <uuid.h>]], [[
+-#ifndef uuid_create
+-void *x = uuid_create
+-#endif
+-]])],
+-  [AC_DEFINE(HAVE_UUID_CREATE, 1, Define if uuid_create() exists.)
+-   AC_MSG_RESULT(yes)],
+-  [AC_MSG_RESULT(no)]
+-)
++AS_VAR_IF([have_uuid], [missing], [
++  PKG_CHECK_MODULES(
++    [LIBUUID], [uuid >= 2.20], [
++      dnl linux-util's libuuid has uuid_generate_time_safe() since v2.20 (2011)
++      dnl and provides <uuid.h>.
++      have_uuid=yes
++      AC_DEFINE([HAVE_UUID_H], [1])
++      AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1])
++    ], [
++      WITH_SAVE_ENV([
++        CPPFLAGS="$CFLAGS $LIBUUID_CFLAGS"
++        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
++        AC_CHECK_HEADERS([uuid/uuid.h], [
++          PY_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++          PY_CHECK_LIB([uuid], [uuid_generate_time_safe], [
++            have_uuid=yes
++            AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1])
++          ])
++        ])
++        AS_VAR_IF([have_uuid], [yes], [
++          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
++        ])
++      ])
++    ]
++  )
++])
  
-+if test -n "$UUID_CFLAGS"; then
-+  CPPFLAGS=$ac_save_cppflags
-+fi
-+
+-# Little-endian FreeBSD, OpenBSD and NetBSD needs encoding into an octet
+-# stream in big-endian byte-order
+-AC_MSG_CHECKING(for uuid_enc_be)
+-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <uuid.h>]], [[
+-#ifndef uuid_enc_be
+-void *x = uuid_enc_be
+-#endif
+-]])],
+-  [AC_DEFINE(HAVE_UUID_ENC_BE, 1, Define if uuid_enc_be() exists.)
+-   AC_MSG_RESULT(yes)],
+-  [AC_MSG_RESULT(no)]
+-)
++dnl macOS has uuid/uuid.h but uuid_generate_time is in libc
++AS_VAR_IF([have_uuid], [missing], [
++  AC_CHECK_HEADERS([uuid/uuid.h], [
++    AC_CHECK_FUNC([uuid_generate_time], [
++      have_uuid=yes
++      LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++      LIBUUID_LIBS=${LIBUUID_LIBS-""}
++    ])
++  ])
++])
+ 
  # 'Real Time' functions on Solaris
  # posix4 on Solaris 2.6
- # pthread (first!) on Linux
-@@ -3090,6 +3102,29 @@ LIBS="$withval $LIBS"
+@@ -3095,6 +3162,34 @@ LIBS="$withval $LIBS"
  
  PKG_PROG_PKG_CONFIG
  
-+# Check for use of the system zlib library
-+AC_MSG_CHECKING(for --with-system-zlib)
-+AC_ARG_WITH(system_zlib,
-+            AS_HELP_STRING([--with-system-zlib], [build zlib module using an installed zlib library (default is yes)]),
-+            [],
-+            [with_system_zlib="yes"])
-+AC_MSG_RESULT($with_system_zlib)
++have_zlib=missing
++WITH_SAVE_ENV([
++  CPPFLAGS="$CFLAGS $ZLIB_CFLAGS"
++  LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++  AC_CHECK_HEADERS([zlib.h], [
++    PY_CHECK_LIB([z], [gzread], [have_zlib=yes], [have_zlib=missing])
++  ], [have_zlib=missing])
++  AS_VAR_IF([have_zlib], [yes], [
++    ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
++    ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
++    PY_CHECK_LIB([z], [inflateCopy], [AC_DEFINE([HAVE_ZLIB_COPY], [1])])
++  ])
++])
 +
-+if test "$with_system_zlib" != "no"; then
-+  PKG_CHECK_MODULES(ZLIB, zlib)
-+fi
++AS_VAR_IF([have_zlib], [missing], [
++  PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.0], [
++    have_zlib=yes
++    AC_DEFINE([HAVE_ZLIB_COPY], [1])
++  ])
++])
 +
-+if test "$with_system_zlib" == "yes"; then
-+  if test -n "$ZLIB_CFLAGS"; then
-+    ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
-+  else
-+    ZLIB_INCLUDEDIR=""
-+  fi
-+else
++AS_VAR_IF([have_zlib], [yes], [
++  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
++], [
 +  ZLIB_INCLUDEDIR=":none:"
-+fi
++])
 +AC_SUBST(ZLIB_INCLUDEDIR)
 +
  # Check for use of the system expat library
  AC_MSG_CHECKING(for --with-system-expat)
  AC_ARG_WITH(system_expat,
-@@ -3126,10 +3161,14 @@ else
+@@ -3131,10 +3226,47 @@ else
      with_system_ffi="yes"
  fi
  
 -if test "$with_system_ffi" = "yes" && test -n "$PKG_CONFIG"; then
 -    LIBFFI_INCLUDEDIR="`"$PKG_CONFIG" libffi --cflags-only-I 2>/dev/null | sed -e 's/^-I//;s/ *$//'`"
-+if test "$with_system_ffi" = "yes"; then
-+  PKG_CHECK_MODULES(LIBFFI, libffi)
-+fi
++dnl detect libffi
++have_libffi=missing
++AS_VAR_IF([with_system_ffi], [yes], [
++  PKG_CHECK_MODULES([LIBFFI], [libffi], [have_libffi=yes], [
++    WITH_SAVE_ENV([
++      CPPFLAGS="$CFLAGS $LIBFFI_CFLAGS"
++      LDFLAGS="$LDFLAGS $LIBFFI_LIBS"
++      AC_CHECK_HEADER([ffi.h], [
++        AC_CHECK_LIB([ffi], [ffi_call], [
++          have_libffi=yes
++          LIBFFI_CFLAGS=${LIBFFI_CFLAGS-""}
++          LIBFFI_LIBS=${LIBFFI_LIBS-"-lffi"}
++        ], [have_libffi=no])
++      ])
++    ])
++  ])
++], [
++  AS_VAR_IF([ac_sys_system], [Darwin], [
++    WITH_SAVE_ENV([
++      CFLAGS="-I${SDKROOT}/usr/include/ffi $CFLAGS"
++      AC_CHECK_HEADER([ffi.h], [
++        AC_CHECK_LIB([ffi], [ffi_call], [
++          dnl use ffi from SDK root
++          have_libffi=yes
++          LIBFFI_CFLAGS="-I${SDKROOT}/usr/include/ffi -DUSING_APPLE_OS_LIBFFI=1"
++          LIBFFI_LIBS="-lffi"
++        ], [have_libffi=no])
++      ])
++    ])
++  ])
++])
++
++AS_VAR_IF([have_libffi], [yes], [
++  dnl HAVE_LIBDL: for dlopen, see gh-76828
++  AS_VAR_IF([ac_cv_lib_dl_dlopen], [yes], [AS_VAR_APPEND([LIBFFI_LIBS], [" -ldl"])])
++])
 +
 +if test -n "$LIBFFI_CFLAGS"; then
 +  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -e 's/^-I//;s/ *$//'`"
@@ -728,7 +1594,7 @@ index 879d47f0b2..38d5bd90db 100644
  fi
  AC_SUBST(LIBFFI_INCLUDEDIR)
  
-@@ -4245,6 +4284,7 @@ AC_CHECK_FUNCS(getnameinfo)
+@@ -4250,6 +4382,7 @@ AC_CHECK_FUNCS(getnameinfo)
  
  # checks for structures
  AC_HEADER_TIME
@@ -736,11 +1602,48 @@ index 879d47f0b2..38d5bd90db 100644
  AC_STRUCT_TM
  AC_STRUCT_TIMEZONE
  AC_CHECK_MEMBERS([struct stat.st_rdev])
+diff --git a/pyconfig.h.in b/pyconfig.h.in
+index 57c84e5f8f..b5a98ab495 100644
+--- a/pyconfig.h.in
++++ b/pyconfig.h.in
+@@ -628,9 +628,6 @@
+ /* Define to 1 if you have the <libutil.h> header file. */
+ #undef HAVE_LIBUTIL_H
+ 
+-/* Define to 1 if you have the `uuid' library (-luuid). */
+-#undef HAVE_LIBUUID
+-
+ /* Define if you have the 'link' function. */
+ #undef HAVE_LINK
+ 
+@@ -1320,10 +1317,10 @@
+ /* Define to 1 if you have the <utime.h> header file. */
+ #undef HAVE_UTIME_H
+ 
+-/* Define if uuid_create() exists. */
++/* Define to 1 if you have the `uuid_create' function. */
+ #undef HAVE_UUID_CREATE
+ 
+-/* Define if uuid_enc_be() exists. */
++/* Define to 1 if you have the `uuid_enc_be' function. */
+ #undef HAVE_UUID_ENC_BE
+ 
+ /* Define if uuid_generate_time_safe() exists. */
+@@ -1375,6 +1372,9 @@
+ /* Define if the zlib library has inflateCopy */
+ #undef HAVE_ZLIB_COPY
+ 
++/* Define to 1 if you have the <zlib.h> header file. */
++#undef HAVE_ZLIB_H
++
+ /* Define to 1 if you have the `_getpty' function. */
+ #undef HAVE__GETPTY
+ 
 diff --git a/setup.py b/setup.py
-index 9af1832079..8ce7c52a05 100644
+index 74a8aa9ad7..b7bf294521 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1687,10 +1687,19 @@ def detect_compress_exts(self):
+@@ -1689,10 +1689,19 @@ def detect_compress_exts(self):
          #
          # You can upgrade zlib to version 1.1.4 yourself by going to
          # http://www.gzip.org/zlib/
@@ -762,7 +1665,7 @@ index 9af1832079..8ce7c52a05 100644
              version = '"0.0.0"'
              version_req = '"1.1.3"'
              if MACOS and is_macosx_sdk_path(zlib_h):
-@@ -1704,7 +1713,13 @@ def detect_compress_exts(self):
+@@ -1706,7 +1715,13 @@ def detect_compress_exts(self):
                          version = line.split()[2]
                          break
              if version >= version_req:
@@ -777,7 +1680,7 @@ index 9af1832079..8ce7c52a05 100644
                      if MACOS:
                          zlib_extra_link_args = ('-Wl,-search_paths_first',)
                      else:
-@@ -1726,12 +1741,15 @@ def detect_compress_exts(self):
+@@ -1728,12 +1743,15 @@ def detect_compress_exts(self):
              extra_compile_args = ['-DUSE_ZLIB_CRC32']
              libraries = ['z']
              extra_link_args = zlib_extra_link_args
@@ -793,7 +1696,7 @@ index 9af1832079..8ce7c52a05 100644
                             libraries=libraries,
                             extra_link_args=extra_link_args))
  
-@@ -1868,17 +1886,25 @@ def detect_multiprocessing(self):
+@@ -1870,17 +1888,25 @@ def detect_multiprocessing(self):
  
      def detect_uuid(self):
          # Build the _uuid module if possible
@@ -805,8 +1708,8 @@ index 9af1832079..8ce7c52a05 100644
 -            else:
 -                uuid_libs = []
 +        config_vars = sysconfig.get_config_vars()
-+        uuid_cflags = config_vars.get('UUID_CFLAGS')
-+        uuid_libs = config_vars.get('UUID_LIBS')
++        uuid_cflags = config_vars.get('LIBUUID_CFLAGS')
++        uuid_libs = config_vars.get('LIBUUID_LIBS')
 +        if uuid_cflags and uuid_libs:
              self.add(Extension('_uuid', ['_uuidmodule.c'],
 -                               libraries=uuid_libs))
@@ -828,7 +1731,7 @@ index 9af1832079..8ce7c52a05 100644
  
      def detect_modules(self):
          self.detect_simple_extensions()
-@@ -2271,6 +2297,7 @@ def detect_ctypes(self):
+@@ -2273,6 +2299,7 @@ def detect_ctypes(self):
                                 libraries=['m']))
  
          ffi_inc = sysconfig.get_config_var("LIBFFI_INCLUDEDIR")
@@ -836,7 +1739,7 @@ index 9af1832079..8ce7c52a05 100644
          ffi_lib = None
  
          ffi_inc_dirs = self.inc_dirs.copy()
-@@ -2296,13 +2323,13 @@ def detect_ctypes(self):
+@@ -2298,13 +2325,13 @@ def detect_ctypes(self):
              if not os.path.exists(ffi_h):
                  ffi_inc = None
                  print('Header file {} does not exist'.format(ffi_h))
@@ -852,7 +1755,7 @@ index 9af1832079..8ce7c52a05 100644
              ffi_headers = glob(os.path.join(ffi_inc, '*.h'))
              if grep_headers_for('ffi_prep_cif_var', ffi_headers):
                  ext.extra_compile_args.append("-DHAVE_FFI_PREP_CIF_VAR=1")
-@@ -2312,7 +2339,10 @@ def detect_ctypes(self):
+@@ -2314,7 +2341,10 @@ def detect_ctypes(self):
                  ext.extra_compile_args.append("-DHAVE_FFI_CLOSURE_ALLOC=1")
  
              ext.include_dirs.append(ffi_inc)
@@ -865,5 +1768,5 @@ index 9af1832079..8ce7c52a05 100644
  
          if sysconfig.get_config_var('HAVE_LIBDL'):
 -- 
-2.34.1
+2.35.1
 

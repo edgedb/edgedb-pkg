@@ -30,6 +30,10 @@ if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi
 
+if [ -n "${PKG_PLATFORM_ARCH}" ]; then
+    extraopts+=" --arch=${PKG_PLATFORM_ARCH}"
+fi
+
 if [ -n "${PKG_BUILD_JOBS}" ]; then
     extraopts+=" --jobs=${PKG_BUILD_JOBS}"
 fi
@@ -47,10 +51,14 @@ if [ -z "${PACKAGE}" ]; then
     PACKAGE="edgedbpkg.edgedb:EdgeDB"
 fi
 
+if [ -z "${VIRTUAL_ENV}"]; then
+    python3 -m venv .venv
+    source .venv/bin/activate
+fi
+
+python3 -m pip install -U git+https://github.com/edgedb/edgedb-pkg
+
 echo python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
-
-pip3 install -U git+https://github.com/edgedb/edgedb-pkg
-
 python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
 
 ls -al "${dest}"

@@ -109,6 +109,18 @@ class Python(packages.BundledPackage):
                     ),
                 )
 
+        if platform.system() == "Darwin":
+            configure_flags[
+                "--enable-universalsdk"
+            ] = "!$(xcrun --show-sdk-path)"
+            arch = build.target.machine_architecture
+            if arch == "x86_64":
+                configure_flags["--with-universal-archs"] = "intel-64"
+            elif arch == "arm64":
+                configure_flags["--with-universal-archs"] = "arm-64"
+            else:
+                raise RuntimeError(f"unexpected architecture: {arch}")
+
         libffi_pkg = build.get_package("libffi")
         if build.is_bundled(libffi_pkg):
             libffi_path = build.get_install_dir(
@@ -122,13 +134,11 @@ class Python(packages.BundledPackage):
             )
             configure_flags["LIBFFI_LIBS"] = f"!{libffi_ldflags}"
         else:
-            configure_flags["--with-system-ffi"] = None
-
-        if platform.system() == "Darwin":
-            configure_flags[
-                "--enable-universalsdk"
-            ] = "!$(xcrun --show-sdk-path)"
-            configure_flags["--with-universal-archs"] = "intel-64"
+            # This is somewhat confusing, but Python treats
+            # --without-system-ffi on macOS as instruction to actually
+            # _use_ the native system libffi (as opposed to pkg-config),
+            # and ignores this option on other platforms.
+            configure_flags["--without-system-ffi"] = None
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
@@ -146,11 +156,13 @@ class Python(packages.BundledPackage):
             uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
             uuid_path /= build.get_full_install_prefix().relative_to("/")
             uuid_rel_path = f'$(pwd)/"{uuid_path}"'
-            configure_flags["UUID_CFLAGS"] = f"!-I{uuid_rel_path}/include/"
+            configure_flags[
+                "LIBUUID_CFLAGS"
+            ] = f"!-I{uuid_rel_path}/include/uuid/"
             uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
                 uuid_pkg, relative_to="pkgbuild"
             )
-            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}"
+            configure_flags["LIBUUID_LIBS"] = f"!{uuid_ldflags}"
 
         zlib_pkg = build.get_package("zlib")
         if build.is_bundled(zlib_pkg):

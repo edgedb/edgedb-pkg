@@ -90,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.1.1
+ENV PYTHON_PIP_VERSION 22.1.2
 
 RUN set -ex; \
 	\
@@ -164,6 +164,9 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
 fi\n\
 if [ -n "${PKG_PLATFORM_LIBC}" ]; then\n\
     extraopts+=" --libc=${PKG_PLATFORM_LIBC}"\n\
+fi\n\
+if [ -n "${PKG_PLATFORM_ARCH}" ]; then\n\
+    extraopts+=" --arch=${PKG_PLATFORM_ARCH}"\n\
 fi\n\
 \n\
 if [ -z "${PACKAGE}" ]; then\n\

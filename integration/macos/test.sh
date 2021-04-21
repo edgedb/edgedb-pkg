@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -eEx
 
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
@@ -15,10 +15,7 @@ else
     dash_j=""
 fi
 
-dlurl="https://packages.edgedb.com/dist/${PKG_PLATFORM_VERSION}-apple-darwin"
-
-sudo curl -fL "${dlurl}/edgedb-cli" -o /usr/local/bin/edgedb
-sudo chmod +x /usr/local/bin/edgedb
+cliurl="https://packages.edgedb.com/dist/${PKG_PLATFORM_VERSION}-apple-darwin"
 
 tarball=
 for pack in ${dest}/*.tar; do
@@ -37,14 +34,27 @@ if [ -z "${tarball}" ]; then
     exit 1
 fi
 
-mkdir edgedb
-gtar -xOf "${pack}" "${tarball}" | gtar -xzf- --strip-components=1 -C edgedb
+workdir=$(mktemp -d)
+
+function finally {
+  rm -rf "$workdir"
+}
+trap finally EXIT ERR
+
+curl --proto '=https' --tlsv1.2 -sSfL  -o "${workdir}/bin/edgedb" \
+    "${cliurl}/edgedb-cli"
+chmod +x "${workdir}/bin/edgedb"
+
+gtar -xOf "${pack}" "${tarball}" | gtar -xzf- --strip-components=1 -C "$workdir"
 
 if [ "$1" == "bash" ]; then
+    cd "$workdir"
     exec /bin/bash
 fi
 
-./edgedb/bin/python3 \
+export PATH="${workdir}/bin/:${PATH}"
+
+"${workdir}/bin/python3" \
     -m edb.tools --no-devmode test \
     ./edgedb/data/tests \
     -e cqa_ -e tools_ \

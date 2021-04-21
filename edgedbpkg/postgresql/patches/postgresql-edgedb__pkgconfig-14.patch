@@ -1,11 +1,11 @@
-From 6c7a8fcad72e44c66f1ce08fc44b88bd273482cd Mon Sep 17 00:00:00 2001
+From 60ae38dd72267f189ceb106c003639eb009504dc Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Use pkg-config for libuuid and openssl
 
 ---
- configure                        | 218 ++++++++++++++++++++++++++++++-
- configure.ac                     |   9 ++
+ configure                        | 361 +++++++++++++++++++++++++++++--
+ configure.ac                     |  51 ++++-
  contrib/pgcrypto/Makefile        |   4 +
  contrib/sslinfo/Makefile         |   2 +
  src/Makefile.global.in           |   7 +-
@@ -15,10 +15,10 @@ Subject: [PATCH] Use pkg-config for libuuid and openssl
  src/bin/pgbench/Makefile         |   3 +
  src/common/Makefile              |   1 +
  src/interfaces/libpq/Makefile    |   1 +
- 11 files changed, 249 insertions(+), 5 deletions(-)
+ 11 files changed, 413 insertions(+), 26 deletions(-)
 
 diff --git a/configure b/configure
-index 1af5e27968..590aecacbb 100755
+index b5af4426d4..41732cafdc 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,12 @@ CFLAGS_SSE42
@@ -222,25 +222,31 @@ index 1af5e27968..590aecacbb 100755
  elif test "$with_ssl" != no ; then
    as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
  fi
-@@ -13370,6 +13491,98 @@ else
+@@ -13370,14 +13491,85 @@ else
  fi
  
  elif test "$with_uuid" = e2fs ; then
+-  # On macOS, the UUID functions are in libc
+-  ac_fn_c_check_func "$LINENO" "uuid_generate" "ac_cv_func_uuid_generate"
+-if test "x$ac_cv_func_uuid_generate" = xyes; then :
+-  UUID_LIBS=""
++  have_uuid=missing
++
 +
 +pkg_failed=no
-+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid" >&5
-+$as_echo_n "checking for uuid... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid >= 2.20" >&5
++$as_echo_n "checking for uuid >= 2.20... " >&6; }
 +
 +if test -n "$UUID_CFLAGS"; then
 +    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid" 2>/dev/null`
++  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid >= 2.20" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -252,12 +258,12 @@ index 1af5e27968..590aecacbb 100755
 +    pkg_cv_UUID_LIBS="$UUID_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid" 2>/dev/null`
++  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid >= 2.20" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -274,63 +280,220 @@ index 1af5e27968..590aecacbb 100755
 +
 +if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
 +        _pkg_short_errors_supported=yes
-+else
+ else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate in -luuid" >&5
+-$as_echo_n "checking for uuid_generate in -luuid... " >&6; }
+-if ${ac_cv_lib_uuid_uuid_generate+:} false; then :
 +        _pkg_short_errors_supported=no
 +fi
 +        if test $_pkg_short_errors_supported = yes; then
-+	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid" 2>&1`
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
 +        else
-+	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid" 2>&1`
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
 +        fi
 +	# Put the nasty error message in config.log where it belongs
 +	echo "$UUID_PKG_ERRORS" >&5
 +
-+	as_fn_error $? "Package requirements (uuid) were not met:
 +
-+$UUID_PKG_ERRORS
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
 +
-+Consider adjusting the PKG_CONFIG_PATH environment variable if you
-+installed software in a non-standard prefix.
++      for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
 +
-+Alternatively, you may set the environment variables UUID_CFLAGS
-+and UUID_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details." "$LINENO" 5
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
+   $as_echo_n "(cached) " >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+@@ -13391,34 +13583,167 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ #ifdef __cplusplus
+ extern "C"
+ #endif
+-char uuid_generate ();
++char uuid_generate_time ();
+ int
+ main ()
+ {
+-return uuid_generate ();
++return uuid_generate_time ();
+   ;
+   return 0;
+ }
+ _ACEOF
+ if ac_fn_c_try_link "$LINENO"; then :
+-  ac_cv_lib_uuid_uuid_generate=yes
++  ac_cv_lib_uuid_uuid_generate_time=yes
+ else
+-  ac_cv_lib_uuid_uuid_generate=no
++  ac_cv_lib_uuid_uuid_generate_time=no
+ fi
+ rm -f core conftest.err conftest.$ac_objext \
+     conftest$ac_exeext conftest.$ac_ext
+ LIBS=$ac_check_lib_save_LIBS
+ fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate" >&5
+-$as_echo "$ac_cv_lib_uuid_uuid_generate" >&6; }
+-if test "x$ac_cv_lib_uuid_uuid_generate" = xyes; then :
+-  UUID_LIBS="-luuid"
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
++fi
++
++
++fi
++
++done
++
++      if test "x$have_uuid" = xyes; then :
++
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++
++fi
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
 +elif test $pkg_failed = untried; then
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 +$as_echo "no" >&6; }
-+	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
-+is in your PATH or set the PKG_CONFIG environment variable to the full
-+path to pkg-config.
 +
-+Alternatively, you may set the environment variables UUID_CFLAGS
-+and UUID_LIBS to avoid the need to call pkg-config.
-+See the pkg-config man page for more details.
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
 +
-+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-+See \`config.log' for more details" "$LINENO" 5; }
++      for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
++  $as_echo_n "(cached) " >&6
+ else
+-  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time ();
++int
++main ()
++{
++return uuid_generate_time ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
+ fi
+ 
++
++fi
++
++done
++
++      if test "x$have_uuid" = xyes; then :
++
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++
+ fi
+ 
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
 +else
 +	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
 +	UUID_LIBS=$pkg_cv_UUID_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
 +
++      have_uuid=yes
++      $as_echo "#define HAVE_UUID_H 1" >>confdefs.h
++
++
 +fi
-+  if test -z "$UUID_LIBS"; then
-   # On macOS, the UUID functions are in libc
-   ac_fn_c_check_func "$LINENO" "uuid_generate" "ac_cv_func_uuid_generate"
- if test "x$ac_cv_func_uuid_generate" = xyes; then :
-@@ -13419,6 +13632,7 @@ fi
- 
- fi
- 
-+  fi
++
++  # On macOS, the UUID functions are in libc
++  if test "x$have_uuid" = xmissing; then :
++
++    for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++      ac_fn_c_check_func "$LINENO" "uuid_generate_time" "ac_cv_func_uuid_generate_time"
++if test "x$ac_cv_func_uuid_generate_time" = xyes; then :
++
++        have_uuid=yes
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-""}
++
++fi
++
++
++fi
++
++done
++
++
++fi
++
++  if test "x$have_uuid" = xmissing; then :
++
++    as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++
++fi
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
 diff --git a/configure.ac b/configure.ac
-index 86e3c5c872..56c9d45e17 100644
+index cd0abe1b34..6e6edc2228 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1279,9 +1279,14 @@ fi
@@ -356,19 +519,56 @@ index 86e3c5c872..56c9d45e17 100644
  elif test "$with_ssl" != no ; then
    AC_MSG_ERROR([--with-ssl must specify openssl])
  fi
-@@ -1375,12 +1381,15 @@ if test "$with_uuid" = bsd ; then
+@@ -1375,12 +1381,47 @@ if test "$with_uuid" = bsd ; then
      [UUID_LIBS=""],
      [AC_MSG_ERROR([BSD UUID functions are not present])])
  elif test "$with_uuid" = e2fs ; then
-+  PKG_CHECK_MODULES(UUID, uuid)
-+  if test -z "$UUID_LIBS"; then
++  have_uuid=missing
++
++  PKG_CHECK_MODULES(
++    [UUID], [uuid >= 2.20], [
++      have_uuid=yes
++      AC_DEFINE([HAVE_UUID_H], [1])
++    ], [
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      AC_CHECK_HEADERS([uuid/uuid.h], [
++        AC_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++      ])
++      AS_VAR_IF([have_uuid], [yes], [
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++      ])
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++    ]
++  )
++
    # On macOS, the UUID functions are in libc
-   AC_CHECK_FUNC(uuid_generate,
-     [UUID_LIBS=""],
-     [AC_CHECK_LIB(uuid, uuid_generate,
-       [UUID_LIBS="-luuid"],
-       [AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])])])
-+  fi
+-  AC_CHECK_FUNC(uuid_generate,
+-    [UUID_LIBS=""],
+-    [AC_CHECK_LIB(uuid, uuid_generate,
+-      [UUID_LIBS="-luuid"],
+-      [AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])])])
++  AS_VAR_IF([have_uuid], [missing], [
++    AC_CHECK_HEADERS([uuid/uuid.h], [
++      AC_CHECK_FUNC([uuid_generate_time], [
++        have_uuid=yes
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-""}
++      ])
++    ])
++  ])
++
++  AS_VAR_IF([have_uuid], [missing], [
++    AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])
++  ])
  elif test "$with_uuid" = ossp ; then
    AC_CHECK_LIB(ossp-uuid, uuid_export,
      [UUID_LIBS="-lossp-uuid"],
@@ -399,20 +599,22 @@ index dd1ff83b16..20a4615287 100644
 +
  SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 3b65f716cd..1dbed97fca 100644
+index 3b65f716cd..a999019c6e 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -216,6 +216,9 @@ krb_srvtab = @krb_srvtab@
+@@ -216,6 +216,11 @@ krb_srvtab = @krb_srvtab@
  ICU_CFLAGS		= @ICU_CFLAGS@
  ICU_LIBS		= @ICU_LIBS@
  
 +OPENSSL_CFLAGS		= @OPENSSL_CFLAGS@
 +OPENSSL_LIBS		= @OPENSSL_LIBS@
 +
++UUID_CFLAGS = @UUID_CFLAGS@
++
  TCLSH			= @TCLSH@
  TCL_LIBS		= @TCL_LIBS@
  TCL_LIB_SPEC		= @TCL_LIB_SPEC@
-@@ -242,7 +245,7 @@ CPP = @CPP@
+@@ -242,7 +247,7 @@ CPP = @CPP@
  CPPFLAGS = @CPPFLAGS@
  PG_SYSROOT = @PG_SYSROOT@
  
@@ -421,15 +623,6 @@ index 3b65f716cd..1dbed97fca 100644
  
  ifdef PGXS
  override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
-@@ -270,6 +273,8 @@ LLVM_CPPFLAGS = @LLVM_CPPFLAGS@
- LLVM_CFLAGS = @LLVM_CFLAGS@
- LLVM_CXXFLAGS = @LLVM_CXXFLAGS@
- 
-+UUID_CFLAGS = @UUID_CFLAGS@
-+
- # Kind-of compilers
- 
- BISON = @BISON@
 diff --git a/src/backend/Makefile b/src/backend/Makefile
 index 0da848b1fd..783a395c1b 100644
 --- a/src/backend/Makefile

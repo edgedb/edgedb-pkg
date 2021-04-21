@@ -40,8 +40,18 @@ class OpenSSL(packages.BundledCPackage):
             "--libdir": str(build.get_install_path("lib")),
             "no-ssl3": None,
             "shared": None,
-            "enable-ec_nistp_64_gcc_128": None,
         }
+
+        arch = build.target.machine_architecture
+        if arch == "x86_64":
+            if platform.system() == "Darwin":
+                configure_flags["darwin64-x86_64-cc"] = None
+            configure_flags["enable-ec_nistp_64_gcc_128"] = None
+        elif arch == "arm64":
+            if platform.system() == "Darwin":
+                configure_flags["darwin64-arm64-cc"] = None
+        else:
+            raise RuntimeError(f"unexpected architecture: {arch}")
 
         if self.options.get("shared", True):
             configure_flags["shared"] = None
