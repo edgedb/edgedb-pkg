@@ -43,39 +43,39 @@ class Version(TypedDict):
     major: int
     minor: int
     patch: int
-    stage: str
-    stage_no: int
-    local: Tuple[str, ...]
+    prerelease: str
+    prerelease_no: int
+    metadata: Tuple[str, ...]
 
 
 def parse_version(ver: str) -> Version:
     v = version_regexp.match(ver)
     if v is None:
         raise ValueError(f'cannot parse version: {ver}')
-    local = []
+    metadata = []
     if v.group('pre'):
         pre_l = v.group('pre_l')
         if pre_l in {'a', 'alpha'}:
-            stage = 'alpha'
+            prerelease = 'alpha'
         elif pre_l in {'b', 'beta'}:
-            stage = 'beta'
+            prerelease = 'beta'
         elif pre_l in {'c', 'rc'}:
-            stage = 'rc'
+            prerelease = 'rc'
         else:
             raise ValueError(f'cannot determine release stage from {ver}')
 
-        stage_no = int(v.group('pre_n'))
+        prerelease_no = int(v.group('pre_n'))
         if v.group('dev'):
-            local.extend([f'dev{v.group("dev_n")}'])
+            metadata.extend([f'dev{v.group("dev_n")}'])
     elif v.group('dev'):
-        stage = 'dev'
-        stage_no = int(v.group('dev_n'))
+        prerelease = 'dev'
+        prerelease_no = int(v.group('dev_n'))
     else:
-        stage = 'final'
-        stage_no = 0
+        prerelease = None
+        prerelease_no = 0
 
     if v.group('local'):
-        local.extend(v.group('local').split('.'))
+        metadata.extend(v.group('local').split('.'))
 
     release = [int(r) for r in v.group('release').split('.')]
 
@@ -83,9 +83,9 @@ def parse_version(ver: str) -> Version:
         major=release[0],
         minor=release[1],
         patch=release[2] if len(release) == 3 else 0,
-        stage=stage,
-        stage_no=stage_no,
-        local=tuple(local),
+        prerelease=prerelease,
+        prerelease_no=prerelease_no,
+        metadata=tuple(metadata),
     )
 
 
