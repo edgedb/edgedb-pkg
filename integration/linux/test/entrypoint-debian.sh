@@ -41,15 +41,14 @@ if [ "$1" == "bash" ]; then
          -m edb.tools --no-devmode test \
          /usr/share/edgedb-server-${slot}/tests \
          -e cqa_ -e tools_ \
-         -e test_server_ops_detect_postgres_pool_size \
-         --output-format=simple"
+         --verbose"
     exec "$@"
 else
-    su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
-                -m edb.tools --no-devmode test \
-                /usr/share/edgedb-server-${slot}/tests \
-                -e cqa_ -e tools_ \
-                -e test_server_ops_detect_postgres_pool_size \
-                --output-format=simple -j2"
+    su edgedb -c \
+        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
+         -m edb.tools --no-devmode test \
+         /usr/share/edgedb-server-${slot}/tests \
+         -e cqa_ -e tools_ \
+         --verbose"
     echo "Success!"
 fi

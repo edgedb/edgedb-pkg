@@ -42,23 +42,21 @@ done\n\
 \n\
 apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
 \n\
-\n\
 if [ "$1" == "bash" ]; then\n\
     echo su edgedb -c \\\n\
         "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
          -m edb.tools --no-devmode test \\\n\
          /usr/share/edgedb-server-${slot}/tests \\\n\
          -e cqa_ -e tools_ \\\n\
-         -e test_server_ops_detect_postgres_pool_size \\\n\
-         --output-format=simple"\n\
+         --verbose"\n\
     exec "$@"\n\
 else\n\
-    su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
-                -m edb.tools --no-devmode test \\\n\
-                /usr/share/edgedb-server-${slot}/tests \\\n\
-                -e cqa_ -e tools_ \\\n\
-                -e test_server_ops_detect_postgres_pool_size \\\n\
-                --output-format=simple -j2"\n\
+    su edgedb -c \\\n\
+        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+         -m edb.tools --no-devmode test \\\n\
+         /usr/share/edgedb-server-${slot}/tests \\\n\
+         -e cqa_ -e tools_ \\\n\
+         --verbose"\n\
     echo "Success!"\n\
 fi\n\' >/entrypoint.sh
 

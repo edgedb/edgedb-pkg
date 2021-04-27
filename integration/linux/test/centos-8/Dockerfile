@@ -9,10 +9,6 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
 \n\
-if [ "$1" == "bash" ]; then\n\
-    exec /bin/bash\n\
-fi\n\
-\n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\
@@ -47,11 +43,24 @@ while [ $try -le 30 ]; do\n\
 done\n\
 \n\
 yum install -y "${dest}"/edgedb-server-${slot}*.x86_64.rpm\n\
-su edgedb -c "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
-              -m edb.tools --no-devmode test \\\n\
-              /usr/share/edgedb-server-${slot}/tests \\\n\
-              -e cqa_ -e tools_ --output-format=simple"\n\
-echo "Success!"\n\' >/entrypoint.sh
+\n\
+if [ "$1" == "bash" ]; then\n\
+    echo su edgedb -c \\\n\
+        "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
+        -m edb.tools --no-devmode test \\\n\
+        /usr/share/edgedb-server-${slot}/tests \\\n\
+        -e cqa_ -e tools_ \\\n\
+        --verbose"\n\
+    exec /bin/bash\n\
+else\n\
+    su edgedb -c \\\n\
+        "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
+        -m edb.tools --no-devmode test \\\n\
+        /usr/share/edgedb-server-${slot}/tests \\\n\
+        -e cqa_ -e tools_ \\\n\
+        --verbose"\n\
+    echo "Success!"\n\
+fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

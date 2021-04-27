@@ -2,10 +2,6 @@
 
 set -ex
 
-if [ "$1" == "bash" ]; then
-    exec /bin/bash
-fi
-
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"
@@ -40,8 +36,21 @@ while [ $try -le 30 ]; do
 done
 
 yum install -y "${dest}"/edgedb-server-${slot}*.x86_64.rpm
-su edgedb -c "/usr/lib64/edgedb-server-${slot}/bin/python3 \
-              -m edb.tools --no-devmode test \
-              /usr/share/edgedb-server-${slot}/tests \
-              -e cqa_ -e tools_ --output-format=simple"
-echo "Success!"
+
+if [ "$1" == "bash" ]; then
+    echo su edgedb -c \
+        "/usr/lib64/edgedb-server-${slot}/bin/python3 \
+        -m edb.tools --no-devmode test \
+        /usr/share/edgedb-server-${slot}/tests \
+        -e cqa_ -e tools_ \
+        --verbose"
+    exec /bin/bash
+else
+    su edgedb -c \
+        "/usr/lib64/edgedb-server-${slot}/bin/python3 \
+        -m edb.tools --no-devmode test \
+        /usr/share/edgedb-server-${slot}/tests \
+        -e cqa_ -e tools_ \
+        --verbose"
+    echo "Success!"
+fi
