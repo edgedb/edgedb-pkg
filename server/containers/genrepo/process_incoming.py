@@ -68,8 +68,7 @@ class Version(TypedDict):
     major: int
     minor: int
     patch: int
-    prerelease: str
-    prerelease_no: int
+    prerelease: Tuple[str, ...]
     metadata: Tuple[str, ...]
 
 
@@ -79,6 +78,7 @@ class Package(TypedDict):
     name: str  # edgedb-server-1-alpha6-dev5069
     version: str  # 1.0a6.dev5069+g0839d6e8
     parsed_version: Version
+    version_key: str  # 1.0.0~alpha.6~dev.5069.2020091300~nightly
     revision: str  # 2020091300~nightly
     architecture: str  # x86_64
     installref: str  # /archive/macos-x86_64.nightly/edgedb-server ... .pkg
@@ -113,26 +113,25 @@ def parse_version(ver: str) -> Version:
     if v is None:
         raise ValueError(f'cannot parse version: {ver}')
     metadata = []
+    prerelease: List[str] = []
     if v.group('pre'):
         pre_l = v.group('pre_l')
         if pre_l in {'a', 'alpha'}:
-            prerelease = 'alpha'
+            pre_kind = 'alpha'
         elif pre_l in {'b', 'beta'}:
-            prerelease = 'beta'
+            pre_kind = 'beta'
         elif pre_l in {'c', 'rc'}:
-            prerelease = 'rc'
+            pre_kind = 'rc'
         else:
             raise ValueError(f'cannot determine release stage from {ver}')
 
-        prerelease_no = int(v.group('pre_n'))
+        prerelease.append(f"{pre_kind}.{v.group('pre_n')}")
         if v.group('dev'):
-            metadata.extend([f'dev{v.group("dev_n")}'])
+            prerelease.append(f'dev.{v.group("dev_n")}')
+
     elif v.group('dev'):
-        prerelease = 'dev'
-        prerelease_no = int(v.group('dev_n'))
-    else:
-        prerelease = None
-        prerelease_no = 0
+        prerelease.append('alpha.1')
+        prerelease.append(f'dev.{v.group("dev_n")}')
 
     if v.group('local'):
         metadata.extend(v.group('local').split('.'))
@@ -143,10 +142,25 @@ def parse_version(ver: str) -> Version:
         major=release[0],
         minor=release[1],
         patch=release[2] if len(release) == 3 else 0,
-        prerelease=prerelease,
-        prerelease_no=prerelease_no,
+        prerelease=tuple(prerelease),
         metadata=tuple(metadata),
     )
+
+
+def format_version_key(ver: Version, revision: str) -> str:
+    ver_key = f'{ver["major"]}.{ver["minor"]}.{ver["patch"]}'
+    if ver["prerelease"]:
+        # Using tilde for "dev" makes it sort _before_ the equivalent
+        # version without "dev" when using the GNU version sort (sort -V)
+        # or debian version comparison algorithm.
+        prerelease = (
+            ("~" if pre.startswith("dev.") else ".") + pre
+            for pre in ver["prerelease"]
+        )
+        ver_key += '~' + ''.join(prerelease).lstrip('.~')
+    if revision:
+        ver_key += f".{revision}"
+    return ver_key
 
 
 def remove_old(
@@ -224,13 +238,16 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
         if not installref.startswith('/'):
             installref = f'/{installref}'
 
+        parsed_ver = parse_version(m.group("version"))
+
         index["packages"].append(
             Package(
                 basename=basename,
                 slot=slot.lstrip("-") if slot else None,
                 name=f"{basename}{slot}",
                 version=m.group("version"),
-                parsed_version=parse_version(m.group("version")),
+                parsed_version=parsed_ver,
+                version_key=format_version_key(parsed_ver, m.group("release")),
                 revision=m.group("release"),
                 architecture=arch,
                 installref=installref,

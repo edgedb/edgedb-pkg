@@ -43,8 +43,7 @@ class Version(TypedDict):
     major: int
     minor: int
     patch: int
-    prerelease: str
-    prerelease_no: int
+    prerelease: Tuple[str, ...]
     metadata: Tuple[str, ...]
 
 
@@ -53,26 +52,25 @@ def parse_version(ver: str) -> Version:
     if v is None:
         raise ValueError(f'cannot parse version: {ver}')
     metadata = []
+    prerelease: List[str] = []
     if v.group('pre'):
         pre_l = v.group('pre_l')
         if pre_l in {'a', 'alpha'}:
-            prerelease = 'alpha'
+            pre_kind = 'alpha'
         elif pre_l in {'b', 'beta'}:
-            prerelease = 'beta'
+            pre_kind = 'beta'
         elif pre_l in {'c', 'rc'}:
-            prerelease = 'rc'
+            pre_kind = 'rc'
         else:
             raise ValueError(f'cannot determine release stage from {ver}')
 
-        prerelease_no = int(v.group('pre_n'))
+        prerelease.append(f"{pre_kind}.{v.group('pre_n')}")
         if v.group('dev'):
-            metadata.extend([f'dev{v.group("dev_n")}'])
+            prerelease.append(f'dev.{v.group("dev_n")}')
+
     elif v.group('dev'):
-        prerelease = 'dev'
-        prerelease_no = int(v.group('dev_n'))
-    else:
-        prerelease = None
-        prerelease_no = 0
+        prerelease.append('alpha.1')
+        prerelease.append(f'dev.{v.group("dev_n")}')
 
     if v.group('local'):
         metadata.extend(v.group('local').split('.'))
@@ -83,10 +81,25 @@ def parse_version(ver: str) -> Version:
         major=release[0],
         minor=release[1],
         patch=release[2] if len(release) == 3 else 0,
-        prerelease=prerelease,
-        prerelease_no=prerelease_no,
+        prerelease=tuple(prerelease),
         metadata=tuple(metadata),
     )
+
+
+def format_version_key(ver: Version, revision: str) -> str:
+    ver_key = f'{ver["major"]}.{ver["minor"]}.{ver["patch"]}'
+    if ver["prerelease"]:
+        # Using tilde for "dev" makes it sort _before_ the equivalent
+        # version without "dev" when using the GNU version sort (sort -V)
+        # or debian version comparison algorithm.
+        prerelease = (
+            ("~" if pre.startswith("dev.") else ".") + pre
+            for pre in ver["prerelease"]
+        )
+        ver_key += '~' + ''.join(prerelease).lstrip('.~')
+    if revision:
+        ver_key += f".{revision}"
+    return ver_key
 
 
 def main():
@@ -132,13 +145,16 @@ def main():
                 basename = m.group(1)
                 slot = m.group(2)
 
+            parsed_ver = parse_version(pkgver)
+
             installref = '{}-{}-{}.{}'.format(pkgname, pkgver, release, arch)
             index.append({
                 'basename': basename,
                 'slot': slot,
                 'name': pkgname,
                 'version': pkgver,
-                'parsed_version': parse_version(pkgver),
+                'parsed_version': parsed_ver,
+                'version_key': format_version_key(parsed_ver, release),
                 'revision': release,
                 'architecture': arch,
                 'installref': installref
