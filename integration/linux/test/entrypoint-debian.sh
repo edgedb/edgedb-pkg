@@ -45,8 +45,7 @@ if [ "$1" == "bash" ]; then
     exec "$@"
 else
     su edgedb -c \
-        "env EDGEDB_DEBUG_SERVER=1 EDGEDB_DEBUG_PGSERVER=1 \
-         /usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
+        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
          -m edb.tools --no-devmode test \
          /usr/share/edgedb-server-${slot}/tests \
          -e cqa_ -e tools_ \
