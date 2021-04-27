@@ -7,6 +7,7 @@ SUPPORTED_TARGETS = \
 	ubuntu-bionic \
 	ubuntu-xenial \
 	ubuntu-focal \
+	ubuntu-hirsute \
 	centos-7 \
 	centos-8 \
 	fedora-29 \

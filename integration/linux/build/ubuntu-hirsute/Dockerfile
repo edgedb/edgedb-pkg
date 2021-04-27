@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:bionic
+FROM buildpack-deps:hirsute
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH

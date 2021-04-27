@@ -23,7 +23,7 @@ fi
 
 if [ -n "${PKG_REVISION}" ]; then
     if [ "${PKG_REVISION}" = "<current-date>" ]; then
-        PKG_REVISION="$(date -u +%Y%m%d%H)"
+        PKG_REVISION="$(date -u +%Y%m%d%H%M)"
     fi
     extraopts+=" --pkg-revision=${PKG_REVISION}"
 fi

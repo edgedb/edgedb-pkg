@@ -9,10 +9,6 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
 \n\
-if [ "$1" == "bash" ]; then\n\
-    exec /bin/bash\n\
-fi\n\
-\n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\
@@ -45,13 +41,26 @@ while [ $try -le 30 ]; do\n\
 done\n\
 \n\
 apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
-su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
-              -m edb.tools --no-devmode test \\\n\
-              /usr/share/edgedb-server-${slot}/tests \\\n\
-              -e cqa_ -e tools_ \\\n\
-              -e test_server_ops_detect_postgres_pool_size \\\n\
-              --output-format=simple"\n\
-echo "Success!"\n\' >/entrypoint.sh
+\n\
+\n\
+if [ "$1" == "bash" ]; then\n\
+    echo su edgedb -c \\\n\
+        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+         -m edb.tools --no-devmode test \\\n\
+         /usr/share/edgedb-server-${slot}/tests \\\n\
+         -e cqa_ -e tools_ \\\n\
+         -e test_server_ops_detect_postgres_pool_size \\\n\
+         --output-format=simple"\n\
+    exec "$@"\n\
+else\n\
+    su edgedb -c "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+                -m edb.tools --no-devmode test \\\n\
+                /usr/share/edgedb-server-${slot}/tests \\\n\
+                -e cqa_ -e tools_ \\\n\
+                -e test_server_ops_detect_postgres_pool_size \\\n\
+                --output-format=simple -j2"\n\
+    echo "Success!"\n\
+fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

@@ -90,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 21.0.1
+ENV PYTHON_PIP_VERSION 21.1
 
 RUN set -ex; \
 	\
@@ -135,7 +135,7 @@ fi\n\
 \n\
 if [ -n "${PKG_REVISION}" ]; then\n\
     if [ "${PKG_REVISION}" = "<current-date>" ]; then\n\
-        PKG_REVISION="$(date --utc +%Y%m%d%H)"\n\
+        PKG_REVISION="$(date --utc +%Y%m%d%H%M)"\n\
     fi\n\
     extraopts+=" --pkg-revision=${PKG_REVISION}"\n\
 fi\n\
