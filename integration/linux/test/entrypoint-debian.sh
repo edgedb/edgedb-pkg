@@ -49,6 +49,6 @@ else
          -m edb.tools --no-devmode test \
          /usr/share/edgedb-server-${slot}/tests \
          -e cqa_ -e tools_ \
-         --verbose"
+         --verbose -j1"
     echo "Success!"
 fi
