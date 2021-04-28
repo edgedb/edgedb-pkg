@@ -58,7 +58,7 @@ else\n\
         -m edb.tools --no-devmode test \\\n\
         /usr/share/edgedb-server-${slot}/tests \\\n\
         -e cqa_ -e tools_ \\\n\
-        --verbose"\n\
+        --verbose -j1"\n\
     echo "Success!"\n\
 fi\n\' >/entrypoint.sh
 
