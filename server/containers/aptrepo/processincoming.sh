@@ -15,7 +15,7 @@ basedir="s3://edgedb-packages/apt"
 local_dist="${localdir}/"
 shared_dist="${basedir}/"
 
-aws s3 sync --delete "${shared_dist}" "${local_dist}"
+aws s3 sync --delete --exact-timestamps "${shared_dist}" "${local_dist}"
 reprepro -v -v --waitforlock 100 processincoming main "${changes}"
 mkdir -p "${local_dist}/.jsonindexes/"
 makeindex.py "${local_dist}" "${local_dist}/.jsonindexes"

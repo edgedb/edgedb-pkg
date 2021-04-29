@@ -72,7 +72,8 @@ if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
     chmod 400 /home/reprepro/.aws/credentials
 fi
 
-gosu reprepro:reprepro aws s3 sync --delete s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
+gosu reprepro:reprepro aws s3 sync --exact-timestamps --delete \
+    s3://edgedb-packages/apt/ "${REPREPRO_BASE_DIR}/"
 
 if [ -n "${PORT}" ]; then
     echo "Port ${PORT}" >> "/etc/ssh.default/sshd_config"

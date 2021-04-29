@@ -41,7 +41,8 @@ while read -r -u 10 pkgname; do
     if [ -z "${seendist}" ]; then
         dists["${dist}"]="true"
         mkdir -p "${local_dist}"
-        aws s3 sync --delete "${shared_dist}/" "${local_dist}/"
+        aws s3 sync --delete --exact-timestamps \
+            "${shared_dist}/" "${local_dist}/"
     fi
 
     if [ ! -e "${local_dist}/repodata/repomd.xml" ]; then
