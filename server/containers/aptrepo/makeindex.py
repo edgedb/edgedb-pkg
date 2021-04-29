@@ -162,8 +162,6 @@ def main():
     idxdir = pathlib.Path(args.outputdir)
 
     for dist in dists:
-        if dist != 'buster':
-            continue
         idxfile = idxdir / f'{dist}.json'
         existing = {}
 
