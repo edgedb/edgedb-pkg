@@ -20,6 +20,7 @@ OUTPUTDIR := /tmp/artifacts
 GET_SHELL :=
 SSH_KEY :=
 PACKAGE_SERVER :=
+PKG_TEST_JOBS :=
 
 EXTRAENV =
 EXTRAVOLUMES =
@@ -101,6 +102,7 @@ test: check-target
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
+		-e PKG_TEST_JOBS=$(PKG_TEST_JOBS) \
 		edgedb-pkg/test:$(TARGET) \
 		$(COMMAND)
 

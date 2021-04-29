@@ -53,12 +53,17 @@ if [ "$1" == "bash" ]; then\n\
         --verbose"\n\
     exec /bin/bash\n\
 else\n\
+    if [ -n "${PKG_TEST_JOBS}" ]; then\n\
+        dash_j="-j${PKG_TEST_JOBS}"\n\
+    else\n\
+        dash_j=""\n\
+    fi\n\
     su edgedb -c \\\n\
         "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
         -m edb.tools --no-devmode test \\\n\
         /usr/share/edgedb-server-${slot}/tests \\\n\
         -e cqa_ -e tools_ \\\n\
-        --verbose -j1"\n\
+        --verbose ${dash_j}"\n\
     echo "Success!"\n\
 fi\n\' >/entrypoint.sh
 
