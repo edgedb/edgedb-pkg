@@ -50,7 +50,7 @@ class OpenSSL(packages.BundledPackage):
         make = build.sh_get_command('make')
 
         return textwrap.dedent(f'''\
-            {make} -j1
+            {make}
         ''')
 
     def get_build_install_script(self, build) -> str:
@@ -58,5 +58,5 @@ class OpenSSL(packages.BundledPackage):
         make = build.target.sh_get_command('make')
 
         return textwrap.dedent(f'''\
-            {make} DESTDIR=$(pwd)/"{installdest}" -j1 install
+            {make} DESTDIR=$(pwd)/"{installdest}" install
         ''')
