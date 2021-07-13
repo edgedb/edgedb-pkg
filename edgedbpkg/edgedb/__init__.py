@@ -41,14 +41,14 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        'postgresql-edgedb (== 12.6)',
+        'postgresql-edgedb (== 12.7)',
         'pypkg-edgedb',
         'tzdata; extra == "capability-tzdata"',
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version='12.6'),
-        python_bundle.Python(version='3.9.4'),
+        postgresql.PostgreSQL(version='12.7'),
+        python_bundle.Python(version='3.9.6'),
     ]
 
     @property
