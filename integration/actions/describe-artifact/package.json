@@ -14,14 +14,13 @@
   },
   "author": "EdgeDB Inc.",
   "license": "Apache 2.0",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/jest": "^24.9.1",
-    "@types/node": "^12.12.56",
-    "jest": "^24.9.0",
-    "jest-circus": "^24.9.0",
-    "ts-jest": "^24.3.0",
-    "typescript": "^3.9.7"
+    "@types/jest": "^26.0.24",
+    "@types/node": "^16.3.1",
+    "jest": "^27.0.6",
+    "jest-circus": "^27.0.6",
+    "ts-jest": "^27.0.3",
+    "typescript": "^4.3.5"
   }
 }
