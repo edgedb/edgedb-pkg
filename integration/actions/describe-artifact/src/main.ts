@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as process from 'process'
 
-const re = /^(?:\w+)-(?<slot>\d+(-(alpha|beta|rc)\d+)?(-dev\d+)?).*(\.cv(?<catver>\d+)).*\.(rpm|deb|img|pkg)$/gm;
+const re = /^(?:(?:\w|-)+)-(?<slot>\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?).*(?:\.cv(?<catver>\d+)).*\.(?:rpm|deb|img|pkg)$/gm;
 
 async function run() {
   try {
