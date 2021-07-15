@@ -22,8 +22,9 @@ class OpenSSL(packages.BundledPackage):
     ]
 
     def get_configure_script(self, build) -> str:
-        sdir = build.get_source_dir(self, relative_to='pkgbuild')
-        copy_sources = f'cp -a {shlex.quote(str(sdir))}/* ./'
+        sdir = shlex.quote(
+            str(build.get_source_dir(self, relative_to='pkgbuild')))
+        copy_sources = f'test ./ -ef {sdir} || cp -a {sdir}/* ./'
 
         configure = './config'
 
@@ -58,5 +59,5 @@ class OpenSSL(packages.BundledPackage):
         make = build.target.sh_get_command('make')
 
         return textwrap.dedent(f'''\
-            {make} DESTDIR=$(pwd)/"{installdest}" install
+            {make} DESTDIR=$(pwd)/"{installdest}" install_sw
         ''')

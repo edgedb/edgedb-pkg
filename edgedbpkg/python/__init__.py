@@ -24,13 +24,13 @@ class Python(packages.BundledPackage):
     ]
 
     artifact_requirements = [
-        'openssl (>=1.0.2)',
+        'openssl (>=1.1.1)',
         'zlib',
     ]
 
     artifact_build_requirements = [
         'libffi-dev; extra == "capability-libffi"',
-        'openssl-dev (>=1.0.2)',
+        'openssl-dev (>=1.1.1)',
         'zlib-dev',
     ]
 

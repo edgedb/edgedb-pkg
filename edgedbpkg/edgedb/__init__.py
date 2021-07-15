@@ -1,12 +1,14 @@
-import datetime
+from __future__ import annotations
+from typing import *
+
 import pathlib
 import platform
 import textwrap
-import typing
 
 from poetry import packages as poetry_pkg
 
 from metapkg import packages
+from metapkg import targets
 from metapkg.packages import python
 
 from edgedbpkg import postgresql
@@ -50,6 +52,12 @@ class EdgeDB(packages.BundledPythonPackage):
         postgresql.PostgreSQL(version='12.7'),
         python_bundle.Python(version='3.9.6'),
     ]
+
+    @classmethod
+    def get_package_repository(cls, target, io):
+        repo = super().get_package_repository(target, io)
+        repo.register_package_impl("cryptography", Cryptography)
+        return repo
 
     @property
     def base_slot(self) -> str:
@@ -239,7 +247,7 @@ class EdgeDB(packages.BundledPythonPackage):
         self,
         build,
         root_version: str,
-    ) -> typing.List[packages.MetaPackage]:
+    ) -> List[packages.MetaPackage]:
         return [
             packages.MetaPackage(
                 name=f'edgedb-{self.slot}',
@@ -255,7 +263,7 @@ class EdgeDB(packages.BundledPythonPackage):
         self,
         build,
         root_version: str,
-    ) -> typing.List[packages.MetaPackage]:
+    ) -> List[packages.MetaPackage]:
         return ['edgedb-common']
 
     def _get_edgedb_catalog_version(self, build) -> str:
@@ -272,6 +280,34 @@ class EdgeDB(packages.BundledPythonPackage):
         self,
         build,
         root_version: str,
-    ) -> typing.List[typing.Tuple[str, str]]:
+    ) -> List[Tuple[str, str]]:
         catver = self._get_edgedb_catalog_version(build)
         return [('edgedb-server-catalog', catver)]
+
+
+class Cryptography(packages.PythonPackage):
+    def get_requirements(self) -> List[poetry_pkg.Dependency]:
+        reqs = super().get_requirements()
+        reqs.append(poetry_pkg.Dependency("openssl", ">=1.1.1"))
+        return reqs
+
+    def get_build_requirements(self) -> List[poetry_pkg.Dependency]:
+        reqs = super().get_requirements()
+        reqs.append(poetry_pkg.Dependency("openssl", ">=1.1.1"))
+        return reqs
+
+    def get_bdist_wheel_env(self, build: targets.Build) -> Dict[str, str]:
+        env = super().get_bdist_wheel_env(build)
+        openssl_pkg = build.get_package('openssl')
+        if build.is_bundled(openssl_pkg):
+            openssl_root = build.get_install_dir(
+                openssl_pkg, relative_to='pkgsource')
+            openssl_path = (
+                openssl_root
+                / build.get_full_install_prefix().relative_to('/')
+            )
+            openssl_path = f'$(pwd)/"{openssl_path}"'
+            env['CFLAGS'] = f'!-I{openssl_path}/include/'
+            env['LDFLAGS'] = f'!-L{openssl_path}/lib/'
+
+        return env

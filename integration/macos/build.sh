@@ -3,7 +3,7 @@
 set -Exeo pipefail
 
 pip3 install -U git+https://github.com/edgedb/metapkg
-pip3 install -U git+https://github.com/edgedb/edgedb-pkg
+pip3 install -U git+https://github.com/edgedb/edgedb-pkg@openssl
 
 extraopts=
 if [ -n "${SRC_REF}" ]; then

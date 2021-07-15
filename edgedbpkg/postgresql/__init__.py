@@ -20,7 +20,7 @@ class PostgreSQL(packages.BundledPackage):
 
     artifact_requirements = [
         'icu (>=50)',
-        'openssl (>=1.0.2)',
+        'openssl (>=1.1.1)',
         'pam',
         'uuid',
         'zlib',
@@ -32,7 +32,7 @@ class PostgreSQL(packages.BundledPackage):
         'perl',
         'systemd-dev ; extra == "capability-systemd"',
         'icu-dev (>=50)',
-        'openssl-dev (>=1.0.2)',
+        'openssl-dev (>=1.1.1)',
         'pam-dev',
         'uuid-dev',
         'zlib-dev',
@@ -105,6 +105,9 @@ class PostgreSQL(packages.BundledPackage):
                 # and it fails because openssl is not yet installed
                 # at its install_name location.
                 configure_flags['DYLD_FALLBACK_LIBRARY_PATH'] = openssl_root
+            else:
+                configure_flags['LDFLAGS'] += (
+                    f'" "-Wl,-rpath-link,{openssl_path}/lib')
 
         if build.target.has_capability('tzdata'):
             zoneinfo = build.target.get_resource_path(build, 'tzdata')
