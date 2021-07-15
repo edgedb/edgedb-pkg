@@ -4,6 +4,7 @@
 SUPPORTED_TARGETS = \
 	debian-stretch \
 	debian-buster \
+	debian-bullseye \
 	ubuntu-bionic \
 	ubuntu-xenial \
 	ubuntu-focal \
