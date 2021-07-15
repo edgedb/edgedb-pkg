@@ -5,7 +5,7 @@ import pathlib
 import platform
 import textwrap
 
-from poetry import packages as poetry_pkg
+from poetry.core.packages import dependency as poetry_dep
 
 from metapkg import packages
 from metapkg import targets
@@ -15,7 +15,7 @@ from edgedbpkg import postgresql
 from edgedbpkg import python as python_bundle
 
 
-python.set_python_runtime_dependency(poetry_pkg.Dependency(
+python.set_python_runtime_dependency(poetry_dep.Dependency(
     name='python-edgedb',
     constraint='>=3.10.0rc1,<=3.11.0',
     allows_prereleases=True,
@@ -46,7 +46,6 @@ class EdgeDB(packages.BundledPythonPackage):
 
     artifact_requirements = [
         'postgresql-edgedb (== 12.8)',
-        'pypkg-edgedb',
         'tzdata; extra == "capability-tzdata"',
     ]
 
@@ -63,9 +62,9 @@ class EdgeDB(packages.BundledPythonPackage):
 
     @property
     def base_slot(self) -> str:
-        if self.version.prerelease:
-            stage, no = self.version.prerelease
-            return f'{self.version.major}-{stage}{no}'
+        if self.version.is_prerelease():
+            pre = self.version.pre
+            return f'{self.version.major}-{pre.phase}{pre.number}'
         else:
             return f'{self.version.major}'
 
@@ -273,8 +272,12 @@ class EdgeDB(packages.BundledPythonPackage):
         return ['edgedb-common']
 
     def _get_edgedb_catalog_version(self, build) -> str:
-        source = build.get_source_dir(self, relative_to=None)
-        defines = pathlib.Path(source) / 'edb' / 'server' / 'defines.py'
+        source = pathlib.Path(build.get_source_dir(self, relative_to=None))
+
+        defines = source / 'edb' / 'buildmeta.py'
+        if not defines.exists():
+            defines = source / 'edb' / 'server' / 'defines.py'
+
         with open(defines, 'r') as f:
             for line in f:
                 if line.startswith('EDGEDB_CATALOG_VERSION = '):
@@ -292,12 +295,12 @@ class EdgeDB(packages.BundledPythonPackage):
 
 
 class Cryptography(packages.PythonPackage):
-    def get_requirements(self) -> List[poetry_pkg.Dependency]:
+    def get_requirements(self) -> List[poetry_dep.Dependency]:
         reqs = super().get_requirements()
-        reqs.append(poetry_pkg.Dependency("openssl", ">=1.1.1"))
+        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
         return reqs
 
-    def get_build_requirements(self) -> List[poetry_pkg.Dependency]:
+    def get_build_requirements(self) -> List[poetry_dep.Dependency]:
         reqs = super().get_requirements()
-        reqs.append(poetry_pkg.Dependency("openssl", ">=1.1.1"))
+        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
         return reqs

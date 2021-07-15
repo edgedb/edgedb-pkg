@@ -4,7 +4,7 @@ from typing import *
 import platform
 import textwrap
 
-from poetry import version as poetry_version
+from poetry.core.semver import version as poetry_version
 
 from metapkg import packages
 
@@ -37,12 +37,12 @@ class Python(packages.BundledPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL(version='1.1.1l')
+        openssl.OpenSSL.from_upstream_version(version='1.1.1l')
     ]
 
     @classmethod
     def get_source_url_variables(cls, version: str) -> Dict[str, str]:
-        base_ver = poetry_version.parse(version).base_version
+        base_ver = poetry_version.Version.parse(version).release.to_string()
         return {
             "base_version": base_ver,
         }
