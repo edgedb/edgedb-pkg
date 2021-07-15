@@ -5,7 +5,7 @@ import pathlib
 import platform
 import textwrap
 
-from poetry import packages as poetry_pkg
+from poetry.core.packages import dependency as poetry_dep
 
 from metapkg import packages
 from metapkg import targets
@@ -15,7 +15,7 @@ from edgedbpkg import postgresql
 from edgedbpkg import python as python_bundle
 
 
-python.set_python_runtime_dependency(poetry_pkg.Dependency(
+python.set_python_runtime_dependency(poetry_dep.Dependency(
     name='python-edgedb',
     constraint='>=3.10.0rc1,<=3.11.0',
     allows_prereleases=True,

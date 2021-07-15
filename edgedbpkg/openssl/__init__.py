@@ -3,6 +3,7 @@ from typing import *
 
 import pathlib
 import platform
+import re
 import textwrap
 import shlex
 
@@ -71,3 +72,17 @@ class OpenSSL(packages.BundledPackage):
 
     def get_include_paths(self, build) -> List[pathlib.Path]:
         return [build.get_full_install_prefix() / 'include']
+
+    @classmethod
+    def from_upstream_version(cls, version: str) -> OpenSSL:
+        pat = r"(?P<ver>(\d+)(\.(\d+))*)(?P<patchver>[a-z]?)"
+        if m := re.match(pat, version):
+            if m.group("patchver"):
+                pep440_version = f"{m.group('ver')}.{ord(m.group('patchver'))}"
+            else:
+                pep440_version = m.group("ver")
+        else:
+            raise ValueError(
+                f"OpenSSL version does not match expected pattern: {version}")
+
+        return OpenSSL(pep440_version, source_version=version)

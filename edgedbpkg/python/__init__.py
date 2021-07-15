@@ -37,7 +37,7 @@ class Python(packages.BundledPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL(version='1.1.1l')
+        openssl.OpenSSL.from_upstream_version(version='1.1.1l')
     ]
 
     @classmethod
