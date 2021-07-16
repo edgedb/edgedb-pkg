@@ -211,8 +211,8 @@ class EdgeDB(packages.BundledPythonPackage):
         # Automatic dependency introspection points to libpq.so,
         # since some Postgres' client binaries require it.  We _do_
         # ship it, but don't declare it as a capability, hence the
-        # need to ignore it here.
-        return ['libpq.*']
+        # need to ignore it here.  Same applies to OpenSSL.
+        return ['libpq.*', 'libcrypto.*', 'libssl.*']
 
     def get_extra_system_requirements(self, build) -> dict:
         rc_deps = []
