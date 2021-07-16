@@ -1,0 +1,232 @@
+From c87ce88e4d5568d66d72d0f2187dc7c6f6bb85f4 Mon Sep 17 00:00:00 2001
+From: Christian Heimes <christian@python.org>
+Date: Fri, 19 Mar 2021 10:29:25 +0100
+Subject: [PATCH] bpo-43466: Add --with-openssl-rpath configure option
+ (GH-24820)
+
+---
+ Doc/using/unix.rst | 50 ++++++++++++++++++++++++++++++++++++++++++++++
+ Makefile.pre.in    |  1 +
+ configure          | 32 +++++++++++++++++++++++++++++
+ configure.ac       | 20 +++++++++++++++++++
+ setup.py           | 12 +++++++++++
+ 5 files changed, 115 insertions(+)
+
+diff --git a/Doc/using/unix.rst b/Doc/using/unix.rst
+index c0a5643fc2..d5f073cd9f 100644
+--- a/Doc/using/unix.rst
++++ b/Doc/using/unix.rst
+@@ -134,3 +134,53 @@ some Unices may not have the :program:`env` command, so you may need to hardcode
+ ``/usr/bin/python3`` as the interpreter path.
+ 
+ To use shell commands in your Python scripts, look at the :mod:`subprocess` module.
++
++
++Custom OpenSSL
++==============
++
++1. To use your vendor's OpenSSL configuration and system trust store, locate
++   the directory with ``openssl.cnf`` file or symlink in ``/etc``. On most
++   distribution the file is either in ``/etc/ssl`` or ``/etc/pki/tls``. The
++   directory should also contain a ``cert.pem`` file and/or a ``certs``
++   directory.
++
++   .. code-block:: shell-session
++
++      $ find /etc/ -name openssl.cnf -printf "%h\n"
++      /etc/ssl
++
++2. Download, build, and install OpenSSL. Make sure you use ``install_sw`` and
++   not ``install``. The ``install_sw`` target does not override
++   ``openssl.cnf``.
++
++   .. code-block:: shell-session
++
++      $ curl -O https://www.openssl.org/source/openssl-VERSION.tar.gz
++         $ tar xzf openssl-VERSION
++         $ pushd openssl-VERSION
++         $ ./config \
++              --prefix=/usr/local/custom-openssl \
++              --openssldir=/etc/ssl
++         $ make -j1 depend
++         $ make -j8
++         $ make install_sw
++         $ popd
++
++3. Build Python with custom OpenSSL
++
++   .. code-block:: shell-session
++
++      $ pushd python-3.x.x
++      $ ./configure -C \
++          --with-openssl=/usr/local/custom-openssl \
++          --with-openssl-rpath=auto \
++          --prefix=/usr/local/python-3.x.x
++      $ make -j8
++      $ make altinstall
++
++.. note::
++
++   Patch releases of OpenSSL have a backwards compatible ABI. You don't need
++   to recompile Python to update OpenSSL. It's sufficient to replace the
++   custom OpenSSL installation with a newer version.
+diff --git a/Makefile.pre.in b/Makefile.pre.in
+index 568b194311..ec015e5111 100644
+--- a/Makefile.pre.in
++++ b/Makefile.pre.in
+@@ -200,6 +200,7 @@ ENSUREPIP=      @ENSUREPIP@
+ OPENSSL_INCLUDES=@OPENSSL_INCLUDES@
+ OPENSSL_LIBS=@OPENSSL_LIBS@
+ OPENSSL_LDFLAGS=@OPENSSL_LDFLAGS@
++OPENSSL_RPATH=@OPENSSL_RPATH@
+ 
+ # Default zoneinfo.TZPATH. Added here to expose it in sysconfig.get_config_var
+ TZPATH=@TZPATH@
+diff --git a/configure b/configure
+index 5ecdc83bf8..6efc88f4e1 100755
+--- a/configure
++++ b/configure
+@@ -623,6 +623,7 @@ ac_includes_default="\
+ #endif"
+ 
+ ac_subst_vars='LTLIBOBJS
++OPENSSL_RPATH
+ OPENSSL_LDFLAGS
+ OPENSSL_LIBS
+ OPENSSL_INCLUDES
+@@ -849,6 +850,7 @@ with_platlibdir
+ with_computed_gotos
+ with_ensurepip
+ with_openssl
++with_openssl_rpath
+ with_ssl_default_suites
+ with_builtin_hashlib_hashes
+ '
+@@ -1578,6 +1580,11 @@ Optional Packages:
+                           "install" or "upgrade" using bundled pip (default is
+                           upgrade)
+   --with-openssl=DIR      root of the OpenSSL directory
++  --with-openssl-rpath=[DIR|auto|no]
++                          Set runtime library directory (rpath) for OpenSSL
++                          libraries, no (default): don't set rpath, auto:
++                          auto-detect rpath from --with-openssl and
++                          pkg-config, DIR: set an explicit rpath
+   --with-ssl-default-suites=[python|openssl|STRING]
+                           override default cipher suites string, python: use
+                           Python's preferred selection (default), openssl:
+@@ -17579,6 +17586,31 @@ $as_echo "#define HAVE_X509_VERIFY_PARAM_SET1_HOST 1" >>confdefs.h
+     LIBS="$save_LIBS"
+ fi
+ 
++# rpath to libssl and libcrypto
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-openssl-rpath" >&5
++$as_echo_n "checking for --with-openssl-rpath... " >&6; }
++
++# Check whether --with-openssl-rpath was given.
++if test "${with_openssl_rpath+set}" = set; then :
++  withval=$with_openssl_rpath;
++else
++  with_openssl_rpath=no
++
++fi
++
++case $with_openssl_rpath in #(
++  auto|yes) :
++    OPENSSL_RPATH=auto ;; #(
++  no) :
++    OPENSSL_RPATH= ;; #(
++  *) :
++    OPENSSL_RPATH="$with_openssl_rpath"
++ ;;
++esac
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_RPATH" >&5
++$as_echo "$OPENSSL_RPATH" >&6; }
++
++
+ # ssl module default cipher suite string
+ 
+ 
+diff --git a/configure.ac b/configure.ac
+index 336b0e4894..77cbf81b08 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -5763,6 +5763,26 @@ if test "$have_openssl" = yes; then
+     LIBS="$save_LIBS"
+ fi
+ 
++# rpath to libssl and libcrypto
++AC_MSG_CHECKING(for --with-openssl-rpath)
++AC_ARG_WITH(openssl-rpath,
++    AS_HELP_STRING([--with-openssl-rpath=@<:@DIR|auto|no@:>@],
++                   [Set runtime library directory (rpath) for OpenSSL libraries,
++                    no (default): don't set rpath,
++                    auto: auto-detect rpath from --with-openssl and pkg-config,
++                    DIR: set an explicit rpath
++                   ]),
++    [],
++    [with_openssl_rpath=no]
++)
++AS_CASE($with_openssl_rpath,
++    [auto|yes],[OPENSSL_RPATH=auto],
++    [no],[OPENSSL_RPATH=],
++    [OPENSSL_RPATH="$with_openssl_rpath"]
++)
++AC_MSG_RESULT($OPENSSL_RPATH)
++AC_SUBST([OPENSSL_RPATH])
++
+ # ssl module default cipher suite string
+ AH_TEMPLATE(PY_SSL_DEFAULT_CIPHERS,
+   [Default cipher suites list for ssl module.
+diff --git a/setup.py b/setup.py
+index d8941790b3..cc43b2eebf 100644
+--- a/setup.py
++++ b/setup.py
+@@ -538,6 +538,8 @@ class PyBuildExt(build_ext):
+                   "libssl with X509_VERIFY_PARAM_set1_host().")
+             print("LibreSSL 2.6.4 and earlier do not provide the necessary "
+                   "APIs, https://github.com/libressl-portable/portable/issues/381")
++            if sysconfig.get_config_var("OPENSSL_LDFLAGS"):
++                print("Custom linker flags may require --with-openssl-rpath=auto")
+             print()
+ 
+     def build_extension(self, ext):
+@@ -2324,6 +2326,7 @@ class PyBuildExt(build_ext):
+         openssl_includes = split_var('OPENSSL_INCLUDES', '-I')
+         openssl_libdirs = split_var('OPENSSL_LDFLAGS', '-L')
+         openssl_libs = split_var('OPENSSL_LIBS', '-l')
++        openssl_rpath = config_vars.get('OPENSSL_RPATH')
+         if not openssl_libs:
+             # libssl and libcrypto not found
+             self.missing.extend(['_ssl', '_hashlib'])
+@@ -2345,12 +2348,20 @@ class PyBuildExt(build_ext):
+         if krb5_h:
+             ssl_incs.extend(krb5_h)
+ 
++        if openssl_rpath == 'auto':
++            runtime_library_dirs = openssl_libdirs[:]
++        elif not openssl_rpath:
++            runtime_library_dirs = []
++        else:
++            runtime_library_dirs = [openssl_rpath]
++
+         if config_vars.get("HAVE_X509_VERIFY_PARAM_SET1_HOST"):
+             self.add(Extension(
+                 '_ssl', ['_ssl.c'],
+                 include_dirs=openssl_includes,
+                 library_dirs=openssl_libdirs,
+                 libraries=openssl_libs,
++                runtime_library_dirs=runtime_library_dirs,
+                 depends=[
+                     'socketmodule.h',
+                     '_ssl/debughelpers.c',
+@@ -2365,6 +2376,7 @@ class PyBuildExt(build_ext):
+                            depends=['hashlib.h'],
+                            include_dirs=openssl_includes,
+                            library_dirs=openssl_libdirs,
++                           runtime_library_dirs=runtime_library_dirs,
+                            libraries=openssl_libs))
+ 
+     def detect_hash_builtins(self):
+-- 
+2.31.1
+

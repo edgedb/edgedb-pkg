@@ -75,6 +75,8 @@ class Python(packages.BundledPackage):
                 openssl_pkg, relative_to='pkgbuild')
             openssl_path /= build.get_full_install_prefix().relative_to('/')
             configure_flags['--with-openssl'] = openssl_path
+            configure_flags['--with-openssl-rpath'] = (
+                openssl_pkg.get_shlib_paths(build)[0])
 
         return build.sh_format_command(configure, configure_flags)
 

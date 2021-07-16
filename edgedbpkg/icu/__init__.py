@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import *
+
 import textwrap
 
 from metapkg import packages
@@ -47,3 +50,9 @@ class ICU(packages.BundledPackage):
         return textwrap.dedent(f'''\
             {make} DESTDIR=$(pwd)/"{installdest}" install
         ''')
+
+    def get_shlib_paths(self, build) -> List[str]:
+        return [f'{build.get_full_install_prefix()}/lib']
+
+    def get_include_paths(self, build) -> List[str]:
+        return [f'{build.get_full_install_prefix()}/include']

@@ -40,7 +40,7 @@ sudo chmod +x /usr/local/bin/edgedb
 
 sudo installer -dumplog -verbose \
     -pkg "${dest}"/*.pkg \
-    -target / || (sudo cat /var/log/install.log && exit 1)
+    -target / || (sudo tail -300 /var/log/install.log && exit 1)
 
 set +e
 source /etc/profile

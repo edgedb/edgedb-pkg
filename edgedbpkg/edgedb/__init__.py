@@ -295,19 +295,3 @@ class Cryptography(packages.PythonPackage):
         reqs = super().get_requirements()
         reqs.append(poetry_pkg.Dependency("openssl", ">=1.1.1"))
         return reqs
-
-    def get_bdist_wheel_env(self, build: targets.Build) -> Dict[str, str]:
-        env = super().get_bdist_wheel_env(build)
-        openssl_pkg = build.get_package('openssl')
-        if build.is_bundled(openssl_pkg):
-            openssl_root = build.get_install_dir(
-                openssl_pkg, relative_to='pkgsource')
-            openssl_path = (
-                openssl_root
-                / build.get_full_install_prefix().relative_to('/')
-            )
-            openssl_path = f'$(pwd)/"{openssl_path}"'
-            env['CFLAGS'] = f'!-I{openssl_path}/include/'
-            env['LDFLAGS'] = f'!-L{openssl_path}/lib/'
-
-        return env

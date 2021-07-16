@@ -1,3 +1,7 @@
+from __future__ import annotations
+from typing import *
+
+import pathlib
 import platform
 import textwrap
 import shlex
@@ -61,3 +65,9 @@ class OpenSSL(packages.BundledPackage):
         return textwrap.dedent(f'''\
             {make} DESTDIR=$(pwd)/"{installdest}" install_sw
         ''')
+
+    def get_shlib_paths(self, build) -> List[pathlib.Path]:
+        return [build.get_full_install_prefix() / 'lib']
+
+    def get_include_paths(self, build) -> List[pathlib.Path]:
+        return [build.get_full_install_prefix() / 'include']
