@@ -4,6 +4,8 @@ from typing import *
 import platform
 import textwrap
 
+from poetry import version as poetry_version
+
 from metapkg import packages
 
 from edgedbpkg import openssl
@@ -14,7 +16,7 @@ class Python(packages.BundledPackage):
     title = "Python"
     name = 'python-edgedb'
 
-    _pftp = "https://www.python.org/ftp/python/{version}/"
+    _pftp = "https://www.python.org/ftp/python/{base_version}/"
 
     sources = [
         {
@@ -37,6 +39,25 @@ class Python(packages.BundledPackage):
     bundle_deps = [
         openssl.OpenSSL(version='1.1.1k')
     ]
+
+    @classmethod
+    def get_source_url_variables(cls, version: str) -> Dict[str, str]:
+        base_ver = poetry_version.parse(version).base_version
+        return {
+            "base_version": base_ver,
+        }
+
+    def get_patches(self) -> Dict[str, List[Tuple[str, str]]]:
+        if (self.version.major, self.version.minor) >= (3, 10):
+            patches = dict(super().get_patches())
+            for pkg, pkg_patches in patches.items():
+                if pkg == self.name:
+                    for i, (pn, _) in enumerate(list(pkg_patches)):
+                        if pn == 'openssl-rpath':
+                            pkg_patches.pop(i)
+                            break
+
+        return patches
 
     def get_configure_script(self, build) -> str:
         sdir = build.get_source_dir(self, relative_to='pkgbuild')

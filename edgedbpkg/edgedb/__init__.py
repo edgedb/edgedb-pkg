@@ -16,7 +16,9 @@ from edgedbpkg import python as python_bundle
 
 
 python.set_python_runtime_dependency(poetry_pkg.Dependency(
-    name='python-edgedb', constraint='3.9.*'
+    name='python-edgedb',
+    constraint='>=3.10.0rc1,<=3.11.0',
+    allows_prereleases=True,
 ))
 
 
@@ -50,7 +52,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     bundle_deps = [
         postgresql.PostgreSQL(version='12.7'),
-        python_bundle.Python(version='3.9.6'),
+        python_bundle.Python(version='3.10.0rc1'),
     ]
 
     @classmethod
