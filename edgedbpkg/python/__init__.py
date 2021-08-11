@@ -56,6 +56,14 @@ class Python(packages.BundledPackage):
                         if pn == 'openssl-rpath':
                             pkg_patches.pop(i)
                             break
+        else:
+            patches = dict(super().get_patches())
+            for pkg, pkg_patches in patches.items():
+                if pkg == self.name:
+                    for i, (pn, _) in enumerate(list(pkg_patches)):
+                        if pn == 'openssl-rpath-310':
+                            pkg_patches.pop(i)
+                            break
 
         return patches
 
