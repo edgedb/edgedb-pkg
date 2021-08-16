@@ -2,10 +2,10 @@
 
 set -ex
 
-slot="${PKG_VERSION_SLOT}"
+install_ref="${PKG_INSTALL_REF}"
 
-if [ -z "${slot}" ]; then
-    echo ::error "Cannot determine package version slot."
+if [ -z "${install_ref}" ]; then
+    echo ::error "Cannot determine package install ref."
     exit 1
 fi
 
@@ -29,7 +29,7 @@ fi
 
 try=1
 while [ $try -le 30 ]; do
-    yum makecache && yum install --verbose -y edgedb-${slot} && break || true
+    yum makecache && yum install --verbose -y "${install_ref}" && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10

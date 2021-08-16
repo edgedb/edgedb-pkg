@@ -4,10 +4,10 @@ set -ex
 
 export DEBIAN_FRONTEND=noninteractive
 
-slot="${PKG_VERSION_SLOT}"
+install_ref="${PKG_INSTALL_REF}"
 
-if [ -z "${slot}" ]; then
-    echo ::error "Cannot determine package version slot."
+if [ -z "${install_ref}" ]; then
+    echo ::error "Cannot determine package install ref."
     exit 1
 fi
 
@@ -28,7 +28,7 @@ fi
 
 try=1
 while [ $try -le 30 ]; do
-    apt-get update && apt-get install -y edgedb-${slot} && break || true
+    apt-get update && apt-get install -y "${install_ref}" && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10

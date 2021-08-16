@@ -21,41 +21,19 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const process = __importStar(require("process"));
-const slot_re = /^(?:(?:\w|-)+?)-(?<slot>\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?).*\.(?:rpm|deb|img|pkg)$/gm;
-const cv_re = /^(?:(?:\w|-)+?)-(?<slot>\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?).*(?:\.cv(?<catver>\d+)).*\.(?:rpm|deb|img|pkg)$/gm;
 async function run() {
+    var _a, _b, _c;
     try {
         const target = process.env['INPUT_TARGET'];
         const path = process.env['INPUT_PATH'];
         const dest = `${path}/artifacts/${target}`;
-        let version_slot = '';
-        let catver = '';
-        let found_file = '';
-        let files = [];
-        try {
-            files = fs.readdirSync(dest);
-        }
-        catch (_a) {
-        }
-        console.log(`Looking for artifacts in ${dest}...`);
-        for (let file of files) {
-            let match = slot_re.exec(file);
-            if (match !== null && match.groups !== undefined) {
-                found_file = file;
-                version_slot = match.groups.slot;
-                match = cv_re.exec(file);
-                if (match !== null && match.groups !== undefined) {
-                    catver = match.groups.catver;
-                }
-                break;
-            }
-        }
-        if (found_file !== '') {
-            console.log(`File ${found_file} yields version slot '${version_slot}'`
-                + ` and catalog version '${catver}'`);
-        }
+        let metadata = JSON.parse(fs.readFileSync(`${dest}/package-version.json`, 'utf8'));
+        let version_slot = (_a = metadata['version_slot']) !== null && _a !== void 0 ? _a : '';
+        let catver = (_b = metadata['catalog_version']) !== null && _b !== void 0 ? _b : '';
+        let installref = (_c = metadata['installref']) !== null && _c !== void 0 ? _c : '';
         console.log(`::set-output name=version-slot,::${version_slot}`);
         console.log(`::set-output name=catalog-version,::${catver}`);
+        console.log(`::set-output name=install-ref,::${installref}`);
     }
     catch (error) {
         console.log(`::error ${error.message}`);

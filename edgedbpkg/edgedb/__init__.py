@@ -74,18 +74,24 @@ class EdgeDB(packages.BundledPythonPackage):
         # We need to be careful with dev builds an place ones with changed
         # catalog version in a new slot.
         # Sadly what we're looking for is not present in any pre-parsed fields.
-        v = self.version.text
-        i = v.find(".dev")
-        if i == -1:
+        if self.version.text.find(".dev") == -1:
             return self.base_slot
+        else:
+            return f"{self.base_slot}-dev{self.get_catalog_version()}"
 
-        _, local = v[i + 1:].split("+", 1)
+    def get_catalog_version(self) -> str:
+        _, local = self.version.text.split("+", 1)
         for entry in local.split("."):
             if entry.startswith("cv"):
-                return f"{self.base_slot}-dev{entry[2:]}"
+                return entry[2:]
 
         raise RuntimeError(
             f"no catalog version in EdgeDB version: {self.version}")
+
+    def get_artifact_metadata(self, build) -> Dict[str, str]:
+        metadata = dict(super().get_artifact_metadata(build))
+        metadata["catalog_version"] = self.get_catalog_version()
+        return metadata
 
     def get_bdist_wheel_command(self, build) -> list:
         bindir = build.get_install_path('bin')
