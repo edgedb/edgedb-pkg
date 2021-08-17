@@ -18,6 +18,13 @@ if [ -z "${install_ref}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
+slot="${PKG_VERSION_SLOT}"\n\
+\n\
+if [ -z "${slot}" ]; then\n\
+    echo ::error "Cannot determine package version slot."\n\
+    exit 1\n\
+fi\n\
+\n\
 dist="${PKG_PLATFORM_VERSION}"\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     dist+=".${PKG_SUBDIST}"\n\
