@@ -9,6 +9,13 @@ if [ -z "${install_ref}" ]; then
     exit 1
 fi
 
+slot="${PKG_VERSION_SLOT}"
+
+if [ -z "${slot}" ]; then
+    echo ::error "Cannot determine package version slot."
+    exit 1
+fi
+
 dist='el$releasever'
 if [ -n "${PKG_SUBDIST}" ]; then
     dist+=".${PKG_SUBDIST}"
