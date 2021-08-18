@@ -42,4 +42,3 @@ while [ $try -le 30 ]; do
 done
 
 edgedb-server-${slot} --help
-edgedb --help
