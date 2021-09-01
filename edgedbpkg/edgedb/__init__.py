@@ -45,7 +45,7 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        'postgresql-edgedb (== 12.7)',
+        'postgresql-edgedb (== 12.8)',
         'pypkg-edgedb',
         'tzdata; extra == "capability-tzdata"',
     ]
