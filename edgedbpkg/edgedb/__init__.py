@@ -93,20 +93,18 @@ class EdgeDB(packages.BundledPythonPackage):
         metadata["catalog_version"] = self.get_catalog_version()
         return metadata
 
-    def get_bdist_wheel_command(self, build) -> list:
+    def get_build_wheel_env(self, build) -> dict[str, str]:
+        env = dict(super().get_build_wheel_env(build))
         bindir = build.get_install_path('bin')
         runstate = build.get_install_path('runstate') / 'edgedb'
         shared_dir = build.get_install_path('data') / 'data'
         pg_config = bindir / 'pg_config'
 
-        command = [
-            'build',
-            f'--pg-config={pg_config}',
-            f'--runstatedir={runstate}',
-            f'--shared-dir={shared_dir}',
-        ]
+        env["EDGEDB_BUILD_PG_CONFIG"] = pg_config
+        env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
+        env["EDGEDB_BUILD_SHARED_DIR"] = shared_dir
 
-        return command + super().get_bdist_wheel_command(build)
+        return env
 
     def get_build_script(self, build) -> str:
         # Run edgedb-server --bootstrap to produce stdlib cache
