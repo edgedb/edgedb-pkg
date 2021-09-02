@@ -51,7 +51,7 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version='12.7'),
+        postgresql.PostgreSQL(version='12.8'),
         python_bundle.Python(version='3.10.0rc1'),
     ]
 
