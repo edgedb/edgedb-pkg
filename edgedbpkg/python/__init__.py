@@ -89,6 +89,13 @@ class Python(packages.BundledPackage):
                 configure_flags['--enable-optimizations'] = None
             if build.supports_lto():
                 configure_flags['--with-lto'] = None
+            if build.uses_modern_gcc():
+                configure_flags['CFLAGS'] = ' '.join((
+                    '-fgraphite-identity',
+                    '-floop-nest-optimize',
+                    '-fipa-pta',
+                    '-fno-semantic-interposition',
+                ))
 
         if 'libffi' not in build.target.get_capabilities():
             configure_flags['--without-system-ffi'] = None
@@ -107,7 +114,8 @@ class Python(packages.BundledPackage):
             configure_flags['--with-openssl-rpath'] = (
                 openssl_pkg.get_shlib_paths(build)[0])
 
-        return build.sh_format_command(configure, configure_flags)
+        return build.sh_format_command(
+            configure, configure_flags, force_args_eq=True)
 
     def _get_make_env(self, build, wd: str) -> str:
         openssl_pkg = build.get_package('openssl')
