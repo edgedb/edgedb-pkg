@@ -24,6 +24,7 @@ class PostgreSQL(packages.BundledPackage):
         'pam',
         'uuid',
         'zlib',
+        'tzdata; extra == "capability-tzdata"',
     ]
 
     artifact_build_requirements = [
