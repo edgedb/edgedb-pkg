@@ -314,14 +314,14 @@ def main(upload_listing: str) -> None:
         if not path.is_file():
             print("File not found:", path)
             continue
+        if path.name == "package-version.json":
+            print("Skipping package-version.json")
+            continue
 
         print("Looking at", path)
         # macos-x86_64/edgedb-1-alpha6-dev5081_1.0a6.dev5081+ga0106974_2020092316~nightly.pkg
         try:
             dist = path.parent  # macos-x86_64
-            dist_base = arch = ""
-            if "-" in str(dist):
-                dist_base, arch = str(dist).split("-", 1)
             leaf = path.name
             m = PACKAGE_RE.match(leaf)
             if not m:
