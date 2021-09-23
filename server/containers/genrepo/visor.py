@@ -12,7 +12,12 @@ import signal
 import subprocess
 import sys
 
-FILTER_OUT = ["Did not receive identification string from"]
+FILTER_OUT = frozenset({
+    "Did not receive identification string from",
+    "Received disconnect from",
+    "Disconnected from invalid user",
+    "Invalid user",
+})
 PROCESSES = []
 
 
