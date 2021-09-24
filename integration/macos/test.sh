@@ -47,8 +47,9 @@ source /etc/profile
 set -e
 
 sudo su edgedb -c \
-    "${python} -m edb.tools --no-devmode test \
+    "env EDGEDB_DEBUG_SERVER=1 EDGEDB_SERVER_LOG_LEVEL=debug \
+     ${python} -m edb.tools --no-devmode test \
      ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
-     -e cqa_ -e tools_ --verbose"
+     -e cqa_ -e tools_ --verbose --failfast"
 
 echo "Success!"
