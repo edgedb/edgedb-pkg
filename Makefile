@@ -68,6 +68,10 @@ ifneq ($(BUILD_GENERIC),)
 	EXTRAENV += -e BUILD_GENERIC="$(BUILD_GENERIC)"
 endif
 
+ifeq ($(BUILD_IS_RELEASE),true)
+	EXTRAENV += -e BUILD_IS_RELEASE=true
+endif
+
 check-target:
 ifeq ($(TARGET),)
 	$(error "Please specify the TARGET variable.")

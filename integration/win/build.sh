@@ -21,6 +21,10 @@ if [ -n "${PKG_VERSION}" ]; then
     extraopts+=" --pkg-version=${PKG_VERSION}"
 fi
 
+if [ -n "${BUILD_IS_RELEASE}" ]; then
+    extraopts+=" --release"
+fi
+
 if [ -n "${PKG_REVISION}" ]; then
     if [ "${PKG_REVISION}" = "<current-date>" ]; then
         PKG_REVISION="$(date -u +%Y%m%d%H%M)"

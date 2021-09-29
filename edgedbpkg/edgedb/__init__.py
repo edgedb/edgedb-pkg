@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import *
 
+import os
 import pathlib
 import platform
 import textwrap
@@ -52,6 +53,35 @@ class EdgeDB(packages.BundledPythonPackage):
         postgresql.PostgreSQL(version='12.8'),
         python_bundle.Python(version='3.10.0rc1'),
     ]
+
+    @classmethod
+    def resolve(
+        cls,
+        io,
+        *,
+        ref=None,
+        version=None,
+        is_release=False,
+    ):
+        if is_release:
+            try:
+                prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
+            except KeyError:
+                prev = Ellipsis
+
+            os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1"
+
+            try:
+                return super().resolve(
+                    io, ref=ref, version=version, is_release=is_release)
+            finally:
+                if prev is Ellipsis:
+                    os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
+                else:
+                    os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
+        else:
+            return super().resolve(
+                io, ref=ref, version=version, is_release=is_release)
 
     @classmethod
     def get_package_repository(cls, target, io):
