@@ -19,7 +19,7 @@ RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
-    perl-Getopt-Long sudo
+    perl-Getopt-Long sudo ca-certificates
 
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
