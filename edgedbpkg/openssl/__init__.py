@@ -8,70 +8,80 @@ import textwrap
 import shlex
 
 from metapkg import packages
+from metapkg import targets
 
 
 class OpenSSL(packages.BundledPackage):
 
     title = "OpenSSL"
-    name = 'openssl'
-    aliases = ['openssl-dev']
+    name = "openssl"
+    aliases = ["openssl-dev"]
 
-    _server = 'https://www.openssl.org/source/'
+    _server = "https://www.openssl.org/source/"
 
     sources = [
         {
-            'url': _server + '/openssl-{version}.tar.gz',
-            'csum_url': _server + '/openssl-{version}.tar.gz.sha256',
-            'csum_algo': 'sha256',
+            "url": _server + "/openssl-{version}.tar.gz",
+            "csum_url": _server + "/openssl-{version}.tar.gz.sha256",
+            "csum_algo": "sha256",
         }
     ]
 
-    def get_configure_script(self, build) -> str:
+    def get_configure_script(self, build: targets.Build) -> str:
         sdir = shlex.quote(
-            str(build.get_source_dir(self, relative_to='pkgbuild')))
-        copy_sources = f'test ./ -ef {sdir} || cp -a {sdir}/* ./'
+            str(build.get_source_dir(self, relative_to="pkgbuild"))
+        )
+        copy_sources = f"test ./ -ef {sdir} || cp -a {sdir}/* ./"
 
-        configure = './config'
+        configure = "./config"
 
         configure_flags = {
-            '--prefix': build.get_full_install_prefix(),
-            '--openssldir': build.get_full_install_prefix() / 'etc' / 'ssl',
-            'no-ssl2': None,
-            'no-ssl3': None,
-            'shared': None,
-            'enable-ec_nistp_64_gcc_128': None,
+            "--prefix": str(build.get_full_install_prefix()),
+            "--openssldir": str(
+                build.get_full_install_prefix() / "etc" / "ssl"
+            ),
+            "no-ssl2": None,
+            "no-ssl3": None,
+            "shared": None,
+            "enable-ec_nistp_64_gcc_128": None,
         }
 
         cfgcmd = build.sh_format_command(configure, configure_flags)
-        if platform.system() == 'Darwin':
+        if platform.system() == "Darwin":
             # Force 64-bit build
-            cfgcmd = f'KERNEL_BITS=64 {cfgcmd}'
+            cfgcmd = f"KERNEL_BITS=64 {cfgcmd}"
 
-        return '\n\n'.join([
-            copy_sources,
-            cfgcmd,
-        ])
+        return "\n\n".join(
+            [
+                copy_sources,
+                cfgcmd,
+            ]
+        )
 
-    def get_build_script(self, build) -> str:
-        make = build.sh_get_command('make')
+    def get_build_script(self, build: targets.Build) -> str:
+        make = build.sh_get_command("make")
 
-        return textwrap.dedent(f'''\
+        return textwrap.dedent(
+            f"""\
             {make}
-        ''')
+        """
+        )
 
-    def get_build_install_script(self, build) -> str:
-        installdest = build.get_install_dir(self, relative_to='pkgbuild')
-        make = build.target.sh_get_command('make')
+    def get_build_install_script(self, build: targets.Build) -> str:
+        installdest = build.get_install_dir(self, relative_to="pkgbuild")
+        make = build.sh_get_command("make")
 
-        return textwrap.dedent(f'''\
+        return textwrap.dedent(
+            f"""\
             {make} DESTDIR=$(pwd)/"{installdest}" install_sw
-        ''')
+        """
+        )
 
-    def get_shlib_paths(self, build) -> List[pathlib.Path]:
-        return [build.get_full_install_prefix() / 'lib']
+    def get_shlib_paths(self, build: targets.Build) -> List[pathlib.Path]:
+        return [build.get_full_install_prefix() / "lib"]
 
-    def get_include_paths(self, build) -> List[pathlib.Path]:
-        return [build.get_full_install_prefix() / 'include']
+    def get_include_paths(self, build: targets.Build) -> List[pathlib.Path]:
+        return [build.get_full_install_prefix() / "include"]
 
     @classmethod
     def from_upstream_version(cls, version: str) -> OpenSSL:
@@ -83,6 +93,7 @@ class OpenSSL(packages.BundledPackage):
                 pep440_version = m.group("ver")
         else:
             raise ValueError(
-                f"OpenSSL version does not match expected pattern: {version}")
+                f"OpenSSL version does not match expected pattern: {version}"
+            )
 
         return OpenSSL(pep440_version, source_version=version)

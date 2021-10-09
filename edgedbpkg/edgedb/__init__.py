@@ -1,5 +1,8 @@
 from __future__ import annotations
-from typing import *
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import os
 import pathlib
@@ -15,23 +18,28 @@ from metapkg.packages import python
 from edgedbpkg import postgresql
 from edgedbpkg import python as python_bundle
 
+if TYPE_CHECKING:
+    from cleo.io import io as cleo_io
 
-python.set_python_runtime_dependency(poetry_dep.Dependency(
-    name='python-edgedb',
-    constraint='>=3.10.0rc1,<=3.11.0',
-    allows_prereleases=True,
-))
+
+python.set_python_runtime_dependency(
+    poetry_dep.Dependency(
+        name="python-edgedb",
+        constraint=">=3.10.0rc1,<=3.11.0",
+        allows_prereleases=True,
+    )
+)
 
 
 class EdgeDB(packages.BundledPythonPackage):
 
     title = "EdgeDB"
-    name = 'edgedb-server'
-    description = 'Next generation object-relational database'
-    license = 'ASL 2.0'
-    group = 'Applications/Databases'
-    identifier = 'com.edgedb.edgedb-server'
-    url = 'https://edgedb.com/'
+    name = "edgedb-server"
+    description = "Next generation object-relational database"
+    license = "ASL 2.0"
+    group = "Applications/Databases"
+    identifier = "com.edgedb.edgedb-server"
+    url = "https://edgedb.com/"
 
     sources = (
         {
@@ -46,34 +54,35 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        'postgresql-edgedb (== 12.8)',
+        "postgresql-edgedb (== 12.8)",
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version='12.8'),
-        python_bundle.Python(version='3.10.0rc1'),
+        postgresql.PostgreSQL(version="12.8"),
+        python_bundle.Python(version="3.10.0rc1"),
     ]
 
     @classmethod
     def resolve(
         cls,
-        io,
+        io: cleo_io.IO,
         *,
-        ref=None,
-        version=None,
-        is_release=False,
-    ):
+        ref: str | None = None,
+        version: str | None = None,
+        is_release: bool = False,
+    ) -> EdgeDB:
         if is_release:
             try:
                 prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
             except KeyError:
-                prev = Ellipsis
+                prev = Ellipsis  # type: ignore
 
             os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1"
 
             try:
                 return super().resolve(
-                    io, ref=ref, version=version, is_release=is_release)
+                    io, ref=ref, version=version, is_release=is_release
+                )
             finally:
                 if prev is Ellipsis:
                     os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
@@ -81,10 +90,13 @@ class EdgeDB(packages.BundledPythonPackage):
                     os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
         else:
             return super().resolve(
-                io, ref=ref, version=version, is_release=is_release)
+                io, ref=ref, version=version, is_release=is_release
+            )
 
     @classmethod
-    def get_package_repository(cls, target, io):
+    def get_package_repository(
+        cls, target: targets.Target, io: cleo_io.IO
+    ) -> python.PyPiRepository:
         repo = super().get_package_repository(target, io)
         repo.register_package_impl("cryptography", Cryptography)
         return repo
@@ -93,9 +105,9 @@ class EdgeDB(packages.BundledPythonPackage):
     def base_slot(self) -> str:
         if self.version.is_prerelease():
             pre = self.version.pre
-            return f'{self.version.major}-{pre.phase}{pre.number}'
+            return f"{self.version.major}-{pre.phase}{pre.number}"
         else:
-            return f'{self.version.major}'
+            return f"{self.version.major}"
 
     @property
     def slot(self) -> str:
@@ -111,80 +123,79 @@ class EdgeDB(packages.BundledPythonPackage):
         _, local = self.version.text.split("+", 1)
         for entry in local.split("."):
             if entry.startswith("cv"):
-                return entry[2:]
+                return entry[2:]  # type: ignore
 
         raise RuntimeError(
-            f"no catalog version in EdgeDB version: {self.version}")
+            f"no catalog version in EdgeDB version: {self.version}"
+        )
 
-    def get_artifact_metadata(self, build) -> Dict[str, str]:
+    def get_artifact_metadata(self, build: targets.Build) -> dict[str, str]:
         metadata = dict(super().get_artifact_metadata(build))
         metadata["catalog_version"] = self.get_catalog_version()
         return metadata
 
-    def get_build_wheel_env(self, build) -> dict[str, str]:
+    def get_build_wheel_env(self, build: targets.Build) -> dict[str, str]:
         env = dict(super().get_build_wheel_env(build))
-        bindir = build.get_install_path('bin')
-        runstate = build.get_install_path('runstate') / 'edgedb'
-        shared_dir = build.get_install_path('data') / 'data'
-        pg_config = bindir / 'pg_config'
+        bindir = build.get_install_path("bin")
+        runstate = build.get_install_path("runstate") / "edgedb"
+        shared_dir = build.get_install_path("data") / "data"
+        pg_config = bindir / "pg_config"
 
-        env["EDGEDB_BUILD_PG_CONFIG"] = pg_config
-        env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
-        env["EDGEDB_BUILD_SHARED_DIR"] = shared_dir
+        env["EDGEDB_BUILD_PG_CONFIG"] = str(pg_config)
+        env["EDGEDB_BUILD_RUNSTATEDIR"] = str(runstate)
+        env["EDGEDB_BUILD_SHARED_DIR"] = str(shared_dir)
 
         return env
 
-    def get_build_script(self, build) -> str:
+    def get_build_script(self, build: targets.Build) -> str:
         # Run edgedb-server --bootstrap to produce stdlib cache
         # for the benefit of faster bootstrap in the package.
         common_script = super().get_build_script(build)
 
-        pg_pkg = build.get_package('postgresql-edgedb')
-        icu_pkg = build.get_package('icu')
-        openssl_pkg = build.get_package('openssl')
+        pg_pkg = build.get_package("postgresql-edgedb")
+        icu_pkg = build.get_package("icu")
+        openssl_pkg = build.get_package("openssl")
 
-        build_python = build.sh_get_command('python')
-        temp_dir = build.get_temp_dir(self, relative_to='pkgbuild')
-        cachedir = temp_dir / '_datacache'
-        pg_temp_install_path = build.get_build_dir(
-            pg_pkg, relative_to='pkgbuild') / '_install'
-        bindir = build.get_install_path('bin').relative_to('/')
-        libdir = build.get_install_path('lib').relative_to('/')
-        pg_config = pg_temp_install_path / bindir / 'pg_config'
+        build_python = build.sh_get_command("python")
+        temp_dir = build.get_temp_dir(self, relative_to="pkgbuild")
+        cachedir = temp_dir / "_datacache"
+        pg_temp_install_path = (
+            build.get_build_dir(pg_pkg, relative_to="pkgbuild") / "_install"
+        )
+        bindir = build.get_install_path("bin").relative_to("/")
+        libdir = build.get_install_path("lib").relative_to("/")
+        pg_config = pg_temp_install_path / bindir / "pg_config"
         pg_libpath = pg_temp_install_path / libdir
 
-        temp_install_dir = (
-            build.get_temp_root(relative_to='pkgbuild') /
-            build.get_full_install_prefix().relative_to('/')
-        )
+        temp_install_dir = build.get_temp_root(
+            relative_to="pkgbuild"
+        ) / build.get_full_install_prefix().relative_to("/")
         sitescript = (
-            f'import site; '
+            f"import site; "
             f'print(site.getsitepackages(["{temp_install_dir}"])[0])'
         )
-        runstatescript = (
-            'import tempfile; '
-            'print(tempfile.mkdtemp())'
-        )
+        runstatescript = "import tempfile; " "print(tempfile.mkdtemp())"
         abspath = (
-            'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())'
+            "import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())"
         )
 
-        ld_env = ' '.join(
+        ld_env = " ".join(
             build.get_ld_env(
                 deps=[icu_pkg, openssl_pkg],
-                wd='${_wd}',
-                extra=['${_ldlibpath}'],
+                wd="${_wd}",
+                extra=["${_ldlibpath}"],
             )
         )
 
-        if platform.system() == 'Darwin':
+        if platform.system() == "Darwin":
             # Workaround SIP madness on macOS and allow popen() calls
             # in postgres to inherit DYLD_LIBRARY_PATH.
-            extraenv = 'PGOVERRIDESTDSHELL=1'
+            extraenv = "PGOVERRIDESTDSHELL=1"
         else:
-            extraenv = ''
+            extraenv = ""
 
-        data_cache_script = textwrap.dedent(f'''\
+        data_cache_script = textwrap.dedent(
+            f"""\
             mkdir -p "{cachedir}"
             _tempdir=$("{build_python}" -c '{runstatescript}')
             if [ "$(whoami)" = "root" ]; then
@@ -221,115 +232,121 @@ class EdgeDB(packages.BundledPythonPackage):
             cp "${{_cachedir}}"/* ./share/
             pwd
             ls -al ./share/
-        ''')
+        """
+        )
 
-        return f'{common_script}\n{data_cache_script}'
+        return f"{common_script}\n{data_cache_script}"
 
-    def get_build_install_script(self, build) -> str:
+    def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        srcdir = build.get_source_dir(self, relative_to='pkgbuild')
-        dest = build.get_install_dir(self, relative_to='pkgbuild')
+        srcdir = build.get_source_dir(self, relative_to="pkgbuild")
+        dest = build.get_install_dir(self, relative_to="pkgbuild")
 
-        datadir = build.get_install_path('data')
-        script += textwrap.dedent(f'''\
+        datadir = build.get_install_path("data")
+        script += textwrap.dedent(
+            f"""\
             mkdir -p "{dest}/{datadir}"
             cp -a "{srcdir}/tests" "{dest}/{datadir}"
             mkdir -p "{dest}/{datadir}/data/"
             cp -a ./share/* "{dest}/{datadir}/data/"
             chmod 644 "{dest}/{datadir}/data/"*
-        ''')
+        """
+        )
 
         return script
 
-    def get_private_libraries(self, build) -> list:
+    def get_private_libraries(self, build: targets.Build) -> list[str]:
         # Automatic dependency introspection points to libpq.so,
         # since some Postgres' client binaries require it.  We _do_
         # ship it, but don't declare it as a capability, hence the
         # need to ignore it here.  Same applies to OpenSSL.
-        return ['libpq.*', 'libcrypto.*', 'libssl.*']
+        return ["libpq.*", "libcrypto.*", "libssl.*"]
 
-    def get_extra_system_requirements(self, build) -> dict:
+    def get_extra_system_requirements(
+        self, build: targets.Build
+    ) -> dict[str, list[str]]:
         rc_deps = []
-        if build.target.has_capability('systemd'):
-            rc_deps.append('systemd')
+        if build.target.has_capability("systemd"):
+            rc_deps.append("systemd")
 
-        return {
-            'before-install': ['adduser'],
-            'after-install': rc_deps
-        }
+        return {"before-install": ["adduser"], "after-install": rc_deps}
 
-    def get_before_install_script(self, build) -> str:
+    def get_before_install_script(self, build: targets.Build) -> str:
+        dataroot = build.get_install_path("localstate") / "lib" / "edgedb"
 
-        dataroot = build.get_install_path('localstate') / 'lib' / 'edgedb'
-
-        action = build.target.get_action('adduser', build)
+        action = build.target.get_action("adduser", build)
+        assert isinstance(action, targets.AddUserAction)
         user_script = action.get_script(
-            name='edgedb', group='edgedb', homedir=dataroot,
-            shell=True, system=True,
-            description='EdgeDB Server')
+            name="edgedb",
+            group="edgedb",
+            homedir=str(dataroot),
+            shell=True,
+            system=True,
+            description="EdgeDB Server",
+        )
 
         return user_script
 
-    def get_exposed_commands(self, build) -> list:
-        bindir = build.get_install_path('bin')
+    def get_exposed_commands(self, build: targets.Build) -> list[pathlib.Path]:
+        bindir = build.get_install_path("bin")
 
         return [
-            bindir / 'edgedb-server',
+            bindir / "edgedb-server",
         ]
 
     def get_meta_packages(
         self,
-        build,
+        build: targets.Build,
         root_version: str,
-    ) -> List[packages.MetaPackage]:
+    ) -> list[packages.MetaPackage]:
         return [
             packages.MetaPackage(
-                name=f'edgedb-{self.slot}',
-                description=f'{self.description} (server and client tools)',
+                name=f"edgedb-{self.slot}",
+                description=f"{self.description} (server and client tools)",
                 dependencies={
-                    f'edgedb-server-{self.slot}': f'= {root_version}',
-                    'edgedb-cli': '',
-                }
+                    f"edgedb-server-{self.slot}": f"= {root_version}",
+                    "edgedb-cli": "",
+                },
             )
         ]
 
     def get_conflict_packages(
         self,
-        build,
+        build: targets.Build,
         root_version: str,
-    ) -> List[packages.MetaPackage]:
-        return ['edgedb-common']
+    ) -> list[str]:
+        return ["edgedb-common"]
 
-    def _get_edgedb_catalog_version(self, build) -> str:
-        source = pathlib.Path(build.get_source_dir(self, relative_to=None))
+    def _get_edgedb_catalog_version(self, build: targets.Build) -> str:
+        source = pathlib.Path(build.get_source_dir(self, relative_to="fsroot"))
 
-        defines = source / 'edb' / 'buildmeta.py'
+        defines = source / "edb" / "buildmeta.py"
         if not defines.exists():
-            defines = source / 'edb' / 'server' / 'defines.py'
+            defines = source / "edb" / "server" / "defines.py"
 
-        with open(defines, 'r') as f:
+        with open(defines, "r") as f:
             for line in f:
-                if line.startswith('EDGEDB_CATALOG_VERSION = '):
-                    return str(int(line[len('EDGEDB_CATALOG_VERSION = '):]))
+                if line.startswith("EDGEDB_CATALOG_VERSION = "):
+                    return str(int(line[len("EDGEDB_CATALOG_VERSION = ") :]))
             else:
-                raise RuntimeError('cannot determine EDGEDB_CATALOG_VERSION')
+                raise RuntimeError("cannot determine EDGEDB_CATALOG_VERSION")
 
     def get_provided_packages(
         self,
-        build,
+        build: targets.Build,
         root_version: str,
-    ) -> List[Tuple[str, str]]:
+    ) -> list[tuple[str, str]]:
         catver = self._get_edgedb_catalog_version(build)
-        return [('edgedb-server-catalog', catver)]
+        return [("edgedb-server-catalog", catver)]
 
 
 class Cryptography(packages.PythonPackage):
-    def get_requirements(self) -> List[poetry_dep.Dependency]:
+    def get_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
         return reqs
 
-    def get_build_requirements(self) -> List[poetry_dep.Dependency]:
+    def get_build_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
         return reqs

@@ -15,7 +15,8 @@ APP_PREFIX = "edbcloud/app/edgedbeng/pkg/"
 
 
 def list_secret_ids_by_prefix(
-    client: boto3.SecretsManagerClient, secret_id_prefix: str,
+    client: boto3.SecretsManagerClient,
+    secret_id_prefix: str,
 ) -> Set[str]:
     paginator = client.get_paginator("list_secrets")
     secret_ids = set()
@@ -25,9 +26,7 @@ def list_secret_ids_by_prefix(
             Filters=[
                 {
                     "Key": "name",
-                    "Values": [
-                        f"{APP_PREFIX}{secret_id_prefix}"
-                    ],
+                    "Values": [f"{APP_PREFIX}{secret_id_prefix}"],
                 },
             ],
         ):
@@ -141,7 +140,7 @@ def main(filename: str, secret_id_prefix: str, target_directory: str) -> None:
             continue
 
         if secret_id.startswith(APP_PREFIX):
-            secret_id = secret_id[len(APP_PREFIX):]
+            secret_id = secret_id[len(APP_PREFIX) :]
         if filename:
             secret_id = filename
         with open(target_dir_path / secret_id, "w") as target_file:

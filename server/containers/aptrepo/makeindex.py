@@ -16,7 +16,7 @@ import tempfile
 slot_regexp = re.compile(
     r"^(\w+(?:-[a-zA-Z]*)*?)"
     r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
-    re.A
+    re.A,
 )
 
 
@@ -37,7 +37,7 @@ version_regexp = re.compile(
     )?
     (?:\+(?P<local>[a-z0-9]+(?:[\.][a-z0-9]+)*))?
     $""",
-    re.X | re.A
+    re.X | re.A,
 )
 
 
@@ -53,32 +53,32 @@ class Version(TypedDict):
 def parse_version(ver: str) -> Version:
     v = version_regexp.match(ver)
     if v is None:
-        raise ValueError(f'cannot parse version: {ver}')
+        raise ValueError(f"cannot parse version: {ver}")
     metadata = []
     prerelease: List[str] = []
-    if v.group('pre'):
-        pre_l = v.group('pre_l')
-        if pre_l in {'a', 'alpha'}:
-            pre_kind = 'alpha'
-        elif pre_l in {'b', 'beta'}:
-            pre_kind = 'beta'
-        elif pre_l in {'c', 'rc'}:
-            pre_kind = 'rc'
+    if v.group("pre"):
+        pre_l = v.group("pre_l")
+        if pre_l in {"a", "alpha"}:
+            pre_kind = "alpha"
+        elif pre_l in {"b", "beta"}:
+            pre_kind = "beta"
+        elif pre_l in {"c", "rc"}:
+            pre_kind = "rc"
         else:
-            raise ValueError(f'cannot determine release stage from {ver}')
+            raise ValueError(f"cannot determine release stage from {ver}")
 
         prerelease.append(f"{pre_kind}.{v.group('pre_n')}")
-        if v.group('dev'):
+        if v.group("dev"):
             prerelease.append(f'dev.{v.group("dev_n")}')
 
-    elif v.group('dev'):
-        prerelease.append('alpha.1')
+    elif v.group("dev"):
+        prerelease.append("alpha.1")
         prerelease.append(f'dev.{v.group("dev_n")}')
 
-    if v.group('local'):
-        metadata.extend(v.group('local').split('.'))
+    if v.group("local"):
+        metadata.extend(v.group("local").split("."))
 
-    release = [int(r) for r in v.group('release').split('.')]
+    release = [int(r) for r in v.group("release").split(".")]
 
     return Version(
         major=release[0],
@@ -99,23 +99,23 @@ def format_version_key(ver: Version, revision: str) -> str:
             ("~" if pre.startswith("dev.") else ".") + pre
             for pre in ver["prerelease"]
         )
-        ver_key += '~' + ''.join(prerelease).lstrip('.~')
+        ver_key += "~" + "".join(prerelease).lstrip(".~")
     if revision:
         ver_key += f".{revision}"
     return ver_key
 
 
 def extract_catver(path: str) -> Optional[int]:
-    cv_prefix = 'EDGEDB_CATALOG_VERSION = '
+    cv_prefix = "EDGEDB_CATALOG_VERSION = "
     defines_pattern = (
-        '*/usr/lib/*-linux-gnu/edgedb-server-*/lib/python*/site-packages/edb'
-        + '/server/defines.py'
+        "*/usr/lib/*-linux-gnu/edgedb-server-*/lib/python*/site-packages/edb"
+        + "/server/defines.py"
     )
 
     with tempfile.TemporaryDirectory() as _td:
         td = pathlib.Path(_td)
-        subprocess.run(['ar', 'x', path, 'data.tar.xz'], cwd=_td)
-        with tarfile.open(td / 'data.tar.xz', 'r:xz') as tarf:
+        subprocess.run(["ar", "x", path, "data.tar.xz"], cwd=_td)
+        with tarfile.open(td / "data.tar.xz", "r:xz") as tarf:
             for member in tarf.getmembers():
                 if fnmatch.fnmatch(member.path, defines_pattern):
                     df = tarf.extractfile(member)
@@ -123,20 +123,20 @@ def extract_catver(path: str) -> Optional[int]:
                         for lb in df.readlines():
                             line = lb.decode()
                             if line.startswith(cv_prefix):
-                                return int(line[len(cv_prefix):])
+                                return int(line[len(cv_prefix) :])
 
     return None
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--full-regen', action='store_true')
-    parser.add_argument('repopath')
-    parser.add_argument('outputdir')
+    parser.add_argument("--full-regen", action="store_true")
+    parser.add_argument("repopath")
+    parser.add_argument("outputdir")
     args = parser.parse_args()
 
     result = subprocess.run(
-        ['reprepro', '-b', args.repopath, 'dumpreferences'],
+        ["reprepro", "-b", args.repopath, "dumpreferences"],
         universal_newlines=True,
         check=True,
         stdout=subprocess.PIPE,
@@ -145,41 +145,49 @@ def main():
 
     dists = set()
 
-    for line in result.stdout.split('\n'):
+    for line in result.stdout.split("\n"):
         if not line.strip():
             continue
 
-        dist, _, _ = line.partition('|')
+        dist, _, _ = line.partition("|")
         dists.add(dist)
 
-    list_format = r'\0'.join((
-        r'${$architecture}',
-        r'${package}',
-        r'${version}',
-        r'${$fullfilename}',
-    )) + r'\n'
+    list_format = (
+        r"\0".join(
+            (
+                r"${$architecture}",
+                r"${package}",
+                r"${version}",
+                r"${$fullfilename}",
+            )
+        )
+        + r"\n"
+    )
 
     idxdir = pathlib.Path(args.outputdir)
 
     for dist in dists:
-        idxfile = idxdir / f'{dist}.json'
+        idxfile = idxdir / f"{dist}.json"
         existing = {}
 
         if idxfile.exists():
-            with open(idxfile, 'r') as f:
+            with open(idxfile, "r") as f:
                 index = json.load(f)
-                if index and 'packages' in index:
-                    for entry in index['packages']:
-                        if 'version_key' in entry:
+                if index and "packages" in index:
+                    for entry in index["packages"]:
+                        if "version_key" in entry:
                             existing[
-                                entry['name'], entry['version_key']
+                                entry["name"], entry["version_key"]
                             ] = entry
 
         result = subprocess.run(
             [
-                'reprepro', '-b', args.repopath,
-                f'--list-format={list_format}',
-                'list', dist,
+                "reprepro",
+                "-b",
+                args.repopath,
+                f"--list-format={list_format}",
+                "list",
+                dist,
             ],
             universal_newlines=True,
             check=True,
@@ -188,24 +196,24 @@ def main():
         )
 
         index = []
-        for line in result.stdout.split('\n'):
+        for line in result.stdout.split("\n"):
             if not line.strip():
                 continue
 
-            arch, pkgname, pkgver, pkgfile = line.split('\0')
-            relver, _, revver = pkgver.rpartition('-')
+            arch, pkgname, pkgver, pkgfile = line.split("\0")
+            relver, _, revver = pkgver.rpartition("-")
 
             m = slot_regexp.match(pkgname)
             if not m:
-                print('cannot parse package name: {}'.format(pkgname))
+                print("cannot parse package name: {}".format(pkgname))
                 basename = pkgname
                 slot = None
             else:
                 basename = m.group(1)
                 slot = m.group(2)
 
-            if arch == 'amd64':
-                arch = 'x86_64'
+            if arch == "amd64":
+                arch = "x86_64"
 
             parsed_ver = parse_version(relver)
             version_key = format_version_key(parsed_ver, revver)
@@ -215,38 +223,40 @@ def main():
                 continue
 
             if (
-                not any(m.startswith('cv') for m in parsed_ver["metadata"])
-                and basename == 'edgedb-server'
+                not any(m.startswith("cv") for m in parsed_ver["metadata"])
+                and basename == "edgedb-server"
             ):
                 if not pathlib.Path(pkgfile).exists():
-                    print(f'package file does not exist: {pkgfile}')
+                    print(f"package file does not exist: {pkgfile}")
                 else:
                     catver = extract_catver(pkgfile)
                     if catver is None:
-                        print(f'cannot extract catalog version from {pkgfile}')
+                        print(f"cannot extract catalog version from {pkgfile}")
                     else:
                         parsed_ver["metadata"] += (f"cv{catver}",)
-                        print(f'extracted catver {catver} from {pkgfile}')
+                        print(f"extracted catver {catver} from {pkgfile}")
 
-            installref = '{}={}-{}'.format(pkgname, relver, revver)
+            installref = "{}={}-{}".format(pkgname, relver, revver)
 
-            index.append({
-                'basename': basename,
-                'slot': slot,
-                'name': pkgname,
-                'version': relver,
-                'parsed_version': parsed_ver,
-                'version_key': version_key,
-                'revision': revver,
-                'architecture': arch,
-                'installref': installref,
-            })
+            index.append(
+                {
+                    "basename": basename,
+                    "slot": slot,
+                    "name": pkgname,
+                    "version": relver,
+                    "parsed_version": parsed_ver,
+                    "version_key": version_key,
+                    "revision": revver,
+                    "architecture": arch,
+                    "installref": installref,
+                }
+            )
 
-            print('makeindex: noted {}'.format(installref))
+            print("makeindex: noted {}".format(installref))
 
-        with open(idxfile, 'w') as f:
-            json.dump({'packages': index}, f)
+        with open(idxfile, "w") as f:
+            json.dump({"packages": index}, f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

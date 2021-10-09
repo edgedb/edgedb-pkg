@@ -13,7 +13,7 @@ import subprocess
 slot_regexp = re.compile(
     r"^(\w+(?:-[a-zA-Z]*)*?)"
     r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
-    re.A
+    re.A,
 )
 
 
@@ -34,7 +34,7 @@ version_regexp = re.compile(
     )?
     (?:\+(?P<local>[a-z0-9]+(?:[\.][a-z0-9]+)*))?
     $""",
-    re.X | re.A
+    re.X | re.A,
 )
 
 
@@ -50,32 +50,32 @@ class Version(TypedDict):
 def parse_version(ver: str) -> Version:
     v = version_regexp.match(ver)
     if v is None:
-        raise ValueError(f'cannot parse version: {ver}')
+        raise ValueError(f"cannot parse version: {ver}")
     metadata = []
     prerelease: List[str] = []
-    if v.group('pre'):
-        pre_l = v.group('pre_l')
-        if pre_l in {'a', 'alpha'}:
-            pre_kind = 'alpha'
-        elif pre_l in {'b', 'beta'}:
-            pre_kind = 'beta'
-        elif pre_l in {'c', 'rc'}:
-            pre_kind = 'rc'
+    if v.group("pre"):
+        pre_l = v.group("pre_l")
+        if pre_l in {"a", "alpha"}:
+            pre_kind = "alpha"
+        elif pre_l in {"b", "beta"}:
+            pre_kind = "beta"
+        elif pre_l in {"c", "rc"}:
+            pre_kind = "rc"
         else:
-            raise ValueError(f'cannot determine release stage from {ver}')
+            raise ValueError(f"cannot determine release stage from {ver}")
 
         prerelease.append(f"{pre_kind}.{v.group('pre_n')}")
-        if v.group('dev'):
+        if v.group("dev"):
             prerelease.append(f'dev.{v.group("dev_n")}')
 
-    elif v.group('dev'):
-        prerelease.append('alpha.1')
+    elif v.group("dev"):
+        prerelease.append("alpha.1")
         prerelease.append(f'dev.{v.group("dev_n")}')
 
-    if v.group('local'):
-        metadata.extend(v.group('local').split('.'))
+    if v.group("local"):
+        metadata.extend(v.group("local").split("."))
 
-    release = [int(r) for r in v.group('release').split('.')]
+    release = [int(r) for r in v.group("release").split(".")]
 
     return Version(
         major=release[0],
@@ -96,7 +96,7 @@ def format_version_key(ver: Version, revision: str) -> str:
             ("~" if pre.startswith("dev.") else ".") + pre
             for pre in ver["prerelease"]
         )
-        ver_key += '~' + ''.join(prerelease).lstrip('.~')
+        ver_key += "~" + "".join(prerelease).lstrip(".~")
     if revision:
         ver_key += f".{revision}"
     return ver_key
@@ -104,23 +104,23 @@ def format_version_key(ver: Version, revision: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('repopath')
-    parser.add_argument('outputdir')
-    parser.add_argument('repoids')
+    parser.add_argument("repopath")
+    parser.add_argument("outputdir")
+    parser.add_argument("repoids")
     args = parser.parse_args()
 
-    for dist in args.repoids.split(','):
+    for dist in args.repoids.split(","):
         result = subprocess.run(
             [
-                'repoquery',
-                '--repofrompath={rid},{path}'.format(
+                "repoquery",
+                "--repofrompath={rid},{path}".format(
                     rid=dist,
                     path=os.path.join(args.repopath, dist),
                 ),
-                '--repoid={}'.format(dist),
-                '--qf=%{name}|%{version}|%{release}|%{arch}',
-                '-q',
-                '*',
+                "--repoid={}".format(dist),
+                "--qf=%{name}|%{version}|%{release}|%{arch}",
+                "-q",
+                "*",
             ],
             universal_newlines=True,
             check=True,
@@ -130,15 +130,15 @@ def main():
 
         index = []
 
-        for line in result.stdout.split('\n'):
+        for line in result.stdout.split("\n"):
             if not line.strip():
                 continue
 
-            pkgname, pkgver, release, arch = line.split('|')
+            pkgname, pkgver, release, arch = line.split("|")
 
             m = slot_regexp.match(pkgname)
             if not m:
-                print('cannot parse package name: {}'.format(pkgname))
+                print("cannot parse package name: {}".format(pkgname))
                 basename = pkgname
                 slot = None
             else:
@@ -147,25 +147,27 @@ def main():
 
             parsed_ver = parse_version(pkgver)
 
-            installref = '{}-{}-{}.{}'.format(pkgname, pkgver, release, arch)
-            index.append({
-                'basename': basename,
-                'slot': slot,
-                'name': pkgname,
-                'version': pkgver,
-                'parsed_version': parsed_ver,
-                'version_key': format_version_key(parsed_ver, release),
-                'revision': release,
-                'architecture': arch,
-                'installref': installref
-            })
+            installref = "{}-{}-{}.{}".format(pkgname, pkgver, release, arch)
+            index.append(
+                {
+                    "basename": basename,
+                    "slot": slot,
+                    "name": pkgname,
+                    "version": pkgver,
+                    "parsed_version": parsed_ver,
+                    "version_key": format_version_key(parsed_ver, release),
+                    "revision": release,
+                    "architecture": arch,
+                    "installref": installref,
+                }
+            )
 
-            print('makeindex: noted {}'.format(installref))
+            print("makeindex: noted {}".format(installref))
 
-        out = os.path.join(args.outputdir, '{}.json'.format(dist))
-        with open(out, 'w') as f:
-            json.dump({'packages': index}, f)
+        out = os.path.join(args.outputdir, "{}.json".format(dist))
+        with open(out, "w") as f:
+            json.dump({"packages": index}, f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
