@@ -49,7 +49,7 @@ VERSION_PATTERN = re.compile(
     )?
     (?:\+(?P<local>[a-z0-9]+(?:[\.][a-z0-9]+)*))?
     $""",
-    re.X | re.A
+    re.X | re.A,
 )
 
 PACKAGE_NAME_NO_DEV_RE = re.compile(r"([^-]+)((-[^-]+)*)-dev\d+")
@@ -111,32 +111,32 @@ def sha256(path: pathlib.Path) -> pathlib.Path:
 def parse_version(ver: str) -> Version:
     v = VERSION_PATTERN.match(ver)
     if v is None:
-        raise ValueError(f'cannot parse version: {ver}')
+        raise ValueError(f"cannot parse version: {ver}")
     metadata = []
     prerelease: List[str] = []
-    if v.group('pre'):
-        pre_l = v.group('pre_l')
-        if pre_l in {'a', 'alpha'}:
-            pre_kind = 'alpha'
-        elif pre_l in {'b', 'beta'}:
-            pre_kind = 'beta'
-        elif pre_l in {'c', 'rc'}:
-            pre_kind = 'rc'
+    if v.group("pre"):
+        pre_l = v.group("pre_l")
+        if pre_l in {"a", "alpha"}:
+            pre_kind = "alpha"
+        elif pre_l in {"b", "beta"}:
+            pre_kind = "beta"
+        elif pre_l in {"c", "rc"}:
+            pre_kind = "rc"
         else:
-            raise ValueError(f'cannot determine release stage from {ver}')
+            raise ValueError(f"cannot determine release stage from {ver}")
 
         prerelease.append(f"{pre_kind}.{v.group('pre_n')}")
-        if v.group('dev'):
+        if v.group("dev"):
             prerelease.append(f'dev.{v.group("dev_n")}')
 
-    elif v.group('dev'):
-        prerelease.append('alpha.1')
+    elif v.group("dev"):
+        prerelease.append("alpha.1")
         prerelease.append(f'dev.{v.group("dev_n")}')
 
-    if v.group('local'):
-        metadata.extend(v.group('local').split('.'))
+    if v.group("local"):
+        metadata.extend(v.group("local").split("."))
 
-    release = [int(r) for r in v.group('release').split('.')]
+    release = [int(r) for r in v.group("release").split(".")]
 
     return Version(
         major=release[0],
@@ -157,7 +157,7 @@ def format_version_key(ver: Version, revision: str) -> str:
             ("~" if pre.startswith("dev.") else ".") + pre
             for pre in ver["prerelease"]
         )
-        ver_key += '~' + ''.join(prerelease).lstrip('.~')
+        ver_key += "~" + "".join(prerelease).lstrip(".~")
     if revision:
         ver_key += f".{revision}"
     return ver_key
@@ -230,13 +230,13 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
             return
 
         dist, _, arch_subdist = path.parent.name.rpartition("-")
-        arch, _, _ = arch_subdist.partition('.')
+        arch, _, _ = arch_subdist.partition(".")
 
         basename = m.group("basename")
         slot = m.group("slot") or ""
         installref = obj.key
-        if not installref.startswith('/'):
-            installref = f'/{installref}'
+        if not installref.startswith("/"):
+            installref = f"/{installref}"
 
         parsed_ver = parse_version(m.group("version"))
 
@@ -414,31 +414,34 @@ def main(upload_listing: str) -> None:
                     redirect["HttpRedirectCode"] = "307"
                     break
             else:
-                existing_rrules.append({
-                    "Condition": {
-                        "KeyPrefixEquals": src_key,
-                    },
-                    "Redirect": {
-                        "HttpRedirectCode": "307",
-                        "Protocol": "https",
-                        "HostName": "packages.edgedb.com",
-                        "ReplaceKeyPrefixWith": tgt_key,
+                existing_rrules.append(
+                    {
+                        "Condition": {
+                            "KeyPrefixEquals": src_key,
+                        },
+                        "Redirect": {
+                            "HttpRedirectCode": "307",
+                            "Protocol": "https",
+                            "HostName": "packages.edgedb.com",
+                            "ReplaceKeyPrefixWith": tgt_key,
+                        },
                     }
-                })
+                )
 
         website_config = {
-            'RoutingRules': existing_rrules,
+            "RoutingRules": existing_rrules,
         }
 
         if website.error_document is not None:
-            website_config['ErrorDocument'] = website.error_document
+            website_config["ErrorDocument"] = website.error_document
 
         if website.index_document is not None:
-            website_config['IndexDocument'] = website.index_document
+            website_config["IndexDocument"] = website.index_document
 
         if website.redirect_all_requests_to is not None:
-            website_config['RedirectAllRequestsTo'] = (
-                website.redirect_all_requests_to)
+            website_config[
+                "RedirectAllRequestsTo"
+            ] = website.redirect_all_requests_to
 
         print("updating bucket website config:", website_config)
         website.put(WebsiteConfiguration=website_config)

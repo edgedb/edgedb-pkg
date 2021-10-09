@@ -11,7 +11,7 @@ import re
 import sys
 
 
-posint = r'(0|[1-9]\d*)'
+posint = r"(0|[1-9]\d*)"
 shortform = re.compile(
     rf"""
     ^
@@ -44,33 +44,33 @@ def main():
 
     branch = sys.argv[1].strip()
     if branch.startswith("refs/heads/"):
-        branch = branch[len("refs/heads/"):]
+        branch = branch[len("refs/heads/") :]
 
-    print(f'::set-output name=branch::{branch}')
+    print(f"::set-output name=branch::{branch}")
 
-    if branch.startswith('v'):
+    if branch.startswith("v"):
         version = branch[1:]
-    elif branch.startswith('release/'):
-        version = branch[len('release/'):]
-    elif branch.startswith('releases/'):
-        version = branch[len('releases/'):]
+    elif branch.startswith("release/"):
+        version = branch[len("release/") :]
+    elif branch.startswith("releases/"):
+        version = branch[len("releases/") :]
     else:
-        print(f'::set-output name=version::{branch}')
+        print(f"::set-output name=version::{branch}")
         return
 
     m = shortform.match(version)
     if m:
-        major = m.group('major')
-        minor = m.group('minor')
-        micro = m.group('micro') or '0'
-        prekind = m.group('prekind')
-        preval = m.group('preval')
+        major = m.group("major")
+        minor = m.group("minor")
+        micro = m.group("micro") or "0"
+        prekind = m.group("prekind")
+        preval = m.group("preval")
         version = f"{major}.{minor}.{micro}"
         if prekind:
             longprekind = prerelease_kinds.get(prekind, "dev")
             version += f"-{longprekind}.{preval}"
 
-    print(f'::set-output name=version::{version}')
+    print(f"::set-output name=version::{version}")
 
 
 if __name__ == "__main__":

@@ -1,15 +1,16 @@
 from metapkg import packages
+from metapkg import targets
 
 
 class EdgeDBCLI(packages.BundledRustPackage):
 
     title = "EdgeDBCLI"
-    name = 'edgedb-cli'
-    description = 'EdgeDB Command Line Tools'
-    license = 'ASL 2.0'
-    group = 'Applications/Databases'
-    identifier = 'com.edgedb.edgedb-cli'
-    url = 'https://edgedb.com/'
+    name = "edgedb-cli"
+    description = "EdgeDB Command Line Tools"
+    license = "ASL 2.0"
+    group = "Applications/Databases"
+    identifier = "com.edgedb.edgedb-cli"
+    url = "https://edgedb.com/"
 
     sources = (
         {
@@ -17,5 +18,7 @@ class EdgeDBCLI(packages.BundledRustPackage):
         },
     )
 
-    def get_package_layout(self, build) -> packages.PackageFileLayout:
+    def get_package_layout(
+        self, build: targets.Build
+    ) -> packages.PackageFileLayout:
         return packages.PackageFileLayout.FLAT
