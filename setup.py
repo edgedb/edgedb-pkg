@@ -12,5 +12,7 @@ setuptools.setup(
     author_email="hello@magic.io",
     packages=["edgedbpkg"],
     include_package_data=True,
-    install_requires=["metapkg"],
+    install_requires=[
+        "metapkg@git+https://github.com/edgedb/metapkg.git@master",
+    ],
 )
