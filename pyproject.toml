@@ -3,6 +3,7 @@ line-length = 79
 target-version = ["py39"]
 
 [tool.mypy]
+files = "edgedbpkg/**/*.py"
 python_version = "3.9"
 follow_imports = "normal"
 ignore_missing_imports = true
