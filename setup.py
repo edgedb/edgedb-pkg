@@ -13,7 +13,4 @@ setuptools.setup(
     packages=["edgedbpkg"],
     include_package_data=True,
     install_requires=["metapkg"],
-    entry_points={
-        "edbsre.services": ["pub-packages=edgedbpkg._sre:PubPackagesService"]
-    },
 )
