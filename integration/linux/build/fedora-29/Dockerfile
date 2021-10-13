@@ -20,13 +20,13 @@ RUN yum install -y \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en
 
-ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.9.7
+ENV GPG_KEY a035c8c19219ba821ecea86b64e628f8d684696d
+ENV PYTHON_VERSION 3.10.0
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.53.0
+ENV RUST_VERSION 1.55.0
 
 RUN set -ex \
 	\
@@ -114,8 +114,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -Exeo pipefail\n\
 \n\
-pip install -U git+https://github.com/edgedb/metapkg\n\
-pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\
     p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
@@ -172,7 +171,7 @@ if [ "$1" == "bash" ]; then\n\
     echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     exec /bin/bash\n\
 else\n\
-    python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
+    python -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     ls -al "${dest}"\n\
 fi\n\' >/entrypoint.sh
 

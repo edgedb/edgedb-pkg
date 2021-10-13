@@ -57,13 +57,15 @@ fi
 declare -A gpgKeys=(
 	[3.8]='E3FF2839C048B25C084DEBE9B26995E310250568'
 	[3.9]='E3FF2839C048B25C084DEBE9B26995E310250568'
+	[3.10]='a035c8c19219ba821ecea86b64e628f8d684696d'
+	[3.11]='a035c8c19219ba821ecea86b64e628f8d684696d'
 )
 
 cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
-version="3.9"
+version="3.10"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.53.0"
+rustVersion="1.55.0"
 
 generated_warning() {
 	cat <<-EOH

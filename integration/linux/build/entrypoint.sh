@@ -2,8 +2,7 @@
 
 set -Exeo pipefail
 
-pip install -U git+https://github.com/edgedb/metapkg
-pip install -U git+https://github.com/edgedb/edgedb-pkg
+python -m pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 if [ -n "${METAPKG_PATH}" ]; then
     p=$(python -c 'import metapkg;print(metapkg.__path__[0])')
@@ -60,6 +59,6 @@ if [ "$1" == "bash" ]; then
     echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
     exec /bin/bash
 else
-    python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
+    python -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"
     ls -al "${dest}"
 fi
