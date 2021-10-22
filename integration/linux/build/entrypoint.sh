@@ -55,7 +55,7 @@ if [ -z "${PACKAGE}" ]; then
     PACKAGE="edgedbpkg.edgedb:EdgeDB"
 fi
 
-if [ "$1" == "bash" ]; then
+if [ "$1" == "bash" ] || [ "${GET_SHELL}" == "true" ]; then
     echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
     exec /bin/bash
 else

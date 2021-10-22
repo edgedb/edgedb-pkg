@@ -4,35 +4,46 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:buster
+FROM centos:7
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
 
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG C.UTF-8
+ENV LANG C
 
-# extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
-		libssl-dev \
-		tk-dev \
-		musl-tools \
-		sudo \
-	&& rm -rf /var/lib/apt/lists/*
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-ENV GPG_KEY a035c8c19219ba821ecea86b64e628f8d684696d
-ENV PYTHON_VERSION 3.10.0
+RUN yum install -y centos-release-scl \
+	&& yum install -y \
+	devtoolset-10 make patch flex bison \
+    wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
+    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
+	curl-devel xz-devel libffi-devel gettext \
+    perl-Getopt-Long sudo ca-certificates
+
+RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-10" \
+	> /etc/profile.d/enabledevtoolset10.sh
+
+ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
+ENV PYTHON_VERSION 3.9.7
+ENV GIT_VERSION 2.20.1
+ENV PATCHELF_VERSION 0.13
+ENV MUSL_VERSION 1.2.2
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.55.0
+ENV RUST_VERSION 1.56.0
+
+# Needed to pick up SCL stuff from profile.d/
+SHELL ["/bin/bash", "--login", "-c"]
 
 RUN set -ex \
-	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
+	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
+	&& wget -O patchelf.tar.bz2 "https://github.com/NixOS/patchelf/releases/download/${PATCHELF_VERSION}/patchelf-${PATCHELF_VERSION}.tar.bz2" \
+	&& wget -O musl.tar.gz "https://musl.libc.org/releases/musl-1.2.2.tar.gz" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& (try=1; while [ $try -le 5 ]; do \
@@ -44,9 +55,18 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
+	&& mkdir -p /usr/src/git \
+	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
+	&& rm git.tar.xz \
+	&& mkdir -p /usr/src/patchelf \
+	&& tar -xjC /usr/src/patchelf --strip-components=1 -f patchelf.tar.bz2 \
+	&& rm patchelf.tar.bz2 \
+	&& mkdir -p /usr/src/musl \
+	&& tar -xzC /usr/src/musl --strip-components=1 -f musl.tar.gz \
+	&& rm musl.tar.gz \
 	\
 	&& cd /usr/src/python \
-	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+	&& gnuArch="$(gcc -dumpmachine)" \
 	&& ./configure \
 		--build="$gnuArch" \
 		--enable-loadable-sqlite-extensions \
@@ -64,16 +84,28 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
-	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version \
+	&& cd /usr/src/git \
+	&& make prefix=/usr/local V=1 -j $(nproc) all \
+	&& make prefix=/usr/local install \
+	&& rm -rf /usr/src/git \
+	&& cd /usr/src/patchelf \
+	&& ./configure \
+	&& make -j $(nproc) \
+	&& make install \
+	&& rm -rf /usr/src/patchelf \
+	&& cd /usr/src/musl \
+	&& ./configure --disable-shared --bindir=/usr/local/bin \
+	&& make -j $(nproc) \
+	&& make install \
+	&& rm -rf /usr/src/musl \
+	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
-		--target x86_64-unknown-linux-musl \
+		--target nightly-x86_64-unknown-linux-musl \
 		--default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version
+	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -160,7 +192,7 @@ if [ -z "${PACKAGE}" ]; then\n\
     PACKAGE="edgedbpkg.edgedb:EdgeDB"\n\
 fi\n\
 \n\
-if [ "$1" == "bash" ]; then\n\
+if [ "$1" == "bash" ] || [ "${GET_SHELL}" == "true" ]; then\n\
     echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     exec /bin/bash\n\
 else\n\
@@ -170,4 +202,10 @@ fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN gcc --version \
+	&& python3 --version \
+	&& git --version \
+	&& rustc --version \
+	&& patchelf --version
+
+ENTRYPOINT ["/bin/sh", "--login", "-c", "/entrypoint.sh"]

@@ -9,7 +9,10 @@ from poetry.core.semver import version as poetry_version
 from metapkg import packages
 from metapkg import targets
 
+from edgedbpkg import libffi
+from edgedbpkg import libuuid
 from edgedbpkg import openssl
+from edgedbpkg import zlib
 
 
 class Python(packages.BundledPackage):
@@ -28,16 +31,23 @@ class Python(packages.BundledPackage):
 
     artifact_requirements = [
         "openssl (>=1.1.1)",
+        "uuid",
         "zlib",
     ]
 
     artifact_build_requirements = [
-        'libffi-dev; extra == "capability-libffi"',
+        "libffi-dev (>=3.0.13)",
         "openssl-dev (>=1.1.1)",
+        "uuid-dev",
         "zlib-dev",
     ]
 
-    bundle_deps = [openssl.OpenSSL.from_upstream_version(version="1.1.1l")]
+    bundle_deps = [
+        openssl.OpenSSL.from_upstream_version(version="1.1.1l"),
+        libffi.LibFFI("3.4.2"),
+        libuuid.LibUUID("2.37"),
+        zlib.Zlib("1.2.11"),
+    ]
 
     @classmethod
     def get_source_url_variables(cls, version: str) -> dict[str, str]:
@@ -98,8 +108,20 @@ class Python(packages.BundledPackage):
                     )
                 )
 
-        if "libffi" not in build.target.get_capabilities():
-            configure_flags["--without-system-ffi"] = None
+        libffi_pkg = build.get_package("libffi")
+        if build.is_bundled(libffi_pkg):
+            libffi_path = build.get_install_dir(
+                libffi_pkg, relative_to="pkgbuild"
+            )
+            libffi_path /= build.get_full_install_prefix().relative_to("/")
+            libffi_rel_path = f'$(pwd)/"{libffi_path}"'
+            configure_flags["LIBFFI_CFLAGS"] = f"!-I{libffi_rel_path}/include/"
+            libffi_ldflags = build.sh_get_bundled_shlib_ldflags(
+                libffi_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["LIBFFI_LIBS"] = f"!{libffi_ldflags}' -lffi'"
+        else:
+            configure_flags["--with-system-ffi"] = None
 
         if platform.system() == "Darwin":
             configure_flags[
@@ -118,13 +140,38 @@ class Python(packages.BundledPackage):
                 "--with-openssl-rpath"
             ] = openssl_pkg.get_shlib_paths(build)[0]
 
-        return build.sh_format_command(
-            configure, configure_flags, force_args_eq=True
-        )
+        uuid_pkg = build.get_package("uuid")
+        if build.is_bundled(uuid_pkg):
+            uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
+            uuid_path /= build.get_full_install_prefix().relative_to("/")
+            uuid_rel_path = f'$(pwd)/"{uuid_path}"'
+            configure_flags["UUID_CFLAGS"] = f"!-I{uuid_rel_path}/include/"
+            uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
+                uuid_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}' -luuid'"
+
+        zlib_pkg = build.get_package("zlib")
+        if build.is_bundled(zlib_pkg):
+            zlib_path = build.get_install_dir(zlib_pkg, relative_to="pkgbuild")
+            zlib_path /= build.get_full_install_prefix().relative_to("/")
+            zlib_rel_path = f'$(pwd)/"{zlib_path}"'
+            configure_flags["ZLIB_CFLAGS"] = f"!-I{zlib_rel_path}/include/"
+            zlib_ldflags = build.sh_get_bundled_shlib_ldflags(
+                zlib_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}' -lz'"
+
+        return build.sh_configure(configure, configure_flags)
 
     def _get_make_env(self, build: targets.Build, wd: str) -> str:
         openssl_pkg = build.get_package("openssl")
-        env = build.get_ld_env([openssl_pkg], wd)
+        libffi_pkg = build.get_package("libffi")
+        uuid_pkg = build.get_package("uuid")
+        zlib_pkg = build.get_package("zlib")
+        env = build.get_ld_env(
+            [openssl_pkg, libffi_pkg, uuid_pkg, zlib_pkg], wd
+        )
         return " ".join(env)
 
     def get_build_script(self, build: targets.Build) -> str:
@@ -152,7 +199,8 @@ class Python(packages.BundledPackage):
         make_wrapper = textwrap.dedent(
             f"""\
             echo '#!{bash}' > python-wrapper
-            echo 'd=$(dirname $0)' >> python-wrapper
+            echo 'd=$(cd -- "$(dirname "$0")" >/dev/null 2>&1; pwd -P)' \\
+                >> python-wrapper
             echo 'unset __PYVENV_LAUNCHER__' >> python-wrapper
             {f"echo 'export {wrapper_env}' >> python-wrapper"
              if wrapper_env else ""}
@@ -166,7 +214,23 @@ class Python(packages.BundledPackage):
         """
         )
 
-        disabled_modules = "_sqlite3 _tkinter _dbm _gdbm _lzma _bz2"
+        disabled_modules = [
+            "_sqlite3",
+            "_tkinter",
+            "_dbm",
+            "_gdbm",
+            "_lzma",
+            "_bz2",
+            "_curses",
+            "_curses_panel",
+            "_crypt",
+            "audioop",
+            "readline",
+            "nis",
+            "ossaudiodev",
+            "spwd",
+        ]
+
         make_env = self._get_make_env(build, "$(pwd)")
 
         return textwrap.dedent(
@@ -176,14 +240,13 @@ class Python(packages.BundledPackage):
             unset __PYVENV_LAUNCHER__
             echo '*disabled*' >> Modules/Setup.local
             echo '' >> Modules/Setup.local
-            echo {disabled_modules} >> Modules/Setup.local
+            echo {' '.join(disabled_modules)} >> Modules/Setup.local
             # make sure config.c is regenerated reliably by make
             rm Modules/config.c
             ls -al Modules/
             {make} {make_env}
             ./{python} -m ensurepip --root "{dest}"
-            {make_wrapper}
-        """
+            {make_wrapper}"""
         )
 
     def get_build_install_script(self, build: targets.Build) -> str:

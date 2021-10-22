@@ -63,9 +63,9 @@ declare -A gpgKeys=(
 
 cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
-version="3.10"
+version="3.9"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.55.0"
+rustVersion="1.56.0"
 
 generated_warning() {
 	cat <<-EOH
@@ -161,7 +161,7 @@ $SED -ri \
 	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
 	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
 	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!' \
-	-e 's!^(FROM (\w+)):.*!\1:'"${variant#*-}"'!'\
+	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
 	"${target}"
 
 $AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"

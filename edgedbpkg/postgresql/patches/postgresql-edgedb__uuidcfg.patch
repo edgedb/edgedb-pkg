@@ -1,0 +1,193 @@
+From a1f785181162a25bcea1e3799878a5253d43aba8 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Fri, 15 Oct 2021 09:55:43 -0700
+Subject: [PATCH] Use pkg-config for libuuid
+
+---
+ configure              | 98 ++++++++++++++++++++++++++++++++++++++++++
+ configure.in           |  3 ++
+ src/Makefile.global.in |  4 +-
+ 3 files changed, 104 insertions(+), 1 deletion(-)
+
+diff --git a/configure b/configure
+index 84dbb59b76..2979f57e99 100755
+--- a/configure
++++ b/configure
+@@ -651,6 +651,7 @@ CFLAGS_SSE42
+ have_win32_dbghelp
+ LIBOBJS
+ UUID_LIBS
++UUID_CFLAGS
+ LDAP_LIBS_BE
+ LDAP_LIBS_FE
+ PTHREAD_CFLAGS
+@@ -901,6 +902,8 @@ LDFLAGS_EX
+ LDFLAGS_SL
+ PERL
+ PYTHON
++UUID_CFLAGS
++UUID_LIBS
+ MSGFMT
+ TCLSH'
+ 
+@@ -1611,6 +1614,8 @@ Some influential environment variables:
+   LDFLAGS_SL  extra linker flags for linking shared libraries only
+   PERL        Perl program
+   PYTHON      Python program
++  UUID_CFLAGS C compiler flags for UUID, overriding pkg-config
++  UUID_LIBS   linker flags for UUID, overriding pkg-config
+   MSGFMT      msgfmt program for NLS
+   TCLSH       Tcl interpreter program (tclsh)
+ 
+@@ -12796,6 +12801,98 @@ else
+ fi
+ 
+ elif test "$with_uuid" = e2fs ; then
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid" >&5
++$as_echo_n "checking for uuid... " >&6; }
++
++if test -n "$UUID_CFLAGS"; then
++    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$UUID_LIBS"; then
++    pkg_cv_UUID_LIBS="$UUID_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid" 2>&1`
++        else
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$UUID_PKG_ERRORS" >&5
++
++	as_fn_error $? "Package requirements (uuid) were not met:
++
++$UUID_PKG_ERRORS
++
++Consider adjusting the PKG_CONFIG_PATH environment variable if you
++installed software in a non-standard prefix.
++
++Alternatively, you may set the environment variables UUID_CFLAGS
++and UUID_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details." "$LINENO" 5
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
++is in your PATH or set the PKG_CONFIG environment variable to the full
++path to pkg-config.
++
++Alternatively, you may set the environment variables UUID_CFLAGS
++and UUID_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++
++To get pkg-config, see <http://pkg-config.freedesktop.org/>.
++See \`config.log' for more details" "$LINENO" 5; }
++else
++	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
++	UUID_LIBS=$pkg_cv_UUID_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++fi
++  if test -z "$UUID_LIBS"; then
+   # On macOS, the UUID functions are in libc
+   ac_fn_c_check_func "$LINENO" "uuid_generate" "ac_cv_func_uuid_generate"
+ if test "x$ac_cv_func_uuid_generate" = xyes; then :
+@@ -12845,6 +12942,7 @@ fi
+ 
+ fi
+ 
++  fi
+ elif test "$with_uuid" = ossp ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
+ $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
+diff --git a/configure.in b/configure.in
+index 1459c0d2f1..3f8ca57941 100644
+--- a/configure.in
++++ b/configure.in
+@@ -1321,12 +1321,15 @@ if test "$with_uuid" = bsd ; then
+     [UUID_LIBS=""],
+     [AC_MSG_ERROR([BSD UUID functions are not present])])
+ elif test "$with_uuid" = e2fs ; then
++  PKG_CHECK_MODULES(UUID, uuid)
++  if test -z "$UUID_LIBS"; then
+   # On macOS, the UUID functions are in libc
+   AC_CHECK_FUNC(uuid_generate,
+     [UUID_LIBS=""],
+     [AC_CHECK_LIB(uuid, uuid_generate,
+       [UUID_LIBS="-luuid"],
+       [AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])])])
++  fi
+ elif test "$with_uuid" = ossp ; then
+   AC_CHECK_LIB(ossp-uuid, uuid_export,
+     [UUID_LIBS="-lossp-uuid"],
+diff --git a/src/Makefile.global.in b/src/Makefile.global.in
+index 794071ff85..70aa84e0d1 100644
+--- a/src/Makefile.global.in
++++ b/src/Makefile.global.in
+@@ -245,7 +245,7 @@ CPP = @CPP@
+ CPPFLAGS = @CPPFLAGS@
+ PG_SYSROOT = @PG_SYSROOT@
+ 
+-override CPPFLAGS := $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
++override CPPFLAGS := $(UUID_CFLAGS) $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
+ 
+ ifdef PGXS
+ override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
+@@ -272,6 +272,8 @@ LLVM_CPPFLAGS = @LLVM_CPPFLAGS@
+ LLVM_CFLAGS = @LLVM_CFLAGS@
+ LLVM_CXXFLAGS = @LLVM_CXXFLAGS@
+ 
++UUID_CFLAGS = @UUID_CFLAGS@
++
+ # Kind-of compilers
+ 
+ BISON = @BISON@
+-- 
+2.32.0
+

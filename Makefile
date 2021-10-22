@@ -34,6 +34,7 @@ endif
 
 ifeq ($(GET_SHELL),true)
 	COMMAND = bash
+	EXTRAENV += -e GET_SHELL="$(GET_SHELL)"
 endif
 
 ifneq ($(SRC_REF),)

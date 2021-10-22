@@ -2,3 +2,4 @@
 {datadir}/postgresql/extension/*
 {datadir}/data/**
 {datadir}/tests/**
+{bindir}/edgedb-server.py

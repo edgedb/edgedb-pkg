@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
-    Literal,
 )
 
 import os
@@ -17,6 +16,7 @@ from metapkg.packages import python
 
 from edgedbpkg import postgresql
 from edgedbpkg import python as python_bundle
+from edgedbpkg import pyentrypoint
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
@@ -57,9 +57,14 @@ class EdgeDB(packages.BundledPythonPackage):
         "postgresql-edgedb (== 12.8)",
     ]
 
+    artifact_build_requirements = [
+        "pyentrypoint (>=1.0.0)",
+    ]
+
     bundle_deps = [
         postgresql.PostgreSQL(version="12.8"),
         python_bundle.Python(version="3.10.0rc1"),
+        pyentrypoint.PyEntryPoint(version="1.0.0"),
     ]
 
     @classmethod
@@ -99,6 +104,7 @@ class EdgeDB(packages.BundledPythonPackage):
     ) -> python.PyPiRepository:
         repo = super().get_package_repository(target, io)
         repo.register_package_impl("cryptography", Cryptography)
+        repo.register_package_impl("cffi", Cffi)
         return repo
 
     @property
@@ -134,16 +140,49 @@ class EdgeDB(packages.BundledPythonPackage):
         metadata["catalog_version"] = self.get_catalog_version()
         return metadata
 
-    def get_build_wheel_env(self, build: targets.Build) -> dict[str, str]:
-        env = dict(super().get_build_wheel_env(build))
-        bindir = build.get_install_path("bin")
-        runstate = build.get_install_path("runstate") / "edgedb"
-        shared_dir = build.get_install_path("data") / "data"
-        pg_config = bindir / "pg_config"
+    def sh_get_build_wheel_env(
+        self, build: targets.Build, *, site_packages_var: str
+    ) -> dict[str, str]:
+        env = dict(
+            super().sh_get_build_wheel_env(
+                build, site_packages_var=site_packages_var
+            )
+        )
+        bindir = build.get_install_path("bin").relative_to("/")
+        if build.target.is_portable():
+            runstate = ""
+        else:
+            runstate = str(build.get_install_path("runstate") / "edgedb")
+        shared_dir = (build.get_install_path("data") / "data").relative_to("/")
+        temp_root = build.get_temp_root(relative_to="pkgsource")
+        src_python = build.sh_get_command(
+            "python", package=self, relative_to="pkgsource"
+        )
+        rel_bindir_script = ";".join(
+            (
+                "import os.path",
+                "rp = os.path.relpath",
+                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"print(rp('{bindir}', start=os.path.join(sp, 'edb')))",
+            )
+        )
 
-        env["EDGEDB_BUILD_PG_CONFIG"] = str(pg_config)
-        env["EDGEDB_BUILD_RUNSTATEDIR"] = str(runstate)
-        env["EDGEDB_BUILD_SHARED_DIR"] = str(shared_dir)
+        pg_config = f'!"$("{src_python}" -c "{rel_bindir_script}")"/pg_config'
+
+        rel_datadir_script = ";".join(
+            (
+                "import os.path",
+                "rp = os.path.relpath",
+                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"print(rp('{shared_dir}', start=os.path.join(sp, 'edb')))",
+            )
+        )
+
+        data_dir = f'!"$("{src_python}" -c "{rel_datadir_script}")"'
+
+        env["EDGEDB_BUILD_PG_CONFIG"] = pg_config
+        env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
+        env["EDGEDB_BUILD_SHARED_DIR"] = data_dir
 
         return env
 
@@ -155,6 +194,7 @@ class EdgeDB(packages.BundledPythonPackage):
         pg_pkg = build.get_package("postgresql-edgedb")
         icu_pkg = build.get_package("icu")
         openssl_pkg = build.get_package("openssl")
+        uuid_pkg = build.get_package("uuid")
 
         build_python = build.sh_get_command("python")
         temp_dir = build.get_temp_dir(self, relative_to="pkgbuild")
@@ -181,7 +221,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
         ld_env = " ".join(
             build.get_ld_env(
-                deps=[icu_pkg, openssl_pkg],
+                deps=[icu_pkg, openssl_pkg, uuid_pkg],
                 wd="${_wd}",
                 extra=["${_ldlibpath}"],
             )
@@ -250,8 +290,29 @@ class EdgeDB(packages.BundledPythonPackage):
             mkdir -p "{dest}/{datadir}/data/"
             cp -a ./share/* "{dest}/{datadir}/data/"
             chmod 644 "{dest}/{datadir}/data/"*
-        """
+            """
         )
+
+        if build.target.is_portable():
+            bindir = build.get_install_path("bin").relative_to("/")
+
+            ep_helper_pkg = build.get_package("pyentrypoint")
+            ep_helper = (
+                build.get_temp_dir(ep_helper_pkg, relative_to="pkgbuild")
+                / "bin"
+                / "pyentrypoint"
+            )
+
+            script += textwrap.dedent(
+                f"""\
+                for p in "{dest}/{bindir}"/*; do
+                    if [ -f "$p" ]; then
+                        mv "$p" "${{p}}.py"
+                        cp "{ep_helper}" "$p"
+                    fi
+                done
+                """
+            )
 
         return script
 
@@ -349,4 +410,16 @@ class Cryptography(packages.PythonPackage):
     def get_build_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
+        return reqs
+
+
+class Cffi(packages.PythonPackage):
+    def get_requirements(self) -> list[poetry_dep.Dependency]:
+        reqs = super().get_requirements()
+        reqs.append(poetry_dep.Dependency("libffi", "*"))
+        return reqs
+
+    def get_build_requirements(self) -> list[poetry_dep.Dependency]:
+        reqs = super().get_requirements()
+        reqs.append(poetry_dep.Dependency("libffi", "*"))
         return reqs

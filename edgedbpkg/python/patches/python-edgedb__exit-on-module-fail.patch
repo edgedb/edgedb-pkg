@@ -1,0 +1,42 @@
+From 31e4d7886607cd63ac1eabd04b52ac07d974634d Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Fri, 15 Oct 2021 13:51:54 -0700
+Subject: [PATCH] Fail build if selected modules fail to build or import
+
+---
+ setup.py | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/setup.py b/setup.py
+index 1537c2c2f6..a853f66afa 100644
+--- a/setup.py
++++ b/setup.py
+@@ -63,6 +63,7 @@
+ # --list-module-names option used by Tools/scripts/generate_module_names.py
+ LIST_MODULE_NAMES = False
+ 
++exit_status = 0
+ 
+ logging.basicConfig(format='%(message)s', level=logging.INFO)
+ log = logging.getLogger('setup')
+@@ -500,6 +501,8 @@ def build_extensions(self):
+     def summary(self, mods_built, mods_disabled):
+         longest = max([len(e.name) for e in self.extensions], default=0)
+         if self.failed or self.failed_on_import:
++            global exit_status
++            exit_status = 1
+             all_failed = self.failed + self.failed_on_import
+             longest = max(longest, max([len(name) for name in all_failed]))
+ 
+@@ -2746,6 +2749,8 @@ class DummyProcess:
+                      "Tools/scripts/2to3"]
+         )
+ 
++    sys.exit(exit_status)
++
+ # --install-platlib
+ if __name__ == '__main__':
+     main()
+-- 
+2.32.0
+

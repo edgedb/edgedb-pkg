@@ -74,7 +74,8 @@ class PostgreSQL(packages.BundledPackage):
             "--includedir": build.get_install_path("include"),
             "--with-extra-version": extra_version,
             "--with-icu": None,
-            "--with-pam": None,
+            "--without-pam": None,
+            "--without-zlib": None,
             "--with-openssl": None,
             "--with-uuid": uuid_lib,
             "--without-readline": None,
@@ -89,6 +90,17 @@ class PostgreSQL(packages.BundledPackage):
             configure_flags[
                 "ICU_LIBS"
             ] = f'!-L{icu_rel_path}/"lib -licui18n -licuuc -licudata"'
+
+        uuid_pkg = build.get_package("uuid")
+        if build.is_bundled(uuid_pkg):
+            uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
+            uuid_path /= build.get_full_install_prefix().relative_to("/")
+            uuid_rel_path = f'$(pwd)/"{uuid_path}"'
+            configure_flags["UUID_CFLAGS"] = f"!-I{uuid_rel_path}/include/"
+            uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
+                uuid_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}' -luuid'"
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
@@ -135,9 +147,7 @@ class PostgreSQL(packages.BundledPackage):
                 "-ffat-lto-objects -flto-partition=none"
             )
 
-        return build.sh_format_command(
-            configure, configure_flags, force_args_eq=True
-        )
+        return build.sh_configure(configure, configure_flags)
 
     def get_build_script(self, build: targets.Build) -> str:
         make = build.sh_get_command("make")

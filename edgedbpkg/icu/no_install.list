@@ -1,0 +1,4 @@
+{libdir}/icu/**
+{libdir}/pkgconfig/**
+{libdir}/*.a
+{libdir}/*.la

@@ -14,3 +14,5 @@
 {libdir}/python*/tkinter/**
 {libdir}/python*/turtledemo/**
 {libdir}/python*/turtle.py
+{libdir}/python*/lib-dynload/*_test*
+{libdir}/python*/lib-dynload/zlib*

@@ -1,17 +1,16 @@
 from __future__ import annotations
 from typing import *
 
-import pathlib
 import platform
 import re
-import textwrap
 import shlex
+import textwrap
 
 from metapkg import packages
 from metapkg import targets
 
 
-class OpenSSL(packages.BundledPackage):
+class OpenSSL(packages.BundledCPackage):
 
     title = "OpenSSL"
     name = "openssl"
@@ -34,9 +33,7 @@ class OpenSSL(packages.BundledPackage):
         copy_sources = f"test ./ -ef {sdir} || cp -a {sdir}/* ./"
 
         configure = "./config"
-
         configure_flags = {
-            "--prefix": str(build.get_full_install_prefix()),
             "--openssldir": str(
                 build.get_full_install_prefix() / "etc" / "ssl"
             ),
@@ -46,7 +43,7 @@ class OpenSSL(packages.BundledPackage):
             "enable-ec_nistp_64_gcc_128": None,
         }
 
-        cfgcmd = build.sh_format_command(configure, configure_flags)
+        cfgcmd = self.sh_configure(build, configure, configure_flags)
         if platform.system() == "Darwin":
             # Force 64-bit build
             cfgcmd = f"KERNEL_BITS=64 {cfgcmd}"
@@ -58,15 +55,6 @@ class OpenSSL(packages.BundledPackage):
             ]
         )
 
-    def get_build_script(self, build: targets.Build) -> str:
-        make = build.sh_get_command("make")
-
-        return textwrap.dedent(
-            f"""\
-            {make}
-        """
-        )
-
     def get_build_install_script(self, build: targets.Build) -> str:
         installdest = build.get_install_dir(self, relative_to="pkgbuild")
         make = build.sh_get_command("make")
@@ -76,12 +64,6 @@ class OpenSSL(packages.BundledPackage):
             {make} DESTDIR=$(pwd)/"{installdest}" install_sw
         """
         )
-
-    def get_shlib_paths(self, build: targets.Build) -> List[pathlib.Path]:
-        return [build.get_full_install_prefix() / "lib"]
-
-    def get_include_paths(self, build: targets.Build) -> List[pathlib.Path]:
-        return [build.get_full_install_prefix() / "include"]
 
     @classmethod
     def from_upstream_version(cls, version: str) -> OpenSSL:

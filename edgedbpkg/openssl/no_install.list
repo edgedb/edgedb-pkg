@@ -1,0 +1,4 @@
+{libdir}/engines*/**
+{libdir}/pkgconfig/**
+{libdir}/*.a
+{libdir}/*.la
