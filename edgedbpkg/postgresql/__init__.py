@@ -180,14 +180,15 @@ class PostgreSQL(packages.BundledPackage):
         )
 
     def get_build_install_script(self, build: targets.Build) -> str:
+        script = super().get_build_install_script(build)
         installdest = build.get_install_dir(self, relative_to="pkgbuild")
         make = build.sh_get_command("make")
 
-        return textwrap.dedent(
+        return script + textwrap.dedent(
             f"""\
             {make} DESTDIR=$(pwd)/"{installdest}" install
             {make} DESTDIR=$(pwd)/"{installdest}" -C contrib install
-        """
+            """
         )
 
     def get_build_tools(self, build: targets.Build) -> dict[str, pathlib.Path]:

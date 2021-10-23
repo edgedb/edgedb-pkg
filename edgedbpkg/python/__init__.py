@@ -250,6 +250,7 @@ class Python(packages.BundledPackage):
         )
 
     def get_build_install_script(self, build: targets.Build) -> str:
+        script = super().get_build_install_script(build)
         installdest = build.get_install_dir(self, relative_to="pkgbuild")
         make = build.sh_get_command("make")
 
@@ -273,20 +274,22 @@ class Python(packages.BundledPackage):
                 mkdir -p "$(dirname ${{ssl_instpath}})"
                 certifipath=$("{python}" -c "{certifipath}")
                 cp "${{certifipath}}" "${{ssl_instpath}}"
-            """
+                """
             )
         else:
             extra_install = ""
 
         env = self._get_make_env(build, "$(pwd)")
 
-        return textwrap.dedent(
+        script += textwrap.dedent(
             f"""\
             {make} -j1 DESTDIR=$(pwd)/"{installdest}" {env} \
                 ENSUREPIP=no install
             {extra_install}
-        """
-        ).strip()
+            """
+        )
+
+        return script
 
     def get_install_list_script(self, build: targets.Build) -> str:
         script = super().get_install_list_script(build)

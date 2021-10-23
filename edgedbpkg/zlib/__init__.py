@@ -33,3 +33,6 @@ class Zlib(packages.BundledCPackage):
         return build.sh_get_command(
             "make", args=global_flags, force_args_eq=True
         )
+
+    def get_license_files_pattern(self) -> str:
+        return "README"
