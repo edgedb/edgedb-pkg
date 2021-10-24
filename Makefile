@@ -12,7 +12,8 @@ SUPPORTED_TARGETS = \
 	centos-7 \
 	centos-8 \
 	fedora-29 \
-	linux-x86_64
+	linux-x86_64 \
+	linuxmusl-x86_64
 
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
@@ -63,6 +64,10 @@ endif
 
 ifneq ($(PACKAGE),)
     EXTRAENV += -e PACKAGE="$(PACKAGE)"
+endif
+
+ifneq ($(PKG_PLATFORM_LIBC),)
+	EXTRAENV += -e PKG_PLATFORM_LIBC="$(PKG_PLATFORM_LIBC)"
 endif
 
 ifneq ($(BUILD_GENERIC),)

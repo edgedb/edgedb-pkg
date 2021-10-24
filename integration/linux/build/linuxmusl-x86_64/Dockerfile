@@ -4,25 +4,24 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM fedora:29
+FROM buildpack-deps:bullseye
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
 
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG en_US.UTF-8
+ENV LANG C.UTF-8
 
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-RUN yum install -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext glibc-langpack-en
+# extra dependencies (over what buildpack-deps already includes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		libssl-dev \
+		tk-dev \
+		musl-tools \
+		patchelf \
+		sudo \
+	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
 ENV PYTHON_VERSION 3.9.7
-ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -32,8 +31,6 @@ RUN set -ex \
 	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
-	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& (try=1; while [ $try -le 5 ]; do \
@@ -45,12 +42,9 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
-	&& mkdir -p /usr/src/git \
-	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
-	&& rm git.tar.xz \
 	\
 	&& cd /usr/src/python \
-	&& gnuArch="$(gcc -dumpmachine)" \
+	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
 	&& ./configure \
 		--build="$gnuArch" \
 		--enable-loadable-sqlite-extensions \
@@ -68,17 +62,14 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
 	&& python3 --version \
-	&& cd /usr/src/git \
-	&& make prefix=/usr/local V=1 -j $(nproc) all \
-	&& make prefix=/usr/local install \
-	&& rm -rf /usr/src/git \
-	&& git --version \
-	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+		-y --no-modify-path --profile minimal \
+		--target x86_64-unknown-linux-musl \
+		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	&& rustc --version
 

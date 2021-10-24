@@ -50,6 +50,9 @@ fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then
+    extraopts+=" --libc=${PKG_PLATFORM_LIBC}"
+fi
 
 if [ -z "${PACKAGE}" ]; then
     PACKAGE="edgedbpkg.edgedb:EdgeDB"
