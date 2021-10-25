@@ -2,31 +2,31 @@ FROM centos:7
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
-
-ENV LANG C
-
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-RUN yum install -y centos-release-scl \
-	&& yum install -y \
-	devtoolset-10 make patch flex bison \
-    wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext \
-    perl-Getopt-Long sudo ca-certificates
-
-RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-10" \
-	> /etc/profile.d/enabledevtoolset10.sh
+ENV LANG C
 
 ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION %%PLACEHOLDER%%
 ENV GIT_VERSION 2.20.1
 ENV PATCHELF_VERSION 0.13
-ENV MUSL_VERSION 1.2.2
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION %%PLACEHOLDER%%
+ENV GCC_VERSION 10
+
+
+RUN yum install -y centos-release-scl \
+	&& yum install -y \
+	devtoolset-${GCC_VERSION} make patch flex bison \
+    wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
+    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
+	curl-devel xz-devel libffi-devel gettext \
+    perl-Getopt-Long sudo ca-certificates
+
+RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
+	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
 
 # Needed to pick up SCL stuff from profile.d/
 SHELL ["/bin/bash", "--login", "-c"]
@@ -37,7 +37,6 @@ RUN set -ex \
 	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
 	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
 	&& wget -O patchelf.tar.bz2 "https://github.com/NixOS/patchelf/releases/download/${PATCHELF_VERSION}/patchelf-${PATCHELF_VERSION}.tar.bz2" \
-	&& wget -O musl.tar.gz "https://musl.libc.org/releases/musl-1.2.2.tar.gz" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& (try=1; while [ $try -le 5 ]; do \
@@ -55,10 +54,6 @@ RUN set -ex \
 	&& mkdir -p /usr/src/patchelf \
 	&& tar -xjC /usr/src/patchelf --strip-components=1 -f patchelf.tar.bz2 \
 	&& rm patchelf.tar.bz2 \
-	&& mkdir -p /usr/src/musl \
-	&& tar -xzC /usr/src/musl --strip-components=1 -f musl.tar.gz \
-	&& rm musl.tar.gz \
-	\
 	&& cd /usr/src/python \
 	&& gnuArch="$(gcc -dumpmachine)" \
 	&& ./configure \
@@ -89,15 +84,9 @@ RUN set -ex \
 	&& make -j $(nproc) \
 	&& make install \
 	&& rm -rf /usr/src/patchelf \
-	&& cd /usr/src/musl \
-	&& ./configure --disable-shared --bindir=/usr/local/bin \
-	&& make -j $(nproc) \
-	&& make install \
-	&& rm -rf /usr/src/musl \
 	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
-		--target nightly-x86_64-unknown-linux-musl \
 		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME
 
