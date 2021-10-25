@@ -58,6 +58,10 @@ ifneq ($(PKG_SUBDIST),)
 	EXTRAENV += -e PKG_SUBDIST="$(PKG_SUBDIST)"
 endif
 
+ifneq ($(PKG_INSTALL_REF),)
+	EXTRAENV += -e PKG_INSTALL_REF="$(PKG_INSTALL_REF)"
+endif
+
 ifneq ($(EXTRA_OPTIMIZATIONS),)
 	EXTRAENV += -e EXTRA_OPTIMIZATIONS=true
 endif
