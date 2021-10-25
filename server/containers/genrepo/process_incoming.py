@@ -207,7 +207,7 @@ def remove_old(
 
 def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
     print("make_index", bucket, prefix, pkg_dir)
-    index = Packages(packages=[])
+    packages: Dict[str, Package] = {}
     for obj in bucket.objects.filter(Prefix=str(prefix / pkg_dir)):
         path = pathlib.Path(obj.key)
         leaf = path.name
@@ -239,21 +239,37 @@ def make_index(bucket: s3.Bucket, prefix: pathlib.Path, pkg_dir: str) -> None:
             installref = f"/{installref}"
 
         parsed_ver = parse_version(m.group("version"))
+        version_key = format_version_key(parsed_ver, m.group("release"))
 
-        index["packages"].append(
-            Package(
-                basename=basename,
-                slot=slot.lstrip("-") if slot else None,
-                name=f"{basename}{slot}",
-                version=m.group("version"),
-                parsed_version=parsed_ver,
-                version_key=format_version_key(parsed_ver, m.group("release")),
-                revision=m.group("release"),
-                architecture=arch,
-                installref=installref,
-            )
+        pkg = Package(
+            basename=basename,
+            slot=slot.lstrip("-") if slot else None,
+            name=f"{basename}{slot}",
+            version=m.group("version"),
+            parsed_version=parsed_ver,
+            version_key=version_key,
+            revision=m.group("release"),
+            architecture=arch,
+            installref=installref,
         )
+        prev_pkg = packages.get(version_key)
+        if prev_pkg is not None:
+            prev_installref = prev_pkg["installref"]
 
+            if prev_installref.endswith(".tar.gz") and installref.endswith(
+                ".tar.zst"
+            ):
+                packages[version_key] = pkg
+            elif prev_installref.endswith(".tar.zst") and installref.endswith(
+                ".tar.gz"
+            ):
+                pass
+            else:
+                print(path, "is duplicate")
+        else:
+            packages[version_key] = pkg
+
+    index = Packages(packages=list(packages.values()))
     source_bytes = json.dumps(index).encode("utf8")
     target_dir = prefix / ".jsonindexes"
     index_name = pkg_dir + ".json"

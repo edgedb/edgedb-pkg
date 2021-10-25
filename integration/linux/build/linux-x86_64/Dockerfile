@@ -23,13 +23,13 @@ ENV RUST_VERSION 1.56.0
 ENV GCC_VERSION 10
 
 
-RUN yum install -y centos-release-scl \
+RUN yum install -y centos-release-scl epel-release \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
     wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
-    perl-Getopt-Long sudo ca-certificates
+    perl-Getopt-Long sudo ca-certificates zstd
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
