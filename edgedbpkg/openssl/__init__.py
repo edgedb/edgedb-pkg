@@ -80,3 +80,6 @@ class OpenSSL(packages.BundledCPackage):
             )
 
         return OpenSSL(pep440_version, source_version=version)
+
+    def get_shlibs(self, build: targets.Build) -> list[str]:
+        return ["ssl", "crypto"]

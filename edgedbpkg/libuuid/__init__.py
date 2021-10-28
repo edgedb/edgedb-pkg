@@ -26,3 +26,6 @@ class LibUUID(packages.BundledCPackage):
             "--enable-libuuid": None,
         }
         return self.sh_configure(build, configure, configure_flags)
+
+    def get_shlibs(self, build: targets.Build) -> list[str]:
+        return ["uuid"]

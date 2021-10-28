@@ -36,3 +36,6 @@ class Zlib(packages.BundledCPackage):
 
     def get_license_files_pattern(self) -> str:
         return "README"
+
+    def get_shlibs(self, build: targets.Build) -> list[str]:
+        return ["z"]

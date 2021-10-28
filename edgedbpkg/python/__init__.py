@@ -119,7 +119,7 @@ class Python(packages.BundledPackage):
             libffi_ldflags = build.sh_get_bundled_shlib_ldflags(
                 libffi_pkg, relative_to="pkgbuild"
             )
-            configure_flags["LIBFFI_LIBS"] = f"!{libffi_ldflags}' -lffi'"
+            configure_flags["LIBFFI_LIBS"] = f"!{libffi_ldflags}"
         else:
             configure_flags["--with-system-ffi"] = None
 
@@ -149,7 +149,7 @@ class Python(packages.BundledPackage):
             uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
                 uuid_pkg, relative_to="pkgbuild"
             )
-            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}' -luuid'"
+            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}"
 
         zlib_pkg = build.get_package("zlib")
         if build.is_bundled(zlib_pkg):
@@ -160,7 +160,7 @@ class Python(packages.BundledPackage):
             zlib_ldflags = build.sh_get_bundled_shlib_ldflags(
                 zlib_pkg, relative_to="pkgbuild"
             )
-            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}' -lz'"
+            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}"
 
         return build.sh_configure(configure, configure_flags)
 

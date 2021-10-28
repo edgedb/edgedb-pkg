@@ -10,7 +10,7 @@ from metapkg import targets
 from edgedbpkg import icu, openssl
 
 
-class PostgreSQL(packages.BundledPackage):
+class PostgreSQL(packages.BundledCPackage):
 
     title = "PostgreSQL"
     name = "postgresql-edgedb"
@@ -87,9 +87,10 @@ class PostgreSQL(packages.BundledPackage):
             icu_path /= build.get_full_install_prefix().relative_to("/")
             icu_rel_path = f'$(pwd)/"{icu_path}"'
             configure_flags["ICU_CFLAGS"] = f"!-I{icu_rel_path}/include/"
-            configure_flags[
-                "ICU_LIBS"
-            ] = f'!-L{icu_rel_path}/"lib -licui18n -licuuc -licudata"'
+            icu_ldflags = build.sh_get_bundled_shlib_ldflags(
+                icu_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["ICU_LIBS"] = f"!{icu_ldflags}"
 
         uuid_pkg = build.get_package("uuid")
         if build.is_bundled(uuid_pkg):
@@ -100,7 +101,7 @@ class PostgreSQL(packages.BundledPackage):
             uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
                 uuid_pkg, relative_to="pkgbuild"
             )
-            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}' -luuid'"
+            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}"
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
@@ -113,10 +114,11 @@ class PostgreSQL(packages.BundledPackage):
             openssl_rel_path = f'$(pwd)/"{openssl_path}"'
             configure_flags[
                 "OPENSSL_CFLAGS"
-            ] = f'!-I{openssl_rel_path}/"include/ -L"{openssl_rel_path}/lib'
-            configure_flags[
-                "OPENSSL_LIBS"
-            ] = f'!-L{openssl_rel_path}/"lib -lssl -lcrypto"'
+            ] = f"!-I{openssl_rel_path}/include/"
+            openssl_ldflags = build.sh_get_bundled_shlib_ldflags(
+                openssl_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["OPENSSL_LIBS"] = f"!{openssl_ldflags}"
 
             ldflags = f"!-L{openssl_rel_path}/lib"
 
@@ -147,7 +149,7 @@ class PostgreSQL(packages.BundledPackage):
                 "-ffat-lto-objects -flto-partition=none"
             )
 
-        return build.sh_configure(configure, configure_flags)
+        return self.sh_configure(build, configure, configure_flags)
 
     def get_build_script(self, build: targets.Build) -> str:
         make = build.sh_get_command("make")

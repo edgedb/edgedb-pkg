@@ -28,5 +28,9 @@ class ICU(packages.BundledCPackage):
         configure_flags = {
             "--disable-samples": None,
             "--disable-tests": None,
+            "--enable-rpath": None,
         }
         return self.sh_configure(build, configure, configure_flags)
+
+    def get_shlibs(self, build: targets.Build) -> list[str]:
+        return ["icui18n", "icuuc", "icudata"]
