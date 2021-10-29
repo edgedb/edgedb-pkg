@@ -38,7 +38,6 @@ class OpenSSL(packages.BundledCPackage):
                 build.get_full_install_prefix() / "etc" / "ssl"
             ),
             "--libdir": str(build.get_install_path("lib")),
-            "no-ssl2": None,
             "no-ssl3": None,
             "shared": None,
             "enable-ec_nistp_64_gcc_128": None,
