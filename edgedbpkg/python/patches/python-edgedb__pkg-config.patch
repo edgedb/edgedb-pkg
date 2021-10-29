@@ -1,4 +1,4 @@
-From b4a1501c60c2ad0db19e96d1113c99a65ab0c4d5 Mon Sep 17 00:00:00 2001
+From d107f97a9c4b9546ec0c03e7f7e4f8290b91e847 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Oct 2021 12:10:56 -0700
 Subject: [PATCH] Look up for zlib, libuuid and libffi with pkg-config
@@ -6,11 +6,11 @@ Subject: [PATCH] Look up for zlib, libuuid and libffi with pkg-config
 This also enables external *_CFLAGS/*_LIBS override
 ---
  Makefile.pre.in |   8 +
- aclocal.m4      | 352 ++++++++++++++++++++++++++-
- configure       | 623 +++++++++++++++++++++++++++++++++++++++++++++++-
- configure.ac    |  73 +++++-
+ aclocal.m4      | 352 +++++++++++++++++++++++++++-
+ configure       | 604 +++++++++++++++++++++++++++++++++++++++++++++++-
+ configure.ac    |  48 +++-
  setup.py        |  60 +++--
- 5 files changed, 1082 insertions(+), 34 deletions(-)
+ 5 files changed, 1041 insertions(+), 31 deletions(-)
 
 diff --git a/Makefile.pre.in b/Makefile.pre.in
 index 790d974b96..e869615258 100644
@@ -418,10 +418,10 @@ index 987bfdf215..8960899828 100644
 +])dnl PKG_HAVE_DEFINE_WITH_MODULES
 +
 diff --git a/configure b/configure
-index 1ef344f92d..55b4cbb9aa 100755
+index 019a97a016..f0fbdf70a0 100755
 --- a/configure
 +++ b/configure
-@@ -657,7 +657,6 @@ OPENSSL_RPATH
+@@ -630,7 +630,6 @@ OPENSSL_RPATH
  OPENSSL_LDFLAGS
  OPENSSL_LIBS
  OPENSSL_INCLUDES
@@ -429,7 +429,7 @@ index 1ef344f92d..55b4cbb9aa 100755
  ENSUREPIP
  SRCDIRS
  THREADHEADERS
-@@ -689,7 +688,17 @@ DTRACE
+@@ -662,7 +661,17 @@ DTRACE
  TCLTK_LIBS
  TCLTK_INCLUDES
  LIBFFI_INCLUDEDIR
@@ -447,7 +447,7 @@ index 1ef344f92d..55b4cbb9aa 100755
  SHLIBS
  CFLAGSFORSHARED
  LINKFORSHARED
-@@ -860,6 +869,7 @@ with_address_sanitizer
+@@ -833,6 +842,7 @@ with_address_sanitizer
  with_memory_sanitizer
  with_undefined_behavior_sanitizer
  with_libs
@@ -455,7 +455,7 @@ index 1ef344f92d..55b4cbb9aa 100755
  with_system_expat
  with_system_ffi
  with_system_libmpdec
-@@ -900,7 +910,16 @@ LDFLAGS
+@@ -873,7 +883,16 @@ LDFLAGS
  LIBS
  CPPFLAGS
  CPP
@@ -473,7 +473,7 @@ index 1ef344f92d..55b4cbb9aa 100755
  
  
  # Initialize some variables set by options.
-@@ -1587,6 +1606,8 @@ Optional Packages:
+@@ -1562,6 +1581,8 @@ Optional Packages:
                            enable UndefinedBehaviorSanitizer undefined
                            behaviour detector, 'ubsan' (default is no)
    --with-libs='lib1 ...'  link against additional libs (default is no)
@@ -482,7 +482,7 @@ index 1ef344f92d..55b4cbb9aa 100755
    --with-system-expat     build pyexpat module using an installed expat
                            library, see Doc/library/pyexpat.rst (default is no)
    --with-system-ffi       build _ctypes module using an installed ffi library,
-@@ -1662,6 +1683,18 @@ Some influential environment variables:
+@@ -1637,6 +1658,18 @@ Some influential environment variables:
    CPP         C preprocessor
    PROFILE_TASK
                Python args for PGO generation task
@@ -501,7 +501,15 @@ index 1ef344f92d..55b4cbb9aa 100755
  
  Use these variables to override the choices made by `configure' or to help
  it to find libraries and programs with nonstandard names/locations.
-@@ -11007,6 +11040,233 @@ then :
+@@ -8065,6 +8098,7 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
+ 
+ fi
+ 
++
+ for ac_header in asm/types.h crypt.h conio.h direct.h dlfcn.h errno.h \
+ fcntl.h grp.h \
+ ieeefp.h io.h langinfo.h libintl.h process.h pthread.h \
+@@ -9993,6 +10027,223 @@ _ACEOF
  fi
  	# Dynamic linking for HP-UX
  
@@ -516,12 +524,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +	if test -n "$ac_tool_prefix"; then
 +  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
 +set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-+printf %s "checking for $ac_word... " >&6; }
-+if test ${ac_cv_path_PKG_CONFIG+y}
-+then :
-+  printf %s "(cached) " >&6
-+else $as_nop
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_path_PKG_CONFIG+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
 +  case $PKG_CONFIG in
 +  [\\/]* | ?:[\\/]*)
 +  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
@@ -531,15 +538,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +for as_dir in $PATH
 +do
 +  IFS=$as_save_IFS
-+  case $as_dir in #(((
-+    '') as_dir=./ ;;
-+    */) ;;
-+    *) as_dir=$as_dir/ ;;
-+  esac
++  test -z "$as_dir" && as_dir=.
 +    for ac_exec_ext in '' $ac_executable_extensions; do
-+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
 +    break 2
 +  fi
 +done
@@ -551,11 +554,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +PKG_CONFIG=$ac_cv_path_PKG_CONFIG
 +if test -n "$PKG_CONFIG"; then
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-+printf "%s\n" "$PKG_CONFIG" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
++$as_echo "$PKG_CONFIG" >&6; }
 +else
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +fi
 +
 +
@@ -564,12 +567,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +  ac_pt_PKG_CONFIG=$PKG_CONFIG
 +  # Extract the first word of "pkg-config", so it can be a program name with args.
 +set dummy pkg-config; ac_word=$2
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-+printf %s "checking for $ac_word... " >&6; }
-+if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
-+then :
-+  printf %s "(cached) " >&6
-+else $as_nop
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_path_ac_pt_PKG_CONFIG+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
 +  case $ac_pt_PKG_CONFIG in
 +  [\\/]* | ?:[\\/]*)
 +  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
@@ -579,15 +581,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +for as_dir in $PATH
 +do
 +  IFS=$as_save_IFS
-+  case $as_dir in #(((
-+    '') as_dir=./ ;;
-+    */) ;;
-+    *) as_dir=$as_dir/ ;;
-+  esac
++  test -z "$as_dir" && as_dir=.
 +    for ac_exec_ext in '' $ac_executable_extensions; do
-+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-+    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
 +    break 2
 +  fi
 +done
@@ -599,11 +597,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
 +if test -n "$ac_pt_PKG_CONFIG"; then
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
-+printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
++$as_echo "$ac_pt_PKG_CONFIG" >&6; }
 +else
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +fi
 +
 +  if test "x$ac_pt_PKG_CONFIG" = x; then
@@ -611,8 +609,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +  else
 +    case $cross_compiling:$ac_tool_warned in
 +yes:)
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
++{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
++$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
 +ac_tool_warned=yes ;;
 +esac
 +    PKG_CONFIG=$ac_pt_PKG_CONFIG
@@ -624,30 +622,30 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +if test -n "$PKG_CONFIG"; then
 +	_pkg_min_version=0.9.0
-+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
-+printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
++	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
++$as_echo_n "checking pkg-config is at least version $_pkg_min_version... " >&6; }
 +	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-+printf "%s\n" "yes" >&6; }
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
 +	else
-+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +		PKG_CONFIG=""
 +	fi
 +fi
 +
 +pkg_failed=no
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for UUID" >&5
-+printf %s "checking for UUID... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for UUID" >&5
++$as_echo_n "checking for UUID... " >&6; }
 +
 +if test -n "$UUID_CFLAGS"; then
 +    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -661,10 +659,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +    pkg_cv_UUID_LIBS="$UUID_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -678,8 +676,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +
 +
 +if test $pkg_failed = yes; then
-+   	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +
 +if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
 +        _pkg_short_errors_supported=yes
@@ -705,10 +703,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +and UUID_LIBS to avoid the need to call pkg-config.
 +See the pkg-config man page for more details." "$LINENO" 5
 +elif test $pkg_failed = untried; then
-+     	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
-+	{ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
++     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 +as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
 +is in your PATH or set the PKG_CONFIG environment variable to the full
 +path to pkg-config.
@@ -722,8 +720,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +else
 +	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
 +	UUID_LIBS=$pkg_cv_UUID_LIBS
-+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-+printf "%s\n" "yes" >&6; }
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
 +
 +fi
 +
@@ -733,11 +731,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +
  # checks for uuid.h location
- ac_fn_c_check_header_compile "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
- if test "x$ac_cv_header_uuid_uuid_h" = xyes
-@@ -11119,6 +11379,10 @@ printf "%s\n" "no" >&6; }
+ for ac_header in uuid/uuid.h uuid.h
+ do :
+@@ -10102,6 +10353,10 @@ $as_echo "no" >&6; }
  fi
- rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
  
 +if test -n "$UUID_CFLAGS"; then
 +  CPPFLAGS=$ac_save_cppflags
@@ -746,7 +744,7 @@ index 1ef344f92d..55b4cbb9aa 100755
  # 'Real Time' functions on Solaris
  # posix4 on Solaris 2.6
  # pthread (first!) on Linux
-@@ -11555,7 +11819,256 @@ printf "%s\n" "no" >&6; }
+@@ -10527,7 +10782,245 @@ $as_echo "no" >&6; }
  fi
  
  
@@ -762,12 +760,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +	if test -n "$ac_tool_prefix"; then
 +  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
 +set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-+printf %s "checking for $ac_word... " >&6; }
-+if test ${ac_cv_path_PKG_CONFIG+y}
-+then :
-+  printf %s "(cached) " >&6
-+else $as_nop
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_path_PKG_CONFIG+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
 +  case $PKG_CONFIG in
 +  [\\/]* | ?:[\\/]*)
 +  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
@@ -777,15 +774,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +for as_dir in $PATH
 +do
 +  IFS=$as_save_IFS
-+  case $as_dir in #(((
-+    '') as_dir=./ ;;
-+    */) ;;
-+    *) as_dir=$as_dir/ ;;
-+  esac
++  test -z "$as_dir" && as_dir=.
 +    for ac_exec_ext in '' $ac_executable_extensions; do
-+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
 +    break 2
 +  fi
 +done
@@ -797,11 +790,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +PKG_CONFIG=$ac_cv_path_PKG_CONFIG
 +if test -n "$PKG_CONFIG"; then
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-+printf "%s\n" "$PKG_CONFIG" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
++$as_echo "$PKG_CONFIG" >&6; }
 +else
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +fi
 +
 +
@@ -810,12 +803,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +  ac_pt_PKG_CONFIG=$PKG_CONFIG
 +  # Extract the first word of "pkg-config", so it can be a program name with args.
 +set dummy pkg-config; ac_word=$2
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-+printf %s "checking for $ac_word... " >&6; }
-+if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
-+then :
-+  printf %s "(cached) " >&6
-+else $as_nop
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_path_ac_pt_PKG_CONFIG+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
 +  case $ac_pt_PKG_CONFIG in
 +  [\\/]* | ?:[\\/]*)
 +  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
@@ -825,15 +817,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +for as_dir in $PATH
 +do
 +  IFS=$as_save_IFS
-+  case $as_dir in #(((
-+    '') as_dir=./ ;;
-+    */) ;;
-+    *) as_dir=$as_dir/ ;;
-+  esac
++  test -z "$as_dir" && as_dir=.
 +    for ac_exec_ext in '' $ac_executable_extensions; do
-+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-+    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
 +    break 2
 +  fi
 +done
@@ -845,11 +833,11 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
 +if test -n "$ac_pt_PKG_CONFIG"; then
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
-+printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
++$as_echo "$ac_pt_PKG_CONFIG" >&6; }
 +else
-+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +fi
 +
 +  if test "x$ac_pt_PKG_CONFIG" = x; then
@@ -857,8 +845,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +  else
 +    case $cross_compiling:$ac_tool_warned in
 +yes:)
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
++{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
++$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
 +ac_tool_warned=yes ;;
 +esac
 +    PKG_CONFIG=$ac_pt_PKG_CONFIG
@@ -870,47 +858,46 @@ index 1ef344f92d..55b4cbb9aa 100755
 +fi
 +if test -n "$PKG_CONFIG"; then
 +	_pkg_min_version=0.9.0
-+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
-+printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
++	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
++$as_echo_n "checking pkg-config is at least version $_pkg_min_version... " >&6; }
 +	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-+printf "%s\n" "yes" >&6; }
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
 +	else
-+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +		PKG_CONFIG=""
 +	fi
 +fi
 +
 +# Check for use of the system zlib library
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for --with-system-zlib" >&5
-+printf %s "checking for --with-system-zlib... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-system-zlib" >&5
++$as_echo_n "checking for --with-system-zlib... " >&6; }
 +
 +# Check whether --with-system_zlib was given.
-+if test ${with_system_zlib+y}
-+then :
++if test "${with_system_zlib+set}" = set; then :
 +  withval=$with_system_zlib;
-+else $as_nop
++else
 +  with_system_zlib="yes"
 +fi
 +
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $with_system_zlib" >&5
-+printf "%s\n" "$with_system_zlib" >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_system_zlib" >&5
++$as_echo "$with_system_zlib" >&6; }
 +
 +if test "$with_system_zlib" != "no"; then
 +
 +pkg_failed=no
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for ZLIB" >&5
-+printf %s "checking for ZLIB... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ZLIB" >&5
++$as_echo_n "checking for ZLIB... " >&6; }
 +
 +if test -n "$ZLIB_CFLAGS"; then
 +    pkg_cv_ZLIB_CFLAGS="$ZLIB_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -924,10 +911,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +    pkg_cv_ZLIB_LIBS="$ZLIB_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -941,8 +928,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +
 +
 +if test $pkg_failed = yes; then
-+   	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +
 +if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
 +        _pkg_short_errors_supported=yes
@@ -968,10 +955,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +and ZLIB_LIBS to avoid the need to call pkg-config.
 +See the pkg-config man page for more details." "$LINENO" 5
 +elif test $pkg_failed = untried; then
-+     	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
-+	{ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
++     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 +as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
 +is in your PATH or set the PKG_CONFIG environment variable to the full
 +path to pkg-config.
@@ -985,8 +972,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +else
 +	ZLIB_CFLAGS=$pkg_cv_ZLIB_CFLAGS
 +	ZLIB_LIBS=$pkg_cv_ZLIB_LIBS
-+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-+printf "%s\n" "yes" >&6; }
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
 +
 +fi
 +fi
@@ -1003,8 +990,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +
  
  # Check for use of the system expat library
- { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for --with-system-expat" >&5
-@@ -11609,10 +12122,104 @@ printf "%s\n" "$as_me: WARNING: --with(out)-system-ffi is ignored on this platfo
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-system-expat" >&5
+@@ -10579,10 +11072,104 @@ $as_echo "$as_me: WARNING: --with(out)-system-ffi is ignored on this platform" >
      with_system_ffi="yes"
  fi
  
@@ -1013,17 +1000,17 @@ index 1ef344f92d..55b4cbb9aa 100755
 +if test "$with_system_ffi" = "yes"; then
 +
 +pkg_failed=no
-+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for LIBFFI" >&5
-+printf %s "checking for LIBFFI... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for LIBFFI" >&5
++$as_echo_n "checking for LIBFFI... " >&6; }
 +
 +if test -n "$LIBFFI_CFLAGS"; then
 +    pkg_cv_LIBFFI_CFLAGS="$LIBFFI_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libffi\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libffi\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "libffi") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_LIBFFI_CFLAGS=`$PKG_CONFIG --cflags "libffi" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -1037,10 +1024,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +    pkg_cv_LIBFFI_LIBS="$LIBFFI_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libffi\""; } >&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libffi\""; } >&5
 +  ($PKG_CONFIG --exists --print-errors "libffi") 2>&5
 +  ac_status=$?
-+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
 +  pkg_cv_LIBFFI_LIBS=`$PKG_CONFIG --libs "libffi" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
@@ -1054,8 +1041,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +
 +
 +if test $pkg_failed = yes; then
-+   	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
++   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
 +
 +if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
 +        _pkg_short_errors_supported=yes
@@ -1081,10 +1068,10 @@ index 1ef344f92d..55b4cbb9aa 100755
 +and LIBFFI_LIBS to avoid the need to call pkg-config.
 +See the pkg-config man page for more details." "$LINENO" 5
 +elif test $pkg_failed = untried; then
-+     	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-+printf "%s\n" "no" >&6; }
-+	{ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
++     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 +as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
 +is in your PATH or set the PKG_CONFIG environment variable to the full
 +path to pkg-config.
@@ -1098,8 +1085,8 @@ index 1ef344f92d..55b4cbb9aa 100755
 +else
 +	LIBFFI_CFLAGS=$pkg_cv_LIBFFI_CFLAGS
 +	LIBFFI_LIBS=$pkg_cv_LIBFFI_LIBS
-+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-+printf "%s\n" "yes" >&6; }
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
 +
 +fi
 +fi
@@ -1112,30 +1099,29 @@ index 1ef344f92d..55b4cbb9aa 100755
  fi
  
  
-@@ -19803,8 +20410,8 @@ fi
+@@ -13572,6 +14159,7 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
+ 
+ fi
+ 
++
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether struct tm is in sys/time.h or time.h" >&5
+ $as_echo_n "checking whether struct tm is in sys/time.h or time.h... " >&6; }
+ if ${ac_cv_struct_tm+:} false; then :
+@@ -17533,8 +18121,8 @@ fi
      if ! $found; then
          OPENSSL_INCLUDES=
          for ssldir in $ssldirs; do
--            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for openssl/ssl.h in $ssldir" >&5
--printf %s "checking for openssl/ssl.h in $ssldir... " >&6; }
-+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for include/openssl/ssl.h in $ssldir" >&5
-+printf %s "checking for include/openssl/ssl.h in $ssldir... " >&6; }
+-            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for openssl/ssl.h in $ssldir" >&5
+-$as_echo_n "checking for openssl/ssl.h in $ssldir... " >&6; }
++            { $as_echo "$as_me:${as_lineno-$LINENO}: checking for include/openssl/ssl.h in $ssldir" >&5
++$as_echo_n "checking for include/openssl/ssl.h in $ssldir... " >&6; }
              if test -f "$ssldir/include/openssl/ssl.h"; then
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure.ac b/configure.ac
-index 7325e6ed1f..04256a88fc 100644
+index 7325e6ed1f..01c2664444 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -8,7 +8,7 @@ dnl
- # Set VERSION so we only need to edit in one place (i.e., here)
- m4_define(PYTHON_VERSION, 3.10)
- 
--AC_PREREQ([2.69])
-+AC_PREREQ([2.71])
- 
- AC_INIT([python],[PYTHON_VERSION],[https://bugs.python.org/])
- 
 @@ -56,7 +56,7 @@ else
  fi
  
@@ -1145,24 +1131,15 @@ index 7325e6ed1f..04256a88fc 100644
  
  AC_CANONICAL_HOST
  AC_SUBST(build)
-@@ -2204,7 +2204,15 @@ dnl ]], [[;]])],[cpp_type=ansi],[AC_DEFINE(HAVE_OLD_CPP) cpp_type=traditional])
- dnl AC_MSG_RESULT($cpp_type)
+@@ -2205,6 +2205,7 @@ dnl AC_MSG_RESULT($cpp_type)
  
  # checks for header files
--AC_HEADER_STDC
-+m4_warn([obsolete],
-+[The preprocessor macro `STDC_HEADERS' is obsolete.
-+  Except in unusual embedded environments, you can safely include all
-+  ISO C90 headers unconditionally.])dnl
-+# Autoupdate added the next two lines to ensure that your configure
-+# script's behavior did not change.  They are probably safe to remove.
-+AC_CHECK_INCLUDES_DEFAULT
-+AC_PROG_EGREP
+ AC_HEADER_STDC
 +
  AC_CHECK_HEADERS(asm/types.h crypt.h conio.h direct.h dlfcn.h errno.h \
  fcntl.h grp.h \
  ieeefp.h io.h langinfo.h libintl.h process.h pthread.h \
-@@ -2845,6 +2853,13 @@ AC_CHECK_LIB(sendfile, sendfile)
+@@ -2845,6 +2846,13 @@ AC_CHECK_LIB(sendfile, sendfile)
  AC_CHECK_LIB(dl, dlopen)	# Dynamic linking for SunOS/Solaris and SYSV
  AC_CHECK_LIB(dld, shl_load)	# Dynamic linking for HP-UX
  
@@ -1176,7 +1153,7 @@ index 7325e6ed1f..04256a88fc 100644
  # checks for uuid.h location
  AC_CHECK_HEADERS([uuid/uuid.h uuid.h])
  
-@@ -2885,6 +2900,10 @@ void *x = uuid_enc_be
+@@ -2885,6 +2893,10 @@ void *x = uuid_enc_be
    [AC_MSG_RESULT(no)]
  )
  
@@ -1187,7 +1164,7 @@ index 7325e6ed1f..04256a88fc 100644
  # 'Real Time' functions on Solaris
  # posix4 on Solaris 2.6
  # pthread (first!) on Linux
-@@ -3063,6 +3082,29 @@ LIBS="$withval $LIBS"
+@@ -3063,6 +3075,29 @@ LIBS="$withval $LIBS"
  
  PKG_PROG_PKG_CONFIG
  
@@ -1217,7 +1194,7 @@ index 7325e6ed1f..04256a88fc 100644
  # Check for use of the system expat library
  AC_MSG_CHECKING(for --with-system-expat)
  AC_ARG_WITH(system_expat,
-@@ -3099,10 +3141,14 @@ else
+@@ -3099,10 +3134,14 @@ else
      with_system_ffi="yes"
  fi
  
@@ -1235,33 +1212,19 @@ index 7325e6ed1f..04256a88fc 100644
  fi
  AC_SUBST(LIBFFI_INCLUDEDIR)
  
-@@ -4217,7 +4263,20 @@ fi
- AC_CHECK_FUNCS(getnameinfo)
+@@ -4218,6 +4257,7 @@ AC_CHECK_FUNCS(getnameinfo)
  
  # checks for structures
--AC_HEADER_TIME
-+m4_warn([obsolete],
-+[Update your code to rely only on HAVE_SYS_TIME_H,
-+then remove this warning and the obsolete code below it.
-+All current systems provide time.h; it need not be checked for.
-+Not all systems provide sys/time.h, but those that do, all allow
-+you to include it and time.h simultaneously.])dnl
-+AC_CHECK_HEADERS_ONCE([sys/time.h])
-+# Obsolete code to be removed.
-+if test $ac_cv_header_sys_time_h = yes; then
-+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
-+	     and <time.h>.  This macro is obsolete.])
-+fi
-+# End of obsolete code.
+ AC_HEADER_TIME
 +
  AC_STRUCT_TM
  AC_STRUCT_TIMEZONE
  AC_CHECK_MEMBERS([struct stat.st_rdev])
 diff --git a/setup.py b/setup.py
-index 20878d385d..be87475f0e 100644
+index 88aec8f1d4..10edbb1a0d 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1671,10 +1671,19 @@ def detect_compress_exts(self):
+@@ -1673,10 +1673,19 @@ def detect_compress_exts(self):
          #
          # You can upgrade zlib to version 1.1.4 yourself by going to
          # http://www.gzip.org/zlib/
@@ -1283,7 +1246,7 @@ index 20878d385d..be87475f0e 100644
              version = '"0.0.0"'
              version_req = '"1.1.3"'
              if MACOS and is_macosx_sdk_path(zlib_h):
-@@ -1688,7 +1697,13 @@ def detect_compress_exts(self):
+@@ -1690,7 +1699,13 @@ def detect_compress_exts(self):
                          version = line.split()[2]
                          break
              if version >= version_req:
@@ -1298,7 +1261,7 @@ index 20878d385d..be87475f0e 100644
                      if MACOS:
                          zlib_extra_link_args = ('-Wl,-search_paths_first',)
                      else:
-@@ -1710,12 +1725,15 @@ def detect_compress_exts(self):
+@@ -1712,12 +1727,15 @@ def detect_compress_exts(self):
              extra_compile_args = ['-DUSE_ZLIB_CRC32']
              libraries = ['z']
              extra_link_args = zlib_extra_link_args
@@ -1314,7 +1277,7 @@ index 20878d385d..be87475f0e 100644
                             libraries=libraries,
                             extra_link_args=extra_link_args))
  
-@@ -1850,17 +1868,25 @@ def detect_multiprocessing(self):
+@@ -1852,17 +1870,25 @@ def detect_multiprocessing(self):
  
      def detect_uuid(self):
          # Build the _uuid module if possible
@@ -1349,7 +1312,7 @@ index 20878d385d..be87475f0e 100644
  
      def detect_modules(self):
          self.configure_compiler()
-@@ -2256,6 +2282,7 @@ def detect_ctypes(self):
+@@ -2258,6 +2284,7 @@ def detect_ctypes(self):
                                 libraries=['m']))
  
          ffi_inc = sysconfig.get_config_var("LIBFFI_INCLUDEDIR")
@@ -1357,7 +1320,7 @@ index 20878d385d..be87475f0e 100644
          ffi_lib = None
  
          ffi_inc_dirs = self.inc_dirs.copy()
-@@ -2281,13 +2308,13 @@ def detect_ctypes(self):
+@@ -2283,13 +2310,13 @@ def detect_ctypes(self):
              if not os.path.exists(ffi_h):
                  ffi_inc = None
                  print('Header file {} does not exist'.format(ffi_h))
@@ -1373,7 +1336,7 @@ index 20878d385d..be87475f0e 100644
              ffi_headers = glob(os.path.join(ffi_inc, '*.h'))
              if grep_headers_for('ffi_prep_cif_var', ffi_headers):
                  ext.extra_compile_args.append("-DHAVE_FFI_PREP_CIF_VAR=1")
-@@ -2297,7 +2324,10 @@ def detect_ctypes(self):
+@@ -2299,7 +2326,10 @@ def detect_ctypes(self):
                  ext.extra_compile_args.append("-DHAVE_FFI_CLOSURE_ALLOC=1")
  
              ext.include_dirs.append(ffi_inc)

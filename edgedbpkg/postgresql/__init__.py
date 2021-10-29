@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import platform
+import re
 import textwrap
 
 from metapkg import packages
@@ -43,13 +44,29 @@ class PostgreSQL(packages.BundledCPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL.from_upstream_version("1.1.1l"),
-        icu.ICU(version="69.1"),
+        openssl.OpenSSL("3.0.0"),
+        icu.ICU("69.1"),
     ]
 
     @classmethod
     def to_vcs_version(cls, version: str) -> str:
         return f"REL_{version.replace('.', '_')}"
+
+    def get_patches(self) -> dict[str, list[tuple[str, str]]]:
+        patches = dict(super().get_patches())
+        for pkg, pkg_patches in patches.items():
+            if pkg == self.name:
+                filtered = []
+                for i, (pn, pfile) in enumerate(list(pkg_patches)):
+                    m = re.match(r"^.*-(\d+)$", pn)
+                    if m and int(m.group(1)) != self.version.major:
+                        pass
+                    else:
+                        filtered.append((pn, pfile))
+                patches[pkg] = filtered
+                break
+
+        return patches
 
     def get_configure_script(self, build: targets.Build) -> str:
         extra_version = ""

@@ -14,7 +14,7 @@ ENV LANG C
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
 ENV PYTHON_VERSION 3.9.7
-ENV GIT_VERSION 2.20.1
+ENV GIT_VERSION 2.33.1
 ENV PATCHELF_VERSION 0.13
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
@@ -29,7 +29,8 @@ RUN yum install -y centos-release-scl epel-release \
     wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
-    perl-Getopt-Long sudo ca-certificates zstd
+    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
+	sudo ca-certificates zstd
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh

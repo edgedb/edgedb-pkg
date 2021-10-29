@@ -1,0 +1,59 @@
+From c0d335aa1dd97132092f795690aa529eb8549e2d Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 28 Oct 2021 21:12:47 -0700
+Subject: [PATCH] Lookup for modules using current libcrypto path instead of
+ hardcoded path
+
+---
+ crypto/provider_core.c | 28 ++++++++++++++++++++++++++--
+ 1 file changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/crypto/provider_core.c b/crypto/provider_core.c
+index b39fb3bb1d..6b869ebc65 100644
+--- a/crypto/provider_core.c
++++ b/crypto/provider_core.c
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include <assert.h>
++#include <libgen.h>
+ #include <openssl/core.h>
+ #include <openssl/core_dispatch.h>
+ #include <openssl/core_names.h>
+@@ -865,8 +866,31 @@ static int provider_init(OSSL_PROVIDER *prov)
+ 
+             if (load_dir == NULL) {
+                 load_dir = ossl_safe_getenv("OPENSSL_MODULES");
+-                if (load_dir == NULL)
+-                    load_dir = MODULESDIR;
++                if (load_dir == NULL) {
++                    char *self_dir = NULL;
++                    int self_dir_len = DSO_pathbyaddr(
++                        (void *)DSO_pathbyaddr, NULL, 0);
++                    if (self_dir_len < 0)
++                        goto end;
++                    self_dir = OPENSSL_malloc(self_dir_len);
++                    if (self_dir == NULL) {
++                        ERR_raise(ERR_LIB_CRYPTO, ERR_R_MALLOC_FAILURE);
++                        goto end;
++                    }
++                    if (DSO_pathbyaddr(
++                        (void *)DSO_pathbyaddr, self_dir, self_dir_len) < 0)
++                    {
++                        OPENSSL_free(self_dir);
++                        goto end;
++                    }
++                    allocated_load_dir = DSO_merge(
++                        prov->module, "ossl-modules", dirname(self_dir));
++                    OPENSSL_free(self_dir);
++                    if (allocated_load_dir == NULL) {
++                        goto end;
++                    }
++                    load_dir = allocated_load_dir;
++                }
+             }
+ 
+             DSO_ctrl(prov->module, DSO_CTRL_SET_FLAGS,
+-- 
+2.32.0
+

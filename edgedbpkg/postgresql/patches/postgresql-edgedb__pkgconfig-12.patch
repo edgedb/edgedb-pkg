@@ -1,26 +1,34 @@
-From 70181975d41b0071895b6fb70d73aa7050a7c5d6 Mon Sep 17 00:00:00 2001
+From 69ba973a787d9db20d9e514ba828833a261f2c24 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
-Subject: [PATCH 1/2] Make it possible to pass OpenSSL lib path to configure
+Subject: [PATCH] Use pkg-config for libuuid and openssl
 
 ---
- configure                     | 110 +++++++++++++++++++++++++++++++++-
- configure.in                  |  10 ++++
- contrib/pgcrypto/Makefile     |   4 ++
+ configure                     | 208 +++++++++++++++++++++++++++++++++-
+ configure.in                  |  13 +++
+ contrib/pgcrypto/Makefile     |   4 +
  contrib/sslinfo/Makefile      |   2 +
- src/Makefile.global.in        |   5 +-
+ src/Makefile.global.in        |   7 +-
  src/backend/Makefile          |   4 +-
  src/backend/libpq/Makefile    |   1 +
  src/bin/pgbench/Makefile      |   3 +
  src/common/Makefile           |   1 +
  src/interfaces/libpq/Makefile |   1 +
- 10 files changed, 137 insertions(+), 4 deletions(-)
+ 10 files changed, 240 insertions(+), 4 deletions(-)
 
 diff --git a/configure b/configure
-index 25d9248869..57ffdd1fd2 100755
+index c5626e38c2..2979f57e99 100755
 --- a/configure
 +++ b/configure
-@@ -711,6 +711,8 @@ UUID_EXTRA_OBJS
+@@ -651,6 +651,7 @@ CFLAGS_SSE42
+ have_win32_dbghelp
+ LIBOBJS
+ UUID_LIBS
++UUID_CFLAGS
+ LDAP_LIBS_BE
+ LDAP_LIBS_FE
+ PTHREAD_CFLAGS
+@@ -710,6 +711,8 @@ UUID_EXTRA_OBJS
  with_uuid
  with_systemd
  with_selinux
@@ -29,7 +37,7 @@ index 25d9248869..57ffdd1fd2 100755
  with_openssl
  with_ldap
  with_krb_srvnam
-@@ -891,6 +893,8 @@ PKG_CONFIG_PATH
+@@ -890,6 +893,8 @@ PKG_CONFIG_PATH
  PKG_CONFIG_LIBDIR
  ICU_CFLAGS
  ICU_LIBS
@@ -38,7 +46,16 @@ index 25d9248869..57ffdd1fd2 100755
  XML2_CONFIG
  XML2_CFLAGS
  XML2_LIBS
-@@ -1597,6 +1601,10 @@ Some influential environment variables:
+@@ -897,6 +902,8 @@ LDFLAGS_EX
+ LDFLAGS_SL
+ PERL
+ PYTHON
++UUID_CFLAGS
++UUID_LIBS
+ MSGFMT
+ TCLSH'
+ 
+@@ -1596,6 +1603,10 @@ Some influential environment variables:
                path overriding pkg-config's built-in search path
    ICU_CFLAGS  C compiler flags for ICU, overriding pkg-config
    ICU_LIBS    linker flags for ICU, overriding pkg-config
@@ -49,7 +66,16 @@ index 25d9248869..57ffdd1fd2 100755
    XML2_CONFIG path to xml2-config utility
    XML2_CFLAGS C compiler flags for XML2, overriding pkg-config
    XML2_LIBS   linker flags for XML2, overriding pkg-config
-@@ -7907,6 +7915,100 @@ fi
+@@ -1603,6 +1614,8 @@ Some influential environment variables:
+   LDFLAGS_SL  extra linker flags for linking shared libraries only
+   PERL        Perl program
+   PYTHON      Python program
++  UUID_CFLAGS C compiler flags for UUID, overriding pkg-config
++  UUID_LIBS   linker flags for UUID, overriding pkg-config
+   MSGFMT      msgfmt program for NLS
+   TCLSH       Tcl interpreter program (tclsh)
+ 
+@@ -7907,6 +7920,100 @@ fi
  $as_echo "$with_openssl" >&6; }
  
  
@@ -150,7 +176,7 @@ index 25d9248869..57ffdd1fd2 100755
  #
  # SELinux
  #
-@@ -12011,7 +12113,11 @@ fi
+@@ -12011,7 +12118,11 @@ fi
  fi
  
  if test "$with_openssl" = yes ; then
@@ -163,7 +189,7 @@ index 25d9248869..57ffdd1fd2 100755
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
  if ${ac_cv_lib_crypto_CRYPTO_new_ex_data+:} false; then :
-@@ -12304,6 +12410,8 @@ $as_echo "$ac_cv_func_ssl_clear_options" >&6; }
+@@ -12304,6 +12415,8 @@ $as_echo "$ac_cv_func_ssl_clear_options" >&6; }
  $as_echo "#define HAVE_SSL_CLEAR_OPTIONS 1" >>confdefs.h
  
    fi
@@ -172,8 +198,115 @@ index 25d9248869..57ffdd1fd2 100755
  fi
  
  if test "$with_pam" = yes ; then
+@@ -12688,6 +12801,98 @@ else
+ fi
+ 
+ elif test "$with_uuid" = e2fs ; then
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid" >&5
++$as_echo_n "checking for uuid... " >&6; }
++
++if test -n "$UUID_CFLAGS"; then
++    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$UUID_LIBS"; then
++    pkg_cv_UUID_LIBS="$UUID_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid" 2>&1`
++        else
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$UUID_PKG_ERRORS" >&5
++
++	as_fn_error $? "Package requirements (uuid) were not met:
++
++$UUID_PKG_ERRORS
++
++Consider adjusting the PKG_CONFIG_PATH environment variable if you
++installed software in a non-standard prefix.
++
++Alternatively, you may set the environment variables UUID_CFLAGS
++and UUID_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details." "$LINENO" 5
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
++is in your PATH or set the PKG_CONFIG environment variable to the full
++path to pkg-config.
++
++Alternatively, you may set the environment variables UUID_CFLAGS
++and UUID_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++
++To get pkg-config, see <http://pkg-config.freedesktop.org/>.
++See \`config.log' for more details" "$LINENO" 5; }
++else
++	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
++	UUID_LIBS=$pkg_cv_UUID_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++fi
++  if test -z "$UUID_LIBS"; then
+   # On macOS, the UUID functions are in libc
+   ac_fn_c_check_func "$LINENO" "uuid_generate" "ac_cv_func_uuid_generate"
+ if test "x$ac_cv_func_uuid_generate" = xyes; then :
+@@ -12737,6 +12942,7 @@ fi
+ 
+ fi
+ 
++  fi
+ elif test "$with_uuid" = ossp ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
+ $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
 diff --git a/configure.in b/configure.in
-index 7d63eb2fa3..9c0eeef306 100644
+index c46f037739..3f8ca57941 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -848,6 +848,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
@@ -207,6 +340,22 @@ index 7d63eb2fa3..9c0eeef306 100644
  fi
  
  if test "$with_pam" = yes ; then
+@@ -1311,12 +1321,15 @@ if test "$with_uuid" = bsd ; then
+     [UUID_LIBS=""],
+     [AC_MSG_ERROR([BSD UUID functions are not present])])
+ elif test "$with_uuid" = e2fs ; then
++  PKG_CHECK_MODULES(UUID, uuid)
++  if test -z "$UUID_LIBS"; then
+   # On macOS, the UUID functions are in libc
+   AC_CHECK_FUNC(uuid_generate,
+     [UUID_LIBS=""],
+     [AC_CHECK_LIB(uuid, uuid_generate,
+       [UUID_LIBS="-luuid"],
+       [AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])])])
++  fi
+ elif test "$with_uuid" = ossp ; then
+   AC_CHECK_LIB(ossp-uuid, uuid_export,
+     [UUID_LIBS="-lossp-uuid"],
 diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
 index 1313b66408..e564544fd8 100644
 --- a/contrib/pgcrypto/Makefile
@@ -234,7 +383,7 @@ index 5a972db703..bebfde01c9 100644
 +
  SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 1d60560167..52666454e5 100644
+index 7bf6cfbbf4..70aa84e0d1 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -216,6 +216,9 @@ krb_srvtab = @krb_srvtab@
@@ -252,10 +401,19 @@ index 1d60560167..52666454e5 100644
  PG_SYSROOT = @PG_SYSROOT@
  
 -override CPPFLAGS := $(ICU_CFLAGS) $(CPPFLAGS)
-+override CPPFLAGS := $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
++override CPPFLAGS := $(UUID_CFLAGS) $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(CPPFLAGS)
  
  ifdef PGXS
  override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
+@@ -269,6 +272,8 @@ LLVM_CPPFLAGS = @LLVM_CPPFLAGS@
+ LLVM_CFLAGS = @LLVM_CFLAGS@
+ LLVM_CXXFLAGS = @LLVM_CXXFLAGS@
+ 
++UUID_CFLAGS = @UUID_CFLAGS@
++
+ # Kind-of compilers
+ 
+ BISON = @BISON@
 diff --git a/src/backend/Makefile b/src/backend/Makefile
 index b03d5e510f..c47c0f34b5 100644
 --- a/src/backend/Makefile
@@ -322,5 +480,5 @@ index 32a9fdfb7b..092b0e72a1 100644
  
  ifeq ($(with_gssapi),yes)
 -- 
-2.26.2
+2.32.0
 

@@ -32,11 +32,12 @@ class OpenSSL(packages.BundledCPackage):
         )
         copy_sources = f"test ./ -ef {sdir} || cp -a {sdir}/* ./"
 
-        configure = "./config"
+        configure = "./Configure"
         configure_flags = {
             "--openssldir": str(
                 build.get_full_install_prefix() / "etc" / "ssl"
             ),
+            "--libdir": str(build.get_install_path("lib")),
             "no-ssl2": None,
             "no-ssl3": None,
             "shared": None,
