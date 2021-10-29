@@ -99,13 +99,15 @@ class Python(packages.BundledPackage):
             if build.supports_lto():
                 configure_flags["--with-lto"] = None
             if build.uses_modern_gcc():
-                configure_flags["CFLAGS"] = "!" + " ".join(
+                build.sh_append_flags(
+                    configure_flags,
+                    "CFLAGS",
                     (
                         "-fgraphite-identity",
                         "-floop-nest-optimize",
                         "-fipa-pta",
                         "-fno-semantic-interposition",
-                    )
+                    ),
                 )
 
         libffi_pkg = build.get_package("libffi")
