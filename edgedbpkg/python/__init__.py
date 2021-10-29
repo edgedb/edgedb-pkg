@@ -99,7 +99,7 @@ class Python(packages.BundledPackage):
             if build.supports_lto():
                 configure_flags["--with-lto"] = None
             if build.uses_modern_gcc():
-                configure_flags["CFLAGS"] = " ".join(
+                configure_flags["CFLAGS"] = "!" + " ".join(
                     (
                         "-fgraphite-identity",
                         "-floop-nest-optimize",

@@ -161,9 +161,13 @@ class PostgreSQL(packages.BundledCPackage):
             and build.supports_lto()
             and build.uses_modern_gcc()
         ):
-            configure_flags["CFLAGS"] = (
-                "-O2 -flto -fuse-linker-plugin "
-                "-ffat-lto-objects -flto-partition=none"
+            configure_flags["CFLAGS"] = "!" + " ".join(
+                (
+                    "-flto",
+                    "-fuse-linker-plugin",
+                    "-ffat-lto-objects",
+                    "-flto-partition=none",
+                )
             )
 
         return self.sh_configure(build, configure, configure_flags)
