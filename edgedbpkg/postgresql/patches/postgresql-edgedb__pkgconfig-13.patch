@@ -1,7 +1,7 @@
-From db4973794bea3859fdac72dc51bec6a84067c4c0 Mon Sep 17 00:00:00 2001
+From c267eceded579b05b9feaee21ca03b90027db0b7 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
-Subject: [PATCH] Use pkg-config for libuuid and openssl
+Subject: [PATCH 2/2] Use pkg-config for libuuid and openssl
 
 ---
  configure                        | 221 ++++++++++++++++++++++++++++++-
