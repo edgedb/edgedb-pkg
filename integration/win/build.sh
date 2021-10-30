@@ -9,8 +9,9 @@ pip install -U git+https://github.com/edgedb/edgedb-pkg
 # bare invocations of "bash" to mean "WSL", since make
 # runs its shells using bare names even if SHELL contains
 # a fully-qualified path.
-shell_path=$(dirname "${SHELL}")
+shell_path=$(mktemp -d)
 cp -a "${SHELL}" "${shell_path}/realbash"
+export PATH="${shell_path}:${PATH}"
 
 extraopts=
 if [ -n "${SRC_REF}" ]; then
