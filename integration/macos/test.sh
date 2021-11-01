@@ -13,7 +13,7 @@ fi
 re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\.pkg"
 slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
 fwpath="/Library/Frameworks/EdgeDB.framework/"
-python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"
+python="${fwpath}/Versions/${slot}/bin/python3"
 
 # Install the CLI tools.
 dist=""
@@ -48,7 +48,7 @@ set -e
 
 sudo su edgedb -c \
     "${python} -m edb.tools --no-devmode test \
-     ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
+     ${fwpath}/Versions/${slot}/data/tests \
      -e cqa_ -e tools_ --verbose"
 
 echo "Success!"
