@@ -10,9 +10,6 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\.rpm"
-slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
-
 dist='el$releasever'
 if [ -n "${PKG_SUBDIST}" ]; then
     dist+=".${PKG_SUBDIST}"
@@ -29,13 +26,41 @@ EOF
 
 try=1
 while [ $try -le 30 ]; do
-    yum makecache && yum install --verbose -y edgedb-cli && break || true
+    yum makecache && yum install --verbose -y edgedb-cli jq && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10
 done
 
-yum install -y "${dest}"/edgedb-server-${slot}*.x86_64.rpm
+slot=
+rpm=
+for pack in ${dest}/*.tar; do
+    if [ -e "${pack}" ]; then
+        slot=$(tar -xOf "${pack}" "build-metadata.json" \
+               | jq -r ".version_slot")
+        rpm=$(tar -xOf "${pack}" "build-metadata.json" \
+              | jq -r ".contents | keys[]" \
+              | grep "^edgedb-server.*\\.rpm$")
+        if [ -n "${rpm}" ]; then
+            break
+        fi
+    fi
+done
+
+if [ -z "${rpm}" ]; then
+    echo "${dest} does not seem to contain an edgedb-server .rpm" >&2
+    exit 1
+fi
+
+if [ -z "${slot}" ]; then
+    echo "could not determine version slot from build metadata" >&2
+    exit 1
+fi
+
+tmpdir=$(mktemp -d)
+tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"
+yum install -y "${tmpdir}/${rpm}"
+rm -rf "${tmpdir}"
 
 if [ "$1" == "bash" ]; then
     echo su edgedb -c \

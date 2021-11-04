@@ -3,6 +3,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import base64
 import os
 import pathlib
 import platform
@@ -20,6 +21,7 @@ from edgedbpkg import pyentrypoint
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
+    from poetry.core.semver import version as poetry_version
 
 
 python.set_python_runtime_dependency(
@@ -74,8 +76,20 @@ class EdgeDB(packages.BundledPythonPackage):
         *,
         ref: str | None = None,
         version: str | None = None,
+        revision: str | None = None,
         is_release: bool = False,
+        target: targets.Target,
     ) -> EdgeDB:
+        os.environ["EDGEDB_BUILD_OFFICIAL"] = "yes"
+        os.environ["EDGEDB_BUILD_TARGET"] = (
+            base64.b32encode(target.triple.encode())
+            .decode()
+            .rstrip("=")
+            .lower()
+        )
+        if revision:
+            os.environ["EDGEDB_BUILD_DATE"] = revision
+
         if is_release:
             try:
                 prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
@@ -86,7 +100,12 @@ class EdgeDB(packages.BundledPythonPackage):
 
             try:
                 return super().resolve(
-                    io, ref=ref, version=version, is_release=is_release
+                    io,
+                    ref=ref,
+                    version=version,
+                    revision=revision,
+                    is_release=is_release,
+                    target=target,
                 )
             finally:
                 if prev is Ellipsis:
@@ -95,8 +114,47 @@ class EdgeDB(packages.BundledPythonPackage):
                     os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
         else:
             return super().resolve(
-                io, ref=ref, version=version, is_release=is_release
+                io,
+                ref=ref,
+                version=version,
+                revision=revision,
+                is_release=is_release,
+                target=target,
             )
+
+    @classmethod
+    def canonicalize_version(
+        cls,
+        io: cleo_io.IO,
+        version: poetry_version.Version,
+        *,
+        revision: str | None = None,
+        is_release: bool = False,
+        target: targets.Target,
+    ) -> poetry_version.Version:
+        if version.local:
+            if isinstance(version.local, tuple):
+                local = version.local
+            else:
+                local = (version.local,)
+
+            for part in local:
+                if isinstance(part, str) and part.startswith("s"):
+                    # new version format
+                    build_signature = part[1:]
+                    if version.is_devrelease():
+                        new_ver = version.without_local().replace(
+                            pre=None,
+                            local=(build_signature,),
+                        )
+                    else:
+                        new_ver = version.without_local().replace(
+                            local=(build_signature,),
+                        )
+
+                    return new_ver
+
+        return version
 
     @classmethod
     def get_package_repository(
@@ -110,35 +168,46 @@ class EdgeDB(packages.BundledPythonPackage):
     @property
     def base_slot(self) -> str:
         if self.version.is_prerelease():
-            pre = self.version.pre
-            return f"{self.version.major}-{pre.phase}{pre.number}"
+            pre = f"{self.version.pre.phase}{self.version.pre.number}"
+            return f"{self.version.major}-{pre}"
         else:
             return f"{self.version.major}"
 
     @property
     def slot(self) -> str:
-        # We need to be careful with dev builds an place ones with changed
-        # catalog version in a new slot.
-        # Sadly what we're looking for is not present in any pre-parsed fields.
-        if self.version.text.find(".dev") == -1:
-            return self.base_slot
+        if ".s" in self.pretty_version:
+            # New version format
+            if self.version.is_devrelease():
+                dev = f"{self.version.dev.phase}{self.version.dev.number}"
+                return f"{self.version.major}-{dev}"
+            elif self.version.is_prerelease():
+                pre = f"{self.version.pre.phase}{self.version.pre.number}"
+                return f"{self.version.major}-{pre}"
+            else:
+                return f"{self.version.major}"
         else:
-            return f"{self.base_slot}-dev{self.get_catalog_version()}"
+            if self.version.text.find(".dev") == -1:
+                return self.base_slot
+            else:
+                return f"{self.base_slot}-dev{self.get_catalog_version()}"
+
+    def version_includes_revision(self) -> bool:
+        return ".s" in self.pretty_version
 
     def get_catalog_version(self) -> str:
-        _, local = self.version.text.split("+", 1)
+        _, local = self.pretty_version.split("+", 1)
         for entry in local.split("."):
             if entry.startswith("cv"):
                 return entry[2:]  # type: ignore
 
         raise RuntimeError(
-            f"no catalog version in EdgeDB version: {self.version}"
+            f"no catalog version in EdgeDB version: {self.pretty_version}"
         )
 
-    def get_artifact_metadata(self, build: targets.Build) -> dict[str, str]:
-        metadata = dict(super().get_artifact_metadata(build))
-        metadata["catalog_version"] = self.get_catalog_version()
-        return metadata
+    def get_version_metadata_fields(self) -> dict[str, str]:
+        fields = dict(super().get_version_metadata_fields())
+        fields["cv"] = "catalog_version"
+        return fields
 
     def sh_get_build_wheel_env(
         self, build: targets.Build, *, site_packages_var: str

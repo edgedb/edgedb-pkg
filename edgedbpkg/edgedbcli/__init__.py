@@ -1,3 +1,8 @@
+from __future__ import annotations
+from typing import (
+    Any,
+)
+
 from metapkg import packages
 from metapkg import targets
 
@@ -25,3 +30,8 @@ class EdgeDBCLI(packages.BundledRustPackage):
 
     def get_license_files_pattern(self) -> str:
         return ""
+
+    def get_artifact_metadata(self, build: targets.Build) -> dict[str, Any]:
+        metadata = dict(super().get_artifact_metadata(build))
+        metadata["publish_link_to_latest"] = True
+        return metadata

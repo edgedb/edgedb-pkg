@@ -2,9 +2,6 @@
 
 set -Exeo pipefail
 
-pip3 install -U git+https://github.com/edgedb/metapkg
-pip3 install -U git+https://github.com/edgedb/edgedb-pkg
-
 extraopts=
 if [ -n "${SRC_REF}" ]; then
     extraopts+=" --source-ref=${SRC_REF}"
@@ -29,6 +26,10 @@ if [ -n "${PKG_SUBDIST}" ]; then
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"
 fi
 
+if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then
+    extraopts+=" --extra-optimizations"
+fi
+
 if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi
@@ -49,6 +50,10 @@ fi
 if [ -z "${PACKAGE}" ]; then
     PACKAGE="edgedbpkg.edgedb:EdgeDB"
 fi
+
+echo python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
+
+pip3 install -U git+https://github.com/edgedb/edgedb-pkg@new
 
 python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
 

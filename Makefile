@@ -138,9 +138,9 @@ test-systemd: check-target
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		edgedb-pkg/test-systemd:$(TARGET)
 
-publish: check-target
+publish:
 	make -C integration/linux/upload
-	docker build -t edgedb-pkg/upload:$(TARGET) integration/linux/upload/$(TARGET)
+	docker build -t edgedb-pkg/upload:linux-x86_64 integration/linux/upload/linux-x86_64
 	docker run -it --rm \
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
@@ -149,7 +149,7 @@ publish: check-target
 		-e PACKAGE_SERVER=$(PACKAGE_SERVER) \
 		-v $(SSH_KEY):/sshkey \
 		-v $(OUTPUTDIR):/artifacts \
-		edgedb-pkg/upload:$(TARGET) \
+		edgedb-pkg/upload:linux-x86_64 \
 		$(COMMAND)
 
 test-published: check-target

@@ -57,8 +57,10 @@ fi
 if [ "${AWS_ACCESS_KEY_ID}" != "" ]; then
     mkdir -p /home/repomgr/.aws
     echo "[default]" >/home/repomgr/.aws/credentials
-    echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" >>/home/repomgr/.aws/credentials
-    echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" >>/home/repomgr/.aws/credentials
+    echo "aws_access_key_id = ${AWS_ACCESS_KEY_ID}" \
+        >>/home/repomgr/.aws/credentials
+    echo "aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" \
+        >>/home/repomgr/.aws/credentials
     chown -R repomgr:repomgr /home/repomgr/.aws
     chmod 400 /home/repomgr/.aws/credentials
 fi
