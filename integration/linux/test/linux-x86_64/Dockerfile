@@ -89,11 +89,26 @@ wget "https://packages.edgedb.com/dist/linux-x86_64/edgedb-cli_latest" \\\n\
     -O /bin/edgedb\n\
 chmod +x /bin/edgedb\n\
 \n\
-cat "${dest}/package-version.json"\n\
-tarball="${dest}/$(cat "${dest}/package-version.json" | jq -r .installref)"\n\
+tarball=\n\
+for pack in ${dest}/*.tar; do\n\
+    if [ -e "${pack}" ]; then\n\
+        tarball=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+                  | jq -r ".installrefs[]" \\\n\
+                  | grep ".tar.gz$")\n\
+        if [ -n "${tarball}" ]; then\n\
+            break\n\
+        fi\n\
+    fi\n\
+done\n\
+\n\
+if [ -z "${tarball}" ]; then\n\
+    echo "${dest} does not contain a valid build tarball" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
 mkdir /edgedb\n\
 chmod 1777 /tmp\n\
-tar -xzf "${tarball}" --strip-components=1 -C "/edgedb/"\n\
+tar -xOf "${pack}" "${tarball}" | tar -xzf- --strip-components=1 -C "/edgedb/"\n\
 touch /etc/group\n\
 addgroup edgedb\n\
 touch /etc/passwd\n\

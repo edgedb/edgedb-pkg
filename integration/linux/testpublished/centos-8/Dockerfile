@@ -28,14 +28,8 @@ if [ -n "${PKG_SUBDIST}" ]; then\n\
     dist+=".${PKG_SUBDIST}"\n\
 fi\n\
 \n\
-cat <<EOF >/etc/yum.repos.d/edgedb.repo\n\
-[edgedb]\n\
-name=edgedb\n\
-baseurl=https://packages.edgedb.com/rpm/${dist}/\n\
-enabled=1\n\
-gpgcheck=1\n\
-gpgkey=https://packages.edgedb.com/keys/edgedb.asc\n\
-EOF\n\
+curl -fL https://packages.edgedb.com/rpm/edgedb-rhel.repo \\\n\
+    >/etc/yum.repos.d/edgedb.repo\n\
 \n\
 if [ "$1" == "bash" ]; then\n\
     exec /bin/bash\n\
@@ -43,7 +37,9 @@ fi\n\
 \n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
-    yum makecache && yum install --verbose -y "${install_ref}" && break || true\n\
+    yum makecache \\\n\
+    && yum install --enablerepo=edgedb,edgedb-nightly --verbose -y "${install_ref}" \\\n\
+    && break || true\n\
     try=$(( $try + 1 ))\n\
     echo "Retrying in 10 seconds (try #${try})"\n\
     sleep 10\n\

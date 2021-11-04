@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 		musl-tools \
 		patchelf \
 		sudo \
+		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY %%PLACEHOLDER%%

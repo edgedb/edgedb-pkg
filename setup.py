@@ -13,6 +13,6 @@ setuptools.setup(
     packages=["edgedbpkg"],
     include_package_data=True,
     install_requires=[
-        "metapkg@git+https://github.com/edgedb/metapkg.git@master",
+        "metapkg@git+https://github.com/edgedb/metapkg.git",
     ],
 )

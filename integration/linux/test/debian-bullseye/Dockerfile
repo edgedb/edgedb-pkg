@@ -17,17 +17,13 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\\.deb"\n\
-slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
-echo "SLOT=$slot"\n\
-\n\
 dist="${PKG_PLATFORM_VERSION}"\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     dist+=".${PKG_SUBDIST}"\n\
 fi\n\
 \n\
 apt-get update\n\
-apt-get install -y curl gnupg apt-transport-https\n\
+apt-get install -y curl gnupg apt-transport-https jq\n\
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
 echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \\\n\
     >> /etc/apt/sources.list.d/edgedb.list\n\
@@ -40,7 +36,35 @@ while [ $try -le 30 ]; do\n\
     sleep 10\n\
 done\n\
 \n\
-apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
+slot=\n\
+deb=\n\
+for pack in ${dest}/*.tar; do\n\
+    if [ -e "${pack}" ]; then\n\
+        slot=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+               | jq -r ".version_slot")\n\
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+              | jq -r ".contents | keys[]" \\\n\
+              | grep "^edgedb-server.*\\.deb$")\n\
+        if [ -n "${deb}" ]; then\n\
+            break\n\
+        fi\n\
+    fi\n\
+done\n\
+\n\
+if [ -z "${deb}" ]; then\n\
+    echo "${dest} does not seem to contain an edgedb-server .deb" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+if [ -z "${slot}" ]; then\n\
+    echo "could not determine version slot from build metadata" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+tmpdir=$(mktemp -d)\n\
+tar -x -C "${tmpdir}" -f "${pack}" "${deb}"\n\
+apt-get install -y "${tmpdir}/${deb}"\n\
+rm -rf "${tmpdir}"\n\
 \n\
 if [ "$1" == "bash" ]; then\n\
     echo su edgedb -c \\\n\

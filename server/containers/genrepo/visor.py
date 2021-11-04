@@ -41,7 +41,7 @@ def ensure_dead_with_parent() -> None:
         return
 
     PR_SET_PDEATHSIG = 1  # include/uapi/linux/prctl.h
-    libc = ctypes.CDLL(ctypes.util.find_library("c"))  # type: ignore
+    libc = ctypes.CDLL(ctypes.util.find_library("c"))
     libc.prctl(PR_SET_PDEATHSIG, signal.SIGKILL)
 
 
@@ -77,11 +77,9 @@ async def run(cmd: List[str], user: str = "") -> int:
     assert proc.stderr
     PROCESSES.append(proc)
     out("Running", cmd_name, "at", proc.pid)
-    await asyncio.wait(
-        [
-            keep_printing("O " + cmd_name, proc.stdout),
-            keep_printing("E " + cmd_name, proc.stderr),
-        ]
+    await asyncio.gather(
+        keep_printing("O " + cmd_name, proc.stdout),
+        keep_printing("E " + cmd_name, proc.stderr),
     )
     return await proc.wait()
 

@@ -1,0 +1,32 @@
+[common]
+signing_key = "A3FF3633DF29BDBF"
+
+[generic]
+
+[apt]
+architectures = ["amd64", "source"]
+components = ["main", "nightly"]
+
+[[apt.distributions]]
+name = "Debian Stretch"
+codename = "stretch"
+
+[[apt.distributions]]
+name = "Debian Buster"
+codename = "buster"
+
+[[apt.distributions]]
+name = "Debian Bullseye"
+codename = "bullseye"
+
+[[apt.distributions]]
+name = "Ubuntu 16.04"
+codename = "xenial"
+
+[[apt.distributions]]
+name = "Ubuntu 18.04"
+codename = "bionic"
+
+[[apt.distributions]]
+name = "Ubuntu 20.04"
+codename = "focal"

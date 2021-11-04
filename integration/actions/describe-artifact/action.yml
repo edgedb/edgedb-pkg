@@ -9,7 +9,11 @@ inputs:
     default: '.'
 outputs:
   version-slot:
-    description: "Version Slot (e.g. alpha-1)"
+    description: 'Version Slot (e.g. 1-beta-3)'
+  catalog-version:
+    description: 'The catalog version of the server artifact (if server)'
+  install-ref:
+    description: 'The installation reference for the compiled artifact'
 runs:
   using: 'node12'
-  main: 'lib/main.js'
+  main: 'dist/index.js'

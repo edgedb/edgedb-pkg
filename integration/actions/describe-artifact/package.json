@@ -1,26 +1,42 @@
 {
-  "name": "describe-edgedb-package-artifact",
-  "version": "0.0.1",
-  "private": true,
-  "description": "Action to describe EdgeDB package artifacts",
-  "main": "lib/main.js",
-  "scripts": {
-    "build": "tsc",
-    "test": "jest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/edgedb/action-describe-edgedb-package-artifact.git"
-  },
-  "author": "EdgeDB Inc.",
-  "license": "Apache 2.0",
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^27.0.1",
-    "@types/node": "^16.6.1",
-    "jest": "^27.0.6",
-    "jest-circus": "^27.0.6",
-    "ts-jest": "^27.0.4",
-    "typescript": "^4.3.5"
-  }
+    "name": "describe-edgedb-package-artifact",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Action to describe EdgeDB package artifacts",
+    "main": "lib/main.js",
+    "scripts": {
+        "build": "tsc",
+        "format": "prettier --write **/*.ts",
+        "format-check": "prettier --check **/*.ts",
+        "lint": "eslint src/**/*.ts",
+        "package": "ncc build --source-map --license licenses.txt",
+        "all": "yarn run build && yarn run format && yarn run lint && yarn run package"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/edgedb/action-describe-edgedb-package-artifact.git"
+    },
+    "author": "EdgeDB Inc.",
+    "license": "Apache 2.0",
+    "dependencies": {
+        "@actions/core": "^1.2.6",
+        "glob": "^7.2.0",
+        "tar-stream": "^2.2.0"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.2.0",
+        "@types/jest": "^27.0.2",
+        "@types/node": "^16.11.6",
+        "@types/tar-stream": "^2.2.2",
+        "@vercel/ncc": "^0.31.1",
+        "eslint": "^8.1.0",
+        "eslint-plugin-github": "^4.1.1",
+        "eslint-plugin-jest": "^25.2.2",
+        "jest": "^27.3.1",
+        "jest-circus": "^27.3.1",
+        "prettier": "2.4.1",
+        "ts-jest": "^27.0.4",
+        "ts-node": "^10.1.0",
+        "typescript": "^4.4.4"
+    }
 }

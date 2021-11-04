@@ -30,9 +30,11 @@ dest="artifacts"
 key=""
 if [ -n "${PKG_PLATFORM}" ]; then
     key+="-${PKG_PLATFORM}"
+    dest+="/${PKG_PLATFORM}"
 fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     key+="-${PKG_PLATFORM_VERSION}"
+    dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
 cd "${dest}"
@@ -43,7 +45,7 @@ chmod g+rw "${list}"
 
 cat <<EOF >${batch}
 put -r * incoming/
-put -p ${list} incoming/triggers/upload${key}.list
+put -p ${list} incoming/triggers/
 EOF
 
 sftp -b "${batch}" uploader@"$PACKAGE_SERVER"
