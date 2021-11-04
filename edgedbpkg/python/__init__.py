@@ -201,6 +201,7 @@ class Python(packages.BundledPackage):
         make_wrapper = textwrap.dedent(
             f"""\
             echo '#!{bash}' > python-wrapper
+            echo set -Exe -o pipefail >> python-wrapper
             echo 'd=$(cd -- "$(dirname "$0")" >/dev/null 2>&1; pwd -P)' \\
                 >> python-wrapper
             echo 'unset __PYVENV_LAUNCHER__' >> python-wrapper
