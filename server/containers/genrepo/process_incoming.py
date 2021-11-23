@@ -804,24 +804,6 @@ def process_apt(
         local_apt_dir / "pool",
     )
 
-    subprocess.run(["ls", "-al"], cwd=incoming_dir)
-
-    subprocess.run(
-        [
-            "reprepro",
-            "-V",
-            "-V",
-            f"--confdir={str(reprepro_conf)}",
-            f"--basedir={str(local_apt_dir)}",
-            f"--logdir={str(reprepro_logs)}",
-            "clearvanished",
-        ],
-        cwd=incoming_dir,
-        check=True,
-    )
-
-    return
-
     subprocess.run(
         [
             "reprepro",
