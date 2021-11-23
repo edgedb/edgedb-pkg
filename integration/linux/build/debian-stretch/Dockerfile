@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.9.7
+ENV PYTHON_VERSION 3.9.9
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -143,6 +143,10 @@ fi\n\
 \n\
 if [ -n "${BUILD_GENERIC}" ]; then\n\
     extraopts+=" --generic"\n\
+fi\n\
+\n\
+if [ -n "${PKG_BUILD_JOBS}" ]; then\n\
+    extraopts+=" --jobs=${PKG_BUILD_JOBS}"\n\
 fi\n\
 \n\
 dest="artifacts"\n\

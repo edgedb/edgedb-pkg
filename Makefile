@@ -78,6 +78,10 @@ ifneq ($(BUILD_GENERIC),)
 	EXTRAENV += -e BUILD_GENERIC="$(BUILD_GENERIC)"
 endif
 
+ifneq ($(PKG_BUILD_JOBS),)
+	EXTRAENV += -e PKG_BUILD_JOBS="$(PKG_BUILD_JOBS)"
+endif
+
 ifeq ($(BUILD_IS_RELEASE),true)
 	EXTRAENV += -e BUILD_IS_RELEASE=true
 endif

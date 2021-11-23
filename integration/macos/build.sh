@@ -33,6 +33,10 @@ if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi
 
+if [ -n "${PKG_BUILD_JOBS}" ]; then
+    extraopts+=" --jobs=${PKG_BUILD_JOBS}"
+fi
+
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"

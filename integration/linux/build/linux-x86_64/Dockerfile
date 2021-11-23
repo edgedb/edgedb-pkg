@@ -13,7 +13,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV LANG C
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.9.7
+ENV PYTHON_VERSION 3.9.9
 ENV GIT_VERSION 2.33.1
 ENV PATCHELF_VERSION 0.13
 ENV RUSTUP_HOME /usr/local/rustup
@@ -168,6 +168,10 @@ fi\n\
 \n\
 if [ -n "${BUILD_GENERIC}" ]; then\n\
     extraopts+=" --generic"\n\
+fi\n\
+\n\
+if [ -n "${PKG_BUILD_JOBS}" ]; then\n\
+    extraopts+=" --jobs=${PKG_BUILD_JOBS}"\n\
 fi\n\
 \n\
 dest="artifacts"\n\

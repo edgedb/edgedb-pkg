@@ -21,7 +21,7 @@ RUN yum install -y \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.9.7
+ENV PYTHON_VERSION 3.9.9
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
@@ -153,6 +153,10 @@ fi\n\
 \n\
 if [ -n "${BUILD_GENERIC}" ]; then\n\
     extraopts+=" --generic"\n\
+fi\n\
+\n\
+if [ -n "${PKG_BUILD_JOBS}" ]; then\n\
+    extraopts+=" --jobs=${PKG_BUILD_JOBS}"\n\
 fi\n\
 \n\
 dest="artifacts"\n\
