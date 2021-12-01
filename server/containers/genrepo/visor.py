@@ -18,6 +18,9 @@ FILTER_OUT = frozenset(
         "Received disconnect from",
         "Disconnected from invalid user",
         "Invalid user",
+        "Authentication failed",
+        "Disconnected from authenticating user",
+        "Connection closed by",
     }
 )
 PROCESSES = []
