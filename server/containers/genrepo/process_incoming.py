@@ -1217,7 +1217,7 @@ def process_rpm(
         )
 
         slot_name = pkgmetadata["name"]
-        if pkgmetadata["version_slot"]:
+        if pkgmetadata.get("version_slot"):
             slot_name += f".{pkgmetadata['version_slot']}"
         slot_index.setdefault(slot_name, []).append(
             (version_key, pkgmetadata["name"], nevra)
