@@ -23,16 +23,8 @@ RUN apt-get update \
     && adduser repomgr incoming \
     && adduser uploader incoming \
     && mkdir -p $REPO_INCOMING_DIR/triggers \
-    && mkdir -p $REPO_INCOMING_DIR/linux-x86_64 \
-    && mkdir -p $REPO_INCOMING_DIR/macos-x86_64 \
-    && mkdir -p $REPO_INCOMING_DIR/win-x86_64 \
-    && mkdir -p $REPO_INCOMING_DIR/source \
     && chown -R repomgr:incoming $REPO_INCOMING_DIR \
     && chmod g+ws $REPO_INCOMING_DIR \
-    && chmod g+ws $REPO_INCOMING_DIR/linux-x86_64 \
-    && chmod g+ws $REPO_INCOMING_DIR/macos-x86_64 \
-    && chmod g+ws $REPO_INCOMING_DIR/win-x86_64 \
-    && chmod g+ws $REPO_INCOMING_DIR/source \
     && chmod g+ws $REPO_INCOMING_DIR/triggers \
     && mkdir -p /etc/ssh/authorized_keys/ \
     && mkdir -p ~root/.ssh && chmod 700 ~root/.ssh/ \
