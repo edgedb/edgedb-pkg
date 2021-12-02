@@ -801,12 +801,10 @@ def process_apt(
             Allow: {dists}
             """
         )
-        print(incoming)
         f.write(incoming)
 
     with open(reprepro_conf / "distributions", "wt") as f:
         distributions = generate_reprepro_distributions(cfg)
-        print(distributions)
         f.write(distributions)
 
     for member in tf.getmembers():

@@ -17,23 +17,22 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-dist='\''el$releasever'\''\n\
-if [ -n "${PKG_SUBDIST}" ]; then\n\
-    dist+=".${PKG_SUBDIST}"\n\
-fi\n\
+source /etc/os-release\n\
 \n\
-cat <<EOF >/etc/yum.repos.d/edgedb.repo\n\
-[edgedb]\n\
-name=edgedb\n\
-baseurl=https://packages.edgedb.com/rpm/${dist}/\n\
-enabled=1\n\
-gpgcheck=1\n\
-gpgkey=https://packages.edgedb.com/keys/edgedb.asc\n\
-EOF\n\
+curl -fL https://packages.edgedb.com/rpm/edgedb-rhel.repo \\\n\
+    >/etc/yum.repos.d/edgedb.repo\n\
+\n\
+if [ "${VERSION_ID}" = "7" ]; then\n\
+    # EPEL needed for jq on CentOS 7\n\
+    yum install -y \\\n\
+        "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"\n\
+fi\n\
 \n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
-    yum makecache && yum install --verbose -y edgedb-cli jq && break || true\n\
+    yum makecache \\\n\
+    && yum install --enablerepo=edgedb,edgedb-nightly --verbose -y edgedb-cli jq \\\n\
+    && break || true\n\
     try=$(( $try + 1 ))\n\
     echo "Retrying in 10 seconds (try #${try})"\n\
     sleep 10\n\

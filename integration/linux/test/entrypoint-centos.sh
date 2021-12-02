@@ -10,13 +10,16 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-dist='el$releasever'
-if [ -n "${PKG_SUBDIST}" ]; then
-    dist+=".${PKG_SUBDIST}"
-fi
+source /etc/os-release
 
 curl -fL https://packages.edgedb.com/rpm/edgedb-rhel.repo \
     >/etc/yum.repos.d/edgedb.repo
+
+if [ "${VERSION_ID}" = "7" ]; then
+    # EPEL needed for jq on CentOS 7
+    yum install -y \
+        "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+fi
 
 try=1
 while [ $try -le 30 ]; do

@@ -4,51 +4,48 @@ set -ex
 
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
-    dest+="/${PKG_PLATFORM}"
+    dest="${dest}/${PKG_PLATFORM}"
 fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
-    dest+="-${PKG_PLATFORM_VERSION}"
+    dest="${dest}-${PKG_PLATFORM_VERSION}"
+fi
+if [ -n "${PKG_TEST_JOBS}" ]; then
+    dash_j="-j${PKG_TEST_JOBS}"
+else
+    dash_j=""
 fi
 
-re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\.pkg"
-slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
-fwpath="/Library/Frameworks/EdgeDB.framework/"
-python="${fwpath}/Versions/${slot}/lib/edgedb-server-${slot}/bin/python3"
+dlurl="https://packages.edgedb.com/dist/${PKG_PLATFORM_VERSION}-apple-darwin"
 
-# Install the CLI tools.
-dist=""
-if [ -n "${PKG_PLATFORM}" ]; then
-    dist+="${PKG_PLATFORM}"
-fi
-if [ -n "${PKG_PLATFORM_VERSION}" ]; then
-    dist+="-${PKG_PLATFORM_VERSION}"
-fi
-if [ -n "${PKG_SUBDIST}" ]; then
-    dist+=".${PKG_SUBDIST}"
-fi
-
-clipath="edgedb-cli_latest"
-if [ -n "${PKG_SUBDIST}" ]; then
-    clipath="${clipath}_${PKG_SUBDIST}"
-fi
-
-curl -fL "https://packages.edgedb.com/dist/${dist}/${clipath}" > edgedb-cli
-
-sudo mkdir -p /usr/local/bin
-sudo cp edgedb-cli /usr/local/bin/edgedb
+sudo curl -fL "${dlurl}/edgedb-cli" -o /usr/local/bin/edgedb
 sudo chmod +x /usr/local/bin/edgedb
 
-sudo installer -dumplog -verbose \
-    -pkg "${dest}"/*.pkg \
-    -target / || (sudo tail -300 /var/log/install.log && exit 1)
+tarball=
+for pack in ${dest}/*.tar; do
+    if [ -e "${pack}" ]; then
+        tarball=$(tar -xOf "${pack}" "build-metadata.json" \
+                  | jq -r ".installrefs[]" \
+                  | grep ".tar.gz$")
+        if [ -n "${tarball}" ]; then
+            break
+        fi
+    fi
+done
 
-set +e
-source /etc/profile
-set -e
+if [ -z "${tarball}" ]; then
+    echo "${dest} does not contain a valid build tarball" >&2
+    exit 1
+fi
 
-sudo su edgedb -c \
-    "${python} -m edb.tools --no-devmode test \
-     ${fwpath}/Versions/${slot}/share/edgedb-server-${slot}/tests \
-     -e cqa_ -e tools_ --verbose"
+mkdir edgedb
+gtar -xOf "${pack}" "${tarball}" | gtar -xzf- --strip-components=1 -C edgedb
 
-echo "Success!"
+if [ "$1" == "bash" ]; then
+    exec /bin/bash
+fi
+
+./edgedb/bin/python3 \
+    -m edb.tools --no-devmode test \
+    ./edgedb/data/tests \
+    -e cqa_ -e tools_ \
+    --verbose ${dash_j}
