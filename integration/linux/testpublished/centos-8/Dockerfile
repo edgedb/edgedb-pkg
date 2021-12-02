@@ -23,9 +23,9 @@ if [ -z "${slot}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
-dist='\''el$releasever'\''\n\
+repo="edgedb"\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
-    dist+=".${PKG_SUBDIST}"\n\
+    repo+="-${PKG_SUBDIST}"\n\
 fi\n\
 \n\
 curl -fL https://packages.edgedb.com/rpm/edgedb-rhel.repo \\\n\
@@ -38,7 +38,7 @@ fi\n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
     yum makecache \\\n\
-    && yum install --enablerepo=edgedb,edgedb-nightly --verbose -y "${install_ref}" \\\n\
+    && yum install --enablerepo="${repo}" --verbose -y "${install_ref}" \\\n\
     && break || true\n\
     try=$(( $try + 1 ))\n\
     echo "Retrying in 10 seconds (try #${try})"\n\

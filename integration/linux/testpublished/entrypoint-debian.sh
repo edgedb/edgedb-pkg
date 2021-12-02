@@ -19,14 +19,15 @@ if [ -z "${slot}" ]; then
 fi
 
 dist="${PKG_PLATFORM_VERSION}"
+components="main"
 if [ -n "${PKG_SUBDIST}" ]; then
-    dist+=".${PKG_SUBDIST}"
+    components+=" ${PKG_SUBDIST}"
 fi
 
 apt-get update
 apt-get install -y curl gnupg apt-transport-https ncurses-bin
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
-echo deb [arch=amd64] https://packages.edgedb.com/apt ${dist} main \
+echo deb https://packages.edgedb.com/apt ${dist} ${components} \
     >> /etc/apt/sources.list.d/edgedb.list
 
 if [ "$1" == "bash" ]; then
