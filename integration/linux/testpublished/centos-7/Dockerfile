@@ -37,7 +37,7 @@ fi\n\
 \n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
-    yum makecache \\\n\
+    yum makecache --enablerepo="${repo}" \\\n\
     && yum install --enablerepo="${repo}" --verbose -y "${install_ref}" \\\n\
     && break || true\n\
     try=$(( $try + 1 ))\n\

@@ -15,7 +15,7 @@ else
     dash_j=""
 fi
 
-wget "https://packages.edgedb.com/dist/linux-x86_64/edgedb-cli_latest" \
+wget "https://packages.edgedb.com/dist/x86_64-unknown-linux-musl/edgedb-cli" \
     -O /bin/edgedb
 chmod +x /bin/edgedb
 
