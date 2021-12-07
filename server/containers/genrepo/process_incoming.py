@@ -747,21 +747,6 @@ def generate_reprepro_distributions(
             )
         )
 
-        dists.append(
-            textwrap.dedent(
-                f"""\
-                Origin: EdgeDB Open Source Project
-                Label: EdgeDB
-                Suite: stable
-                Codename: {dist["codename"]}.nightly
-                Architectures: {" ".join(cfg["apt"]["architectures"])}
-                Components: {" ".join(cfg["apt"]["components"])}
-                Description: EdgeDB Package Repository for {dist["name"]}
-                SignWith: {cfg["common"]["signing_key"]}
-                """
-            )
-        )
-
     return "\n".join(dists)
 
 
@@ -790,9 +775,6 @@ def process_apt(
 
     with open(reprepro_conf / "incoming", "wt") as f:
         dists = " ".join(d["codename"] for d in cfg["apt"]["distributions"])
-        dists += " " + " ".join(
-            f'{d["codename"]}.nightly' for d in cfg["apt"]["distributions"]
-        )
         incoming = textwrap.dedent(
             f"""\
             Name: default
@@ -875,6 +857,7 @@ def process_apt(
         r"\0".join(
             (
                 r"${$architecture}",
+                r"${$component}",
                 r"${package}",
                 r"${version}",
                 r"${$fullfilename}",
@@ -885,20 +868,10 @@ def process_apt(
         + r"\n"
     )
 
-    for dist in repo_dists:
-        existing: dict[tuple[str, str], Package] = {}
-        packages: dict[tuple[str, str], Package] = {}
-        idxfile = index_dir / f"{dist}.json"
-        if idxfile.exists():
-            with open(idxfile, "r") as f:
-                data = json.load(f)
-                if isinstance(data, dict) and (
-                    pkglist := data.get("packages")
-                ):
-                    for pkg in pkglist:
-                        index_key = (pkg["basename"], pkg["version_key"])
-                        existing[index_key] = Package(**pkg)
+    existing: dict[str, dict[tuple[str, str], Package]] = {}
+    packages: dict[str, dict[tuple[str, str], Package]] = {}
 
+    for dist in repo_dists:
         result = subprocess.run(
             [
                 "reprepro",
@@ -909,7 +882,7 @@ def process_apt(
                 "list",
                 dist,
             ],
-            universal_newlines=True,
+            text=True,
             check=True,
             stdout=subprocess.PIPE,
             stderr=None,
@@ -921,12 +894,40 @@ def process_apt(
 
             (
                 arch,
+                component,
                 pkgname,
                 pkgver,
                 pkgfile,
                 size,
                 pkgmetadata_json,
             ) = line.split("\0")
+
+            if component != "main" and not dist.endswith(component):
+                index_dist = f"{dist}.{component}"
+            else:
+                index_dist = dist
+
+            prev_dist_packages = existing.get(index_dist)
+            if prev_dist_packages is None:
+                idxfile = index_dir / f"{index_dist}.json"
+                prev_dist_packages = {}
+                if idxfile.exists():
+                    with open(idxfile, "r") as f:
+                        data = json.load(f)
+                        if isinstance(data, dict) and (
+                            pkglist := data.get("packages")
+                        ):
+                            for pkg in pkglist:
+                                index_key = (
+                                    pkg["basename"],
+                                    pkg["version_key"],
+                                )
+                                prev_dist_packages[index_key] = Package(**pkg)
+                existing[index_dist] = prev_dist_packages
+
+            dist_packages = packages.get(index_dist)
+            if dist_packages is None:
+                packages[index_dist] = dist_packages = {}
 
             if arch == "amd64":
                 arch = "x86_64"
@@ -964,9 +965,9 @@ def process_apt(
             ver_metadata = pkgmetadata["version_details"]["metadata"]
             index_key = (pkgmetadata["name"], version_key)
 
-            if index_key in existing:
-                packages[index_key] = existing[index_key]
-                packages[index_key]["architecture"] = arch
+            if index_key in prev_dist_packages:
+                dist_packages[index_key] = prev_dist_packages[index_key]
+                dist_packages[index_key]["architecture"] = arch
             else:
                 if basename == "edgedb-server" and not ver_metadata.get(
                     "catalog_version"
@@ -990,12 +991,14 @@ def process_apt(
                     verification={},
                 )
 
-                append_artifact(packages, pkgmetadata, installref)
+                append_artifact(dist_packages, pkgmetadata, installref)
 
                 print("makeindex: noted {}".format(installref["ref"]))
 
+    for index_dist, dist_packages in packages.items():
+        idxfile = index_dir / f"{index_dist}.json"
         with open(idxfile, "w") as f:
-            json.dump({"packages": list(packages.values())}, f)
+            json.dump({"packages": list(dist_packages.values())}, f)
 
     for sub in [".jsonindexes", "db", "dists"]:
         sync_to_s3(
