@@ -85,7 +85,7 @@ else\n\
     dash_j=""\n\
 fi\n\
 \n\
-wget "https://packages.edgedb.com/dist/linux-x86_64/edgedb-cli_latest" \\\n\
+wget "https://packages.edgedb.com/dist/x86_64-unknown-linux-musl/edgedb-cli" \\\n\
     -O /bin/edgedb\n\
 chmod +x /bin/edgedb\n\
 \n\

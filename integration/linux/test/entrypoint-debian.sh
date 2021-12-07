@@ -11,14 +11,11 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
 fi
 
 dist="${PKG_PLATFORM_VERSION}"
-if [ -n "${PKG_SUBDIST}" ]; then
-    dist+=".${PKG_SUBDIST}"
-fi
 
 apt-get update
 apt-get install -y curl gnupg apt-transport-https jq
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
-echo deb https://packages.edgedb.com/apt ${dist} main nightly \
+echo deb https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST:-main}" \
     >> /etc/apt/sources.list.d/edgedb.list
 
 try=1
