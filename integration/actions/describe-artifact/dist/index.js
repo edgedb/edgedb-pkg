@@ -73,10 +73,12 @@ async function run() {
             throw new Error(`multiple .tar artifacts found in ${dest}`);
         }
         const tarball = `${dest}/${tars[0]}`;
-        const metadata = JSON.parse(await extractMetadata(tarball));
+        const metadataJSON = await extractMetadata(tarball);
+        const metadata = JSON.parse(metadataJSON);
         const version_slot = (_a = metadata['version_slot']) !== null && _a !== void 0 ? _a : '';
         const catver = (_b = metadata['version_details']['metadata']['catalog_version']) !== null && _b !== void 0 ? _b : '';
         const installref = (_c = metadata['installrefs'][0]) !== null && _c !== void 0 ? _c : '';
+        actions.setOutput('metadata', metadataJSON);
         actions.setOutput('version-slot', version_slot);
         actions.setOutput('catalog-version', catver);
         actions.setOutput('install-ref', installref);

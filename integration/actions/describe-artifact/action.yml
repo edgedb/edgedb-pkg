@@ -8,6 +8,8 @@ inputs:
     description: 'Artifact Root'
     default: '.'
 outputs:
+  metadata:
+    description: 'Build metadata JSON'
   version-slot:
     description: 'Version Slot (e.g. 1-beta-3)'
   catalog-version:

@@ -52,12 +52,14 @@ async function run(): Promise<void> {
     }
     const tarball = `${dest}/${tars[0]}`
 
-    const metadata = JSON.parse(await extractMetadata(tarball))
+    const metadataJSON = await extractMetadata(tarball)
+    const metadata = JSON.parse(metadataJSON)
     const version_slot = metadata['version_slot'] ?? ''
     const catver =
       metadata['version_details']['metadata']['catalog_version'] ?? ''
     const installref = metadata['installrefs'][0] ?? ''
 
+    actions.setOutput('metadata', metadataJSON)
     actions.setOutput('version-slot', version_slot)
     actions.setOutput('catalog-version', catver)
     actions.setOutput('install-ref', installref)
