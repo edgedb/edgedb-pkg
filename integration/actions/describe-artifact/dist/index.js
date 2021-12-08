@@ -79,6 +79,7 @@ async function run() {
         const catver = (_b = metadata['version_details']['metadata']['catalog_version']) !== null && _b !== void 0 ? _b : '';
         const installref = (_c = metadata['installrefs'][0]) !== null && _c !== void 0 ? _c : '';
         actions.setOutput('metadata', metadataJSON);
+        actions.setOutput('version', metadata['version']);
         actions.setOutput('version-slot', version_slot);
         actions.setOutput('catalog-version', catver);
         actions.setOutput('install-ref', installref);

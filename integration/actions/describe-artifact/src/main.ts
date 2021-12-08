@@ -60,6 +60,7 @@ async function run(): Promise<void> {
     const installref = metadata['installrefs'][0] ?? ''
 
     actions.setOutput('metadata', metadataJSON)
+    actions.setOutput('version', metadata['version'])
     actions.setOutput('version-slot', version_slot)
     actions.setOutput('catalog-version', catver)
     actions.setOutput('install-ref', installref)
