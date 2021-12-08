@@ -14,6 +14,7 @@ RUN apt-get update \
     && pip3 install click \
     && pip3 install typing-extensions \
     && pip3 install tomli \
+    && pip3 install semver \
     && addgroup --gid 2000 repomgr \
     && adduser --uid 2000 --gid 2000 repomgr \
     && addgroup uploaders \

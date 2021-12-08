@@ -6,7 +6,6 @@ from typing_extensions import TypedDict
 import apt_pkg
 
 import contextlib
-import distutils.version
 import hashlib
 import fnmatch
 import functools
@@ -25,6 +24,7 @@ import textwrap
 
 import boto3
 import click
+import semver
 import tomli
 
 from mypy_boto3_s3 import type_defs as s3types
@@ -257,34 +257,44 @@ def remove_old(
     prefix_str = str(prefix) + "/"
     for obj in bucket.objects.filter(Prefix=prefix_str):
         if is_metadata_object(obj.key):
-            print(obj.key, "is metadata")
             continue
 
         metadata = get_metadata(bucket, obj.key)
         if metadata["channel"] != channel:
             continue
 
-        key = "-".join(
-            filter(None, (metadata["name"], metadata.get("version_slot", "")))
+        key = metadata["name"]
+        verslot = metadata.get("version_slot", "")
+        catver = (
+            metadata["version_details"]
+            .get("metadata", {})
+            .get("catalog_version")
         )
-        catver = metadata.get("catalog_version")
         if catver:
             key = f"{key}-{catver}"
+        else:
+            key = f"{key}-{verslot}"
 
-        version = metadata["version"]
+        ver_details = metadata["version_details"]
+        version = semver.VersionInfo(
+            ver_details["major"],
+            ver_details["minor"],
+            ver_details["patch"] or 0,
+            ".".join(
+                f"{p['phase']}.{p['number']}"
+                for p in ver_details["prerelease"]
+            ),
+        )
         index.setdefault(key, {}).setdefault(version, []).append(obj.key)
 
-    for _, versions in index.items():
-        sorted_versions = list(
-            sorted(
-                versions.items(),
-                key=lambda v: distutils.version.LooseVersion(v[0]),
-                reverse=True,
-            )
-        )
+    import pprint
 
-        for _, obj_keys in sorted_versions[keep:]:
-            for obj_key in obj_keys:
+    pprint.pprint(index)
+
+    for _, versions in index.items():
+        sorted_versions = sorted(versions, reverse=True)
+        for ver in sorted_versions[keep:]:
+            for obj_key in versions[ver]:
                 print("Deleting outdated", obj_key)
                 bucket.objects.filter(Prefix=obj_key).delete()
 
