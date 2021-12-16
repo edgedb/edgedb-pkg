@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN"
+        "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Disabled</key>
+    <false/>
+
+    <key>Label</key>
+    <string>@@{identifier}-@@{slot}</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@{bindir}/edgedb-server</string>
+        <string>--data-dir=@@{localstatedir}/lib/edgedb/@@{slot}/data/</string>
+        <string>--runstate-dir=@@{runstatedir}/edgedb/</string>
+        <string>--tls-cert-mode=generate_self_signed</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>UserName</key>
+    <string>edgedb</string>
+
+    <key>KeepAlive</key>
+    <dict>
+         <key>SuccessfulExit</key>
+         <false/>
+    </dict>
+</dict>
+</plist>

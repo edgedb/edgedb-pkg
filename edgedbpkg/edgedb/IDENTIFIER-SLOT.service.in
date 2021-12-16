@@ -1,0 +1,23 @@
+[Unit]
+Description=@@{description}
+Documentation=@@{documentation}
+After=syslog.target
+After=network.target
+
+[Service]
+Type=notify
+
+User=edgedb
+Group=edgedb
+
+Environment=EDGEDATA=@@{localstatedir}/lib/edgedb/@@{slot}/data/
+RuntimeDirectory=edgedb
+
+ExecStart=@@{bindir}/edgedb-server --data-dir=${EDGEDATA} --runstate-dir=%t/edgedb --tls-cert-mode=generate_self_signed
+ExecReload=/bin/kill -HUP ${MAINPID}
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target

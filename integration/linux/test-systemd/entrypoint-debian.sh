@@ -13,6 +13,8 @@ function finish() {
 
 trap finish 0
 
+export DEBIAN_FRONTEND=noninteractive
+
 dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest+="/${PKG_PLATFORM}"
@@ -21,24 +23,58 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
-re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\.deb"
-slot="$(ls ${dest} | sed -n -E "s/${re}/\1/p")"
-echo "SLOT=$slot"
+dist="${PKG_PLATFORM_VERSION}"
 
-export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb
+curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
+echo deb https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST:-main}" \
+    >> /etc/apt/sources.list.d/edgedb.list
+
+try=1
+while [ $try -le 30 ]; do
+    apt-get update && apt-get install -y edgedb-cli && break || true
+    try=$(( $try + 1 ))
+    echo "Retrying in 10 seconds (try #${try})"
+    sleep 10
+done
+
+slot=
+deb=
+for pack in ${dest}/*.tar; do
+    if [ -e "${pack}" ]; then
+        slot=$(tar -xOf "${pack}" "build-metadata.json" \
+               | jq -r ".version_slot")
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \
+              | jq -r ".contents | keys[]" \
+              | grep "^edgedb-server.*\\.deb$")
+        if [ -n "${deb}" ]; then
+            break
+        fi
+    fi
+done
+
+if [ -z "${deb}" ]; then
+    echo "${dest} does not seem to contain an edgedb-server .deb" >&2
+    exit 1
+fi
+
+if [ -z "${slot}" ]; then
+    echo "could not determine version slot from build metadata" >&2
+    exit 1
+fi
+
+tmpdir=$(mktemp -d)
+tar -x -C "${tmpdir}" -f "${pack}" "${deb}"
+apt-get install -y "${tmpdir}/${deb}"
+rm -rf "${tmpdir}"
+
 systemctl enable --now edgedb-server-${slot} \
     || (journalctl -u edgedb-server-${slot} && exit 1)
 
 ls -al /var/run/edgedb/
 
 python="/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3"
-edbcli="${python} -m edb.cli"
-
-su edgedb -c "${edbcli} --admin configure insert Auth \
-                --method=Trust --priority=0"
-[[ "$(echo 'SELECT 1 + 3;' | ${edbcli} -u edgedb)" == *4* ]] || exit 1
+[[ "$(edgedb --admin -P5656 query 'SELECT 1 + 3;')" == *4* ]] || exit 1
 echo "Success!"
 
 EOF

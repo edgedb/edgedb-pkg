@@ -128,15 +128,17 @@ test: check-target
 test-systemd: check-target
 	make -C integration/linux/test-systemd
 	docker build -t edgedb-pkg/test-systemd:$(TARGET) integration/linux/test-systemd/$(TARGET)
-	docker run -it --rm \
+	podman run -it --rm \
 		--cap-add SYS_ADMIN \
-		-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		--cgroupns=host \
+		--cgroup-parent="containers.slice" \
+		--systemd true \
 		-v $(ROOT):/src \
 		-v $(OUTPUTDIR):/artifacts \
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
-		edgedb-pkg/test-systemd:$(TARGET)
+		docker-daemon:edgedb-pkg/test-systemd:$(TARGET)
 
 publish:
 	make -C integration/linux/upload

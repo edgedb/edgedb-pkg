@@ -10,7 +10,8 @@ ENV container docker
 
 STOPSIGNAL SIGRTMIN+3
 
-RUN apt-get update && apt-get install -y --no-install-recommends systemd \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    systemd jq curl gnupg apt-transport-https ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN /bin/echo -e '#!/bin/bash\n\
@@ -28,6 +29,8 @@ function finish() {\n\
 \n\
 trap finish 0\n\
 \n\
+export DEBIAN_FRONTEND=noninteractive\n\
+\n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\
@@ -36,24 +39,58 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
-re="edgedb-server-([[:digit:]]+(-(alpha|beta|rc)[[:digit:]]+)?(-dev[[:digit:]]+)?).*\\.deb"\n\
-slot="$(ls ${dest} | sed -n -E "s/${re}/\\1/p")"\n\
-echo "SLOT=$slot"\n\
+dist="${PKG_PLATFORM_VERSION}"\n\
 \n\
-export DEBIAN_FRONTEND=noninteractive\n\
 apt-get update\n\
-apt-get install -y ./"${dest}"/edgedb-server-${slot}_*_amd64.deb\n\
+curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
+echo deb https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST:-main}" \\\n\
+    >> /etc/apt/sources.list.d/edgedb.list\n\
+\n\
+try=1\n\
+while [ $try -le 30 ]; do\n\
+    apt-get update && apt-get install -y edgedb-cli && break || true\n\
+    try=$(( $try + 1 ))\n\
+    echo "Retrying in 10 seconds (try #${try})"\n\
+    sleep 10\n\
+done\n\
+\n\
+slot=\n\
+deb=\n\
+for pack in ${dest}/*.tar; do\n\
+    if [ -e "${pack}" ]; then\n\
+        slot=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+               | jq -r ".version_slot")\n\
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+              | jq -r ".contents | keys[]" \\\n\
+              | grep "^edgedb-server.*\\.deb$")\n\
+        if [ -n "${deb}" ]; then\n\
+            break\n\
+        fi\n\
+    fi\n\
+done\n\
+\n\
+if [ -z "${deb}" ]; then\n\
+    echo "${dest} does not seem to contain an edgedb-server .deb" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+if [ -z "${slot}" ]; then\n\
+    echo "could not determine version slot from build metadata" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+tmpdir=$(mktemp -d)\n\
+tar -x -C "${tmpdir}" -f "${pack}" "${deb}"\n\
+apt-get install -y "${tmpdir}/${deb}"\n\
+rm -rf "${tmpdir}"\n\
+\n\
 systemctl enable --now edgedb-server-${slot} \\\n\
     || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\
 ls -al /var/run/edgedb/\n\
 \n\
 python="/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3"\n\
-edbcli="${python} -m edb.cli"\n\
-\n\
-su edgedb -c "${edbcli} --admin configure insert Auth \\\n\
-                --method=Trust --priority=0"\n\
-[[ "$(echo '\''SELECT 1 + 3;'\'' | ${edbcli} -u edgedb)" == *4* ]] || exit 1\n\
+[[ "$(edgedb --admin -P5656 query '\''SELECT 1 + 3;'\'')" == *4* ]] || exit 1\n\
 echo "Success!"\n\
 \n\
 EOF\n\
