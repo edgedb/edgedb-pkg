@@ -68,12 +68,15 @@ async function run() {
         const tarball = `${dest}/${tars[0]}`;
         const metadataJSON = await extractMetadata(tarball);
         const metadata = JSON.parse(metadataJSON);
-        const version_slot = (_a = metadata['version_slot']) !== null && _a !== void 0 ? _a : '';
+        const versionSlot = (_a = metadata['version_slot']) !== null && _a !== void 0 ? _a : '';
         const catver = (_b = metadata['version_details']['metadata']['catalog_version']) !== null && _b !== void 0 ? _b : '';
         const installref = (_c = metadata['installrefs'][0]) !== null && _c !== void 0 ? _c : '';
+        const version = metadata['version'];
+        const versionCore = version.split('+', 2)[0];
         actions.setOutput('metadata', metadataJSON);
         actions.setOutput('version', metadata['version']);
-        actions.setOutput('version-slot', version_slot);
+        actions.setOutput('version-slot', versionSlot);
+        actions.setOutput('version-core', versionCore);
         actions.setOutput('catalog-version', catver);
         actions.setOutput('install-ref', installref);
     }
