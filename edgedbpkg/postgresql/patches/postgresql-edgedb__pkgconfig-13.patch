@@ -1,4 +1,4 @@
-From c267eceded579b05b9feaee21ca03b90027db0b7 Mon Sep 17 00:00:00 2001
+From 9f636a2a701d44bd0c8c82881466a9f66b0a52d9 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH 2/2] Use pkg-config for libuuid and openssl
@@ -18,7 +18,7 @@ Subject: [PATCH 2/2] Use pkg-config for libuuid and openssl
  11 files changed, 255 insertions(+), 5 deletions(-)
 
 diff --git a/configure b/configure
-index 294765e9e6..1a6ccf0e4c 100755
+index 219a480978..2c43e49e12 100755
 --- a/configure
 +++ b/configure
 @@ -651,6 +651,7 @@ CFLAGS_SSE42
@@ -355,7 +355,7 @@ index 294765e9e6..1a6ccf0e4c 100755
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
 diff --git a/configure.in b/configure.in
-index fb14dcc7c7..ba4af980e1 100644
+index 3df9344e20..00f52a452d 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -854,6 +854,10 @@ PGAC_ARG_BOOL(with, openssl, no, [build with OpenSSL support],
@@ -543,5 +543,5 @@ index d4919970f8..4e7a1cf4c6 100644
  
  ifeq ($(with_gssapi),yes)
 -- 
-2.32.0
+2.34.1
 
