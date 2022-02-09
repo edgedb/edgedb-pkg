@@ -9,6 +9,12 @@ ENV LANG en_US.UTF-8
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
+RUN (source /etc/os-release; \
+     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y) || true)
+
 RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \

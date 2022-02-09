@@ -23,11 +23,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY E3FF2839C048B25C084DEBE9B26995E310250568
-ENV PYTHON_VERSION 3.9.9
+ENV PYTHON_VERSION 3.9.10
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.56.0
+ENV RUST_VERSION 1.58.1
 
 RUN set -ex \
 	\
@@ -81,7 +81,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 21.3.1
+ENV PYTHON_PIP_VERSION 22.0.3
 
 RUN set -ex; \
 	\
