@@ -12,7 +12,7 @@ fn main() {
     let mut args: Vec<_> = std::env::args_os().skip(1).collect();
     let mut py_script = exe.clone();
     py_script.set_extension("py");
-    let mut script_args = vec![OsString::from(py_script)];
+    let mut script_args = vec![OsString::from("-I"), OsString::from(py_script)];
     script_args.append(&mut args);
     let err = Command::new(python).args(&script_args).exec();
     panic!("{:?}", err);
