@@ -15,7 +15,8 @@ ENV LANG en_US.UTF-8
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-RUN (source /etc/os-release; \
+RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+    && source /etc/os-release; \
      [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
