@@ -43,7 +43,7 @@ class Python(packages.BundledPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL("3.0.1"),
+        openssl.OpenSSL("3.0.2"),
         libffi.LibFFI("3.4.2"),
         libuuid.LibUUID("2.37"),
         zlib.Zlib("1.2.11"),

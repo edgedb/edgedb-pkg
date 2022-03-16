@@ -56,7 +56,7 @@ class EdgeDB(packages.BundledPythonPackage):
     )
 
     artifact_requirements = [
-        "postgresql-edgedb (>= 12.0)",
+        "postgresql-edgedb (>= 13.0)",
     ]
 
     artifact_build_requirements = [
@@ -64,7 +64,7 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version="13.5"),
+        postgresql.PostgreSQL(version="13.6"),
         python_bundle.Python(version="3.10.2"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
     ]
