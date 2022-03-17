@@ -376,6 +376,8 @@ class EdgeDB(packages.BundledPythonPackage):
             for p in "{dest}/{bindir}"/*; do
                 if [ -f "$p" ]; then
                     mv "$p" "${{p}}.py"
+                    chmod -x "${{p}}.py"
+                    sed -i -e "/#!/d" "${{p}}.py"
                     cp "{ep_helper}" "$p"
                 fi
             done
