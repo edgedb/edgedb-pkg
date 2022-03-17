@@ -56,6 +56,8 @@ tar -x -C "${tmpdir}" -f "${pack}" "${deb}"
 apt-get install -y "${tmpdir}/${deb}"
 rm -rf "${tmpdir}"
 
+edgedb-server-${slot} --version
+
 if [ "$1" == "bash" ]; then
     echo su edgedb -c \
         "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \

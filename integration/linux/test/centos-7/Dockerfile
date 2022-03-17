@@ -68,6 +68,8 @@ tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"\n\
 yum install -y "${tmpdir}/${rpm}"\n\
 rm -rf "${tmpdir}"\n\
 \n\
+edgedb-server-${slot} --version\n\
+\n\
 if [ "$1" == "bash" ]; then\n\
     echo su edgedb -c \\\n\
         "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\

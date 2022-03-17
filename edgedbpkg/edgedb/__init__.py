@@ -362,26 +362,25 @@ class EdgeDB(packages.BundledPythonPackage):
             """
         )
 
-        if build.target.is_portable():
-            bindir = build.get_install_path("bin").relative_to("/")
+        bindir = build.get_install_path("bin").relative_to("/")
 
-            ep_helper_pkg = build.get_package("pyentrypoint")
-            ep_helper = (
-                build.get_temp_dir(ep_helper_pkg, relative_to="pkgbuild")
-                / "bin"
-                / "pyentrypoint"
-            )
+        ep_helper_pkg = build.get_package("pyentrypoint")
+        ep_helper = (
+            build.get_temp_dir(ep_helper_pkg, relative_to="pkgbuild")
+            / "bin"
+            / "pyentrypoint"
+        )
 
-            script += textwrap.dedent(
-                f"""\
-                for p in "{dest}/{bindir}"/*; do
-                    if [ -f "$p" ]; then
-                        mv "$p" "${{p}}.py"
-                        cp "{ep_helper}" "$p"
-                    fi
-                done
-                """
-            )
+        script += textwrap.dedent(
+            f"""\
+            for p in "{dest}/{bindir}"/*; do
+                if [ -f "$p" ]; then
+                    mv "$p" "${{p}}.py"
+                    cp "{ep_helper}" "$p"
+                fi
+            done
+            """
+        )
 
         return script
 
