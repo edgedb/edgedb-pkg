@@ -1,4 +1,4 @@
-Name: main
+Name: default
 IncomingDir: %%REPREPRO_SPOOL_DIR%%/incoming
 TempDir: %%REPREPRO_INCOMING_TMP_DIR%%
-Allow: stretch stretch.nightly buster buster.nightly bullseye bullseye.nightly bionic bionic.nightly xenial xenial.nightly focal focal.nightly
+Allow: stretch buster bullseye xenial bionic focal

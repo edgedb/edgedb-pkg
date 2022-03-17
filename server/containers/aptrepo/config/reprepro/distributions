@@ -10,15 +10,6 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: stretch.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Debian Stretch (Nightly Builds)
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
 Codename: buster
 Architectures: amd64 source
 Components: main nightly
@@ -28,28 +19,10 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: buster.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Debian Buster (Nightly Builds)
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
 Codename: bullseye
 Architectures: amd64 source
 Components: main nightly
-Description: EdgeDB Package Repository for Debian Buster
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
-Codename: bullseye.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Debian Bullseye (Nightly Builds)
+Description: EdgeDB Package Repository for Debian Bullseye
 SignWith: A3FF3633DF29BDBF
 
 Origin: EdgeDB Open Source Project
@@ -64,15 +37,6 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: xenial.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Ubuntu 16.04 (Nightly Builds)
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
 Codename: bionic
 Architectures: amd64 source
 Components: main nightly
@@ -82,26 +46,8 @@ SignWith: A3FF3633DF29BDBF
 Origin: EdgeDB Open Source Project
 Label: EdgeDB
 Suite: stable
-Codename: bionic.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Ubuntu 18.04 (Nightly Builds)
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
 Codename: focal
 Architectures: amd64 source
 Components: main nightly
 Description: EdgeDB Package Repository for Ubuntu 20.04
-SignWith: A3FF3633DF29BDBF
-
-Origin: EdgeDB Open Source Project
-Label: EdgeDB
-Suite: stable
-Codename: focal.nightly
-Architectures: amd64 source
-Components: main nightly
-Description: EdgeDB Package Repository for Ubuntu 20.04 (Nightly Builds)
 SignWith: A3FF3633DF29BDBF
