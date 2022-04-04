@@ -337,7 +337,7 @@ class EdgeDB(packages.BundledPythonPackage):
                     rm -rf "${{_tempdir}}"
             )
 
-            mkdir ./share/
+            mkdir -p ./share/
             cp "${{_cachedir}}"/* ./share/
             pwd
             ls -al ./share/
@@ -345,6 +345,22 @@ class EdgeDB(packages.BundledPythonPackage):
         )
 
         return f"{common_script}\n{data_cache_script}"
+
+    def get_extra_python_build_commands(
+        self,
+        build: targets.Build,
+    ) -> list[str]:
+        src_python = build.sh_get_command(
+            "python", package=self, relative_to="pkgsource"
+        )
+        share_dir = (
+            build.get_build_dir(self, relative_to="pkgsource") / "share"
+        )
+        return [
+            f'mkdir -p "{share_dir}"',
+            f'env _EDGEDB_BUILDMETA_SHARED_DATA_DIR="{share_dir}" \\\n'
+            f'  "{src_python}" setup.py build_studio',
+        ]
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)

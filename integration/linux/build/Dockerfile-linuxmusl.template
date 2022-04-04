@@ -21,6 +21,8 @@ ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION %%PLACEHOLDER%%
+ENV NODE_VERSION %%PLACEHOLDER%%
+ENV YARN_VERSION %%PLACEHOLDER%%
 
 RUN set -ex \
 	\
@@ -28,12 +30,26 @@ RUN set -ex \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-	&& (try=1; while [ $try -le 5 ]; do \
-		gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$GPG_KEY" && break || true; \
-		try=$(( $try + 1 )); sleep 1; done) \
+    && for key in \
+      "${PYTHON_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
+    && for key in \
+      "${NODE_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
+    && for key in \
+      "${YARN_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
+	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
@@ -60,13 +76,45 @@ RUN set -ex \
 	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
 		--target x86_64-unknown-linux-musl \
 		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version
+	\
+	&& dpkgArch="$(dpkg --print-architecture)" \
+	&& case "${dpkgArch##*-}" in \
+		amd64) ARCH='x64';; \
+		ppc64el) ARCH='ppc64le';; \
+		s390x) ARCH='s390x';; \
+		arm64) ARCH='arm64';; \
+		armhf) ARCH='armv7l';; \
+		i386) ARCH='x86';; \
+		*) echo "unsupported architecture"; exit 1 ;; \
+	esac \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
+	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
+	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
+	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& mkdir -p /opt \
+	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
+	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
+	&& rm -rf "$GNUPGHOME" \
+	\
+	&& python3 --version \
+	&& rustc --version \
+	&& node --version \
+	&& npm --version \
+	&& yarn --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \

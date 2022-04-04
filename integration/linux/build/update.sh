@@ -54,18 +54,13 @@ else
 fi
 
 
-declare -A gpgKeys=(
-	[3.8]='E3FF2839C048B25C084DEBE9B26995E310250568'
-	[3.9]='E3FF2839C048B25C084DEBE9B26995E310250568'
-	[3.10]='a035c8c19219ba821ecea86b64e628f8d684696d'
-	[3.11]='a035c8c19219ba821ecea86b64e628f8d684696d'
-)
-
 cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.9"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
 rustVersion="1.58.1"
+nodeVersion="16.4.1"
+yarnVersion="1.22.17"
 
 generated_warning() {
 	cat <<-EOH
@@ -155,14 +150,26 @@ variant="$(dirname ${target})"
 { generated_warning; cat "${template}"; } > "${target}"
 
 $SED -ri \
-	-e 's/^(ENV GPG_KEY) .*/\1 '"${gpgKeys[$version]:-${gpgKeys[$rcVersion]}}"'/' \
 	-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
 	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
 	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
 	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
+	-e 's/^(ENV NODE_VERSION) .*/\1 '"$nodeVersion"'/' \
+	-e 's/^(ENV YARN_VERSION) .*/\1 '"$yarnVersion"'/' \
 	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!' \
 	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
 	"${target}"
+
+# Add GPG keys
+new_line=' \\\
+'
+for key_type in "node" "yarn" "python"; do
+	while read -r line; do
+		pattern='"\$\{'$(echo "${key_type}" | tr '[:lower:]' '[:upper:]')'_KEYS\[@\]\}"'
+		sed -Ei -e "s/([ \\t]*)(${pattern})/\\1${line}${new_line}\\1\\2/" "${target}"
+	done < "_keys/${key_type}.keys"
+	sed -Ei -e "/${pattern}/d" "${target}"
+done
 
 $AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
 rm "${tmp}"
