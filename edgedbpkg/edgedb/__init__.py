@@ -359,7 +359,7 @@ class EdgeDB(packages.BundledPythonPackage):
         return [
             f'mkdir -p "{share_dir}"',
             f'env _EDGEDB_BUILDMETA_SHARED_DATA_DIR="{share_dir}" \\\n'
-            f'  "{src_python}" setup.py build_studio',
+            f'  "{src_python}" setup.py build_ui',
         ]
 
     def get_build_install_script(self, build: targets.Build) -> str:
