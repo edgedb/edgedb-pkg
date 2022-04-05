@@ -1,15 +1,11 @@
 FROM buildpack-deps:%%PLACEHOLDER%%
 
-# ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
-
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
 ENV LANG C.UTF-8
 
-# extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
+RUN apt-get update \
+	&& apt-get dist-upgrade -y \
+	&& apt-get install -y --no-install-recommends \
 		libssl-dev \
 		tk-dev \
 		sudo \

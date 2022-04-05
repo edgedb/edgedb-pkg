@@ -6,20 +6,18 @@
 
 FROM buildpack-deps:focal
 
-# ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
-
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
 ENV LANG C.UTF-8
 
-# extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
-	apt-get install -y --no-install-recommends \
-# Python 3.4 on Stretch+ needs to use an older version of "libssl-dev" (these lines both get removed for every other combination)
+RUN apt-get update \
+	&& apt-get dist-upgrade -y \
+	&& apt-get install -y --no-install-recommends \
 		libssl-dev \
 		tk-dev \
 		sudo \
+		bison \
+		flex \
+		patchelf \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV GPG_KEY %%PLACEHOLDER%%
@@ -28,6 +26,8 @@ ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION 1.58.1
+ENV NODE_VERSION 16.4.1
+ENV YARN_VERSION 1.22.17
 
 RUN set -ex \
 	\
@@ -35,12 +35,38 @@ RUN set -ex \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-	&& (try=1; while [ $try -le 5 ]; do \
-		gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$GPG_KEY" && break || true; \
-		try=$(( $try + 1 )); sleep 1; done) \
+    && for key in \
+      E3FF2839C048B25C084DEBE9B26995E310250568 \
+      a035c8c19219ba821ecea86b64e628f8d684696d \
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
+    && for key in \
+      4ED778F539E3634C779C87C6D7062848A1AB005C \
+      141F07595B7B3FFE74309A937405533BE57C7D57 \
+      94AE36675C464D64BAFA68DD7434390BDBE9B9C5 \
+      74F12602B6F1C4E913FAA37AD3A89613643B6201 \
+      71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 \
+      8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 \
+      C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 \
+      C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C \
+      DD8F2338BAE7501E3DD5AC78C273792F7D83545D \
+      A48C2BEE680E841632CD4E44F07496B3EB3C1762 \
+      108F52B48DB57BB0CC439B2997B01419BD92F80A \
+      B9E2F5981AA6E0CD28160D9FF13993A75599653C \
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
+    && for key in \
+      6A010C5166006599AA17F08146C2130DFD2497F5 \
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
+	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
@@ -64,14 +90,46 @@ RUN set -ex \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
 		\) -exec rm -rf '{}' + \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
-	&& python3 --version \
-	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version
+	\
+	&& dpkgArch="$(dpkg --print-architecture)" \
+	&& case "${dpkgArch##*-}" in \
+		amd64) ARCH='x64';; \
+		ppc64el) ARCH='ppc64le';; \
+		s390x) ARCH='s390x';; \
+		arm64) ARCH='arm64';; \
+		armhf) ARCH='armv7l';; \
+		i386) ARCH='x86';; \
+		*) echo "unsupported architecture"; exit 1 ;; \
+	esac \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
+	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
+	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
+	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& mkdir -p /opt \
+	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
+	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
+	&& rm -rf "$GNUPGHOME" \
+	\
+	&& python3 --version \
+	&& rustc --version \
+	&& node --version \
+	&& npm --version \
+	&& yarn --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
