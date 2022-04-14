@@ -26,7 +26,7 @@ ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.58.1
+ENV RUST_VERSION 1.60.0
 
 RUN set -ex \
 	\
