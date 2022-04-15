@@ -374,7 +374,7 @@ class EdgeDB(packages.BundledPythonPackage):
             cp -a "{srcdir}/tests" "{dest}/{datadir}"
             mkdir -p "{dest}/{datadir}/data/"
             cp -a ./share/* "{dest}/{datadir}/data/"
-            chmod 644 "{dest}/{datadir}/data/"*
+            chmod -R u+w,g+r,o+r "{dest}/{datadir}/data/"*
             """
         )
 
