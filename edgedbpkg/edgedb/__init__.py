@@ -350,6 +350,9 @@ class EdgeDB(packages.BundledPythonPackage):
         self,
         build: targets.Build,
     ) -> list[str]:
+        if (self.version.major, self.version.minor) < (2, 0):
+            return []
+
         src_python = build.sh_get_command(
             "python", package=self, relative_to="pkgsource"
         )
