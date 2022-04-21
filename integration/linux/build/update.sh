@@ -61,6 +61,7 @@ pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version
 rustVersion="1.60.0"
 nodeVersion="16.4.1"
 yarnVersion="1.22.17"
+goVersion="1.18.1"
 
 generated_warning() {
 	cat <<-EOH
@@ -156,6 +157,7 @@ $SED -ri \
 	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
 	-e 's/^(ENV NODE_VERSION) .*/\1 '"$nodeVersion"'/' \
 	-e 's/^(ENV YARN_VERSION) .*/\1 '"$yarnVersion"'/' \
+	-e 's/^(ENV GO_VERSION) .*/\1 '"$goVersion"'/' \
 	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!' \
 	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
 	"${target}"

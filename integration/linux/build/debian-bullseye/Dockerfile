@@ -20,7 +20,6 @@ RUN apt-get update \
 		patchelf \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION 3.9.12
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo

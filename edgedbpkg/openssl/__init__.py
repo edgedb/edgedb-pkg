@@ -43,6 +43,12 @@ class OpenSSL(packages.BundledCPackage):
             "enable-ec_nistp_64_gcc_128": None,
         }
 
+        if self.options.get("shared", True):
+            configure_flags["shared"] = None
+        else:
+            configure_flags["no-shared"] = None
+            configure_flags["no-legacy"] = None
+
         cfgcmd = self.sh_configure(build, configure, configure_flags)
         if platform.system() == "Darwin":
             # Force 64-bit build

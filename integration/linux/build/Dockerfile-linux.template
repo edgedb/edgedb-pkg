@@ -1,7 +1,7 @@
 FROM centos:7
 
 # ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:$PATH
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 ENV LANG C
@@ -12,7 +12,7 @@ ENV GIT_VERSION 2.33.1
 ENV PATCHELF_VERSION 0.13
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/cargo/bin:$PATH
+ENV GO_VERSION %%PLACEHOLDER%%
 ENV RUST_VERSION %%PLACEHOLDER%%
 ENV NODE_VERSION %%PLACEHOLDER%%
 ENV YARN_VERSION %%PLACEHOLDER%%
@@ -133,6 +133,10 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& curl --proto '=https' --tlsv1.2 -sSfL \
+		https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o /tmp/go.tgz \
+	&& tar -C /usr/local -xzf /tmp/go.tgz \
+	&& rm /tmp/go.tgz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
