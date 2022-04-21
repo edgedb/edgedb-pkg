@@ -96,8 +96,9 @@ class HAProxy(packages.BundledCPackage):
             libpcre2_rel_path = f'$(pwd)/"{libpcre2_path}"'
             make_flags["PCRE2DIR"] = f"!{libpcre2_rel_path}"
 
-        make_flags["CFLAGS"] = "!-Wno-address-of-packed-member"
-        make_flags = build.sh_append_global_flags(make_flags)
+        make_flags = build.sh_append_global_flags(
+            make_flags, flag_names={"CFLAGS": "CPU_CFLAGS"}
+        )
         build.sh_append_run_time_ldflags(make_flags, self)
 
         return build.sh_get_command(
@@ -118,20 +119,22 @@ class HAProxy(packages.BundledCPackage):
         )
 
     @classmethod
-    def resolve_version(cls, io: cleo_io.IO) -> str:
+    def version_from_vcs_version(cls, io: cleo_io.IO, vcs_version: str) -> str:
         repo = cls.resolve_vcs_repo(io)
-        ver = repo.run("describe", "--tags").strip()
+        ver = repo.run("describe", "--tags", vcs_version).strip()
         if ver.startswith("v"):
             ver = ver[1:]
 
         parts = ver.split("-")
         ver = parts[0]
-        if parts[1].startswith("dev"):
+        if len(parts) > 1 and parts[1].startswith("dev"):
             ver += f".{parts[1]}"
             offset = 2
         else:
             offset = 1
 
-        ver += "+" + ".".join(parts[offset + 1 :])
+        local = ".".join(parts[offset + 1 :])
+        if local:
+            ver += f"+{local}"
 
         return ver
