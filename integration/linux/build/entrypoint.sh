@@ -16,10 +16,6 @@ if [ -n "${SRC_REF}" ]; then
     extraopts+=" --source-ref=${SRC_REF}"
 fi
 
-if [ -n "${PKG_VERSION}" ]; then
-    extraopts+=" --pkg-version=${PKG_VERSION}"
-fi
-
 if [ -n "${BUILD_IS_RELEASE}" ]; then
     extraopts+=" --release"
 fi

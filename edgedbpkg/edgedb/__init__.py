@@ -74,7 +74,6 @@ class EdgeDB(packages.BundledPythonPackage):
         cls,
         io: cleo_io.IO,
         *,
-        ref: str | None = None,
         version: str | None = None,
         revision: str | None = None,
         is_release: bool = False,
@@ -90,37 +89,26 @@ class EdgeDB(packages.BundledPythonPackage):
         if revision:
             os.environ["EDGEDB_BUILD_DATE"] = revision
 
-        if is_release:
-            try:
-                prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
-            except KeyError:
-                prev = Ellipsis  # type: ignore
+        try:
+            prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
+        except KeyError:
+            prev = Ellipsis  # type: ignore
 
-            os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1"
+        os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1" if is_release else ""
 
-            try:
-                return super().resolve(
-                    io,
-                    ref=ref,
-                    version=version,
-                    revision=revision,
-                    is_release=is_release,
-                    target=target,
-                )
-            finally:
-                if prev is Ellipsis:
-                    os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
-                else:
-                    os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
-        else:
+        try:
             return super().resolve(
                 io,
-                ref=ref,
                 version=version,
                 revision=revision,
                 is_release=is_release,
                 target=target,
             )
+        finally:
+            if prev is Ellipsis:
+                os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
+            else:
+                os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
 
     @classmethod
     def canonicalize_version(

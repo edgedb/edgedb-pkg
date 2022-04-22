@@ -7,6 +7,9 @@ from typing import (
 import pathlib
 import shlex
 
+from poetry.core.semver import version as poetry_version
+
+from metapkg import tools
 from metapkg import packages
 from metapkg import targets
 
@@ -27,7 +30,7 @@ class HAProxy(packages.BundledCPackage):
 
     sources = (
         {
-            "url": "git+https://github.com/haproxy/haproxy.git",
+            "url": "git+https://git.haproxy.org/git/haproxy{stable}.git",
         },
     )
 
@@ -119,8 +122,13 @@ class HAProxy(packages.BundledCPackage):
         )
 
     @classmethod
-    def version_from_vcs_version(cls, io: cleo_io.IO, vcs_version: str) -> str:
-        repo = cls.resolve_vcs_repo(io)
+    def version_from_vcs_version(
+        cls,
+        io: cleo_io.IO,
+        repo: tools.git.Git,
+        vcs_version: str,
+        is_release: bool,
+    ) -> str:
         ver = repo.run("describe", "--tags", vcs_version).strip()
         if ver.startswith("v"):
             ver = ver[1:]
@@ -138,3 +146,12 @@ class HAProxy(packages.BundledCPackage):
             ver += f"+{local}"
 
         return ver
+
+    @classmethod
+    def get_source_url_variables(cls, version: str) -> dict[str, str]:
+        if version.startswith("v"):
+            base_ver = poetry_version.Version.parse(version)
+            stable = f"-{base_ver.major}.{base_ver.minor}"
+        else:
+            stable = ""
+        return {"stable": stable}

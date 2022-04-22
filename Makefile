@@ -46,10 +46,6 @@ ifneq ($(PKG_VERSION_SLOT),)
 	EXTRAENV += -e PKG_VERSION_SLOT="$(PKG_VERSION_SLOT)"
 endif
 
-ifneq ($(PKG_VERSION),)
-	EXTRAENV += -e PKG_VERSION="$(PKG_VERSION)"
-endif
-
 ifneq ($(PKG_REVISION),)
 	EXTRAENV += -e PKG_REVISION="$(PKG_REVISION)"
 endif

@@ -180,10 +180,6 @@ if [ -n "${SRC_REF}" ]; then\n\
     extraopts+=" --source-ref=${SRC_REF}"\n\
 fi\n\
 \n\
-if [ -n "${PKG_VERSION}" ]; then\n\
-    extraopts+=" --pkg-version=${PKG_VERSION}"\n\
-fi\n\
-\n\
 if [ -n "${BUILD_IS_RELEASE}" ]; then\n\
     extraopts+=" --release"\n\
 fi\n\
