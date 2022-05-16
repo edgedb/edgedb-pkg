@@ -9,6 +9,7 @@ SUPPORTED_TARGETS = \
 	ubuntu-xenial \
 	ubuntu-focal \
 	ubuntu-hirsute \
+	ubuntu-jammy \
 	centos-7 \
 	centos-8 \
 	fedora-29 \

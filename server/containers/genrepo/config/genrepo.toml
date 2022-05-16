@@ -30,3 +30,7 @@ codename = "bionic"
 [[apt.distributions]]
 name = "Ubuntu 20.04"
 codename = "focal"
+
+[[apt.distributions]]
+name = "Ubuntu 22.04"
+codename = "jammy"
