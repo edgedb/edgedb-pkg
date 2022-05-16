@@ -1003,8 +1003,6 @@ def process_apt(
 
                 append_artifact(dist_packages, pkgmetadata, installref)
 
-                print("makeindex: noted {}".format(installref["ref"]))
-
     for index_dist, dist_packages in packages.items():
         idxfile = index_dir / f"{index_dist}.json"
         with open(idxfile, "w") as f:
@@ -1248,8 +1246,6 @@ def process_rpm(
             )
 
             append_artifact(packages, pkgmetadata, installref)
-
-            print("makeindex: noted {}".format(installref["ref"]))
 
     need_db_update = False
     if channel == "nightly":
