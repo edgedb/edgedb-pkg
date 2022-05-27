@@ -25,14 +25,14 @@ class HAProxy(packages.BundledCPackage):
     title = "HAProxy"
     name = "haproxy"
     description = "A TCP/HTTP reverse proxy for high availability environments"
-    license = "GPL-2"
+    license_id = "GPL-2.0"
     group = "Applications/Databases"
 
-    sources = (
+    sources = [
         {
             "url": "git+https://git.haproxy.org/git/haproxy{stable}.git",
         },
-    )
+    ]
 
     artifact_requirements = [
         "openssl (>=1.1.1)",

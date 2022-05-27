@@ -38,22 +38,22 @@ class EdgeDB(packages.BundledPythonPackage):
     title = "EdgeDB"
     name = "edgedb-server"
     description = "Next generation object-relational database"
-    license = "ASL 2.0"
+    license_id = "Apache-2.0"
     group = "Applications/Databases"
     identifier = "com.edgedb.edgedb-server"
     url = "https://edgedb.com/"
 
-    sources = (
+    sources = [
         {
             "url": "git+https://github.com/edgedb/edgedb.git",
             "extras": {
                 # We obtain postgres from the fork repo directly,
                 # so there's no need to clone it as a submodule.
-                "exclude-submodules": ["postgres"],
-                "clone-depth": 0,
+                "exclude_submodules": ["postgres"],
+                "clone_depth": 0,
             },
         },
-    )
+    ]
 
     artifact_requirements = [
         "postgresql-edgedb (>= 13.0)",
@@ -89,10 +89,12 @@ class EdgeDB(packages.BundledPythonPackage):
         if revision:
             os.environ["EDGEDB_BUILD_DATE"] = revision
 
+        prev: str | None
+
         try:
             prev = os.environ["EDGEDB_BUILD_IS_RELEASE"]
         except KeyError:
-            prev = Ellipsis  # type: ignore
+            prev = None
 
         os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1" if is_release else ""
 
@@ -105,7 +107,7 @@ class EdgeDB(packages.BundledPythonPackage):
                 target=target,
             )
         finally:
-            if prev is Ellipsis:
+            if prev is None:
                 os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
             else:
                 os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
@@ -156,8 +158,9 @@ class EdgeDB(packages.BundledPythonPackage):
     @property
     def base_slot(self) -> str:
         if self.version.is_prerelease():
-            pre = f"{self.version.pre.phase}{self.version.pre.number}"
-            return f"{self.version.major}-{pre}"
+            pre = self.version.pre
+            assert pre is not None
+            return f"{self.version.major}-{pre.phase}{pre.number}"
         else:
             return f"{self.version.major}"
 
@@ -166,11 +169,13 @@ class EdgeDB(packages.BundledPythonPackage):
         if ".s" in self.pretty_version:
             # New version format
             if self.version.is_devrelease():
-                dev = f"{self.version.dev.phase}{self.version.dev.number}"
-                return f"{self.version.major}-{dev}"
+                dev = self.version.dev
+                assert dev is not None
+                return f"{self.version.major}-{dev.phase}{dev.number}"
             elif self.version.is_prerelease():
-                pre = f"{self.version.pre.phase}{self.version.pre.number}"
-                return f"{self.version.major}-{pre}"
+                pre = self.version.pre
+                assert pre is not None
+                return f"{self.version.major}-{pre.phase}{pre.number}"
             else:
                 return f"{self.version.major}"
         else:
@@ -186,7 +191,7 @@ class EdgeDB(packages.BundledPythonPackage):
         _, local = self.pretty_version.split("+", 1)
         for entry in local.split("."):
             if entry.startswith("cv"):
-                return entry[2:]  # type: ignore
+                return entry[2:]
 
         raise RuntimeError(
             f"no catalog version in EdgeDB version: {self.pretty_version}"

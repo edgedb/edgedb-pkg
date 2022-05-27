@@ -25,7 +25,6 @@ class Python(packages.BundledPackage):
     sources = [
         {
             "url": _pftp + "Python-{version}.tgz",
-            "pgpsig": _pftp + "Python-{version}.tgz.asc",
         }
     ]
 
