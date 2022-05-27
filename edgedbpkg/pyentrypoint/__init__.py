@@ -11,11 +11,11 @@ class PyEntryPoint(packages.BundledRustPackage):
 
     title = "pyentrypoint"
     name = "pyentrypoint"
-    sources = (
+    sources = [
         {
             "url": f"file://{source}",
         },
-    )
+    ]
 
     def get_package_layout(
         self, build: targets.Build

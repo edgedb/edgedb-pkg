@@ -12,14 +12,14 @@ class HAProxyDataPlaneAPI(packages.BundledPackage):
     title = "HAProxy Data Plane API"
     name = "haproxy-dataplane-api"
 
-    sources = (
+    sources = [
         {
             "url": "git+https://github.com/haproxytech/dataplaneapi.git",
             "extras": {
-                "include-gitdir": True,
+                "include_gitdir": True,
             },
         },
-    )
+    ]
 
     def get_package_layout(
         self, build: targets.Build

@@ -16,11 +16,11 @@ class PostgreSQL(packages.BundledCPackage):
     title = "PostgreSQL"
     name = "postgresql-edgedb"
 
-    sources = (
+    sources = [
         {
             "url": "git+https://github.com/postgres/postgres.git",
         },
-    )
+    ]
 
     artifact_requirements = [
         "icu (>=50)",
