@@ -31,8 +31,9 @@ RUN yum install -y \
 
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.12
+ENV PYTHON_VERSION 3.9.13
 ENV GIT_VERSION 2.20.1
+ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -46,6 +47,8 @@ RUN set -ex \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
 	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
+	&& wget -O tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
+	&& wget -O tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -78,6 +81,13 @@ RUN set -ex \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
       gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
     done \
+    && for key in \
+      7E3792A9D8ACF7D633BC1588ED97E90E62AA7E34 \
+      325F650C4C2B6AD58807327A3602B07F55D0C732 \
+    ; do \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+    done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
@@ -87,6 +97,11 @@ RUN set -ex \
 	&& mkdir -p /usr/src/git \
 	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
 	&& rm git.tar.xz \
+	&& gpg --batch --verify tar.tar.xz.sign tar.tar.xz \
+	&& rm -rf tar.tar.xz.sign \
+	&& mkdir -p /usr/src/tar \
+	&& tar -xJC /usr/src/tar --strip-components=1 -f tar.tar.xz \
+	&& rm tar.tar.xz \
 	\
 	&& cd /usr/src/python \
 	&& gnuArch="$(gcc -dumpmachine)" \
@@ -113,7 +128,13 @@ RUN set -ex \
 	&& make prefix=/usr/local V=1 -j $(nproc) all \
 	&& make prefix=/usr/local install \
 	&& rm -rf /usr/src/git \
-	&& git --version \
+	&& cd /usr/src/tar \
+	&& env FORCE_UNSAFE_CONFIGURE=1 ./configure \
+		--bindir=/usr/local/bin/ \
+		--libexecdir=/usr/local/sbin/ \
+	&& make -j $(nproc) \
+	&& make install \
+	&& rm -rf /usr/src/tar \
 	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
@@ -151,7 +172,9 @@ RUN set -ex \
 	&& rustc --version \
 	&& node --version \
 	&& npm --version \
-	&& yarn --version
+	&& yarn --version \
+	&& git --version \
+	&& tar --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -161,7 +184,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.0.4
+ENV PYTHON_PIP_VERSION 22.1.1
 
 RUN set -ex; \
 	\

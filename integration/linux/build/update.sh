@@ -165,7 +165,9 @@ $SED -ri \
 # Add GPG keys
 new_line=' \\\
 '
-for key_type in "node" "yarn" "python"; do
+for key_file in _keys/*.keys; do
+	key_file_basename=$(basename "${key_file}")
+	key_type=${key_file_basename%.*}
 	while read -r line; do
 		pattern='"\$\{'$(echo "${key_type}" | tr '[:lower:]' '[:upper:]')'_KEYS\[@\]\}"'
 		sed -Ei -e "s/([ \\t]*)(${pattern})/\\1${line}${new_line}\\1\\2/" "${target}"

@@ -25,7 +25,6 @@ class PostgreSQL(packages.BundledCPackage):
     artifact_requirements = [
         "icu (>=50)",
         "openssl (>=1.1.1)",
-        "pam",
         "uuid",
         "zlib",
         'tzdata; extra == "capability-tzdata"',
@@ -38,7 +37,6 @@ class PostgreSQL(packages.BundledCPackage):
         'systemd-dev ; extra == "capability-systemd"',
         "icu-dev (>=50)",
         "openssl-dev (>=1.1.1)",
-        "pam-dev",
         "uuid-dev",
         "zlib-dev",
     ]
