@@ -33,20 +33,20 @@ RUN set -ex \
     && for key in \
       "${PYTHON_KEYS[@]}"
     ; do \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
     && for key in \
       "${NODE_KEYS[@]}"
     ; do \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
     && for key in \
       "${YARN_KEYS[@]}"
     ; do \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" || \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" ; \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& rm -rf python.tar.xz.asc \
