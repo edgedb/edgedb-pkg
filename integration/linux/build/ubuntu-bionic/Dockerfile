@@ -38,7 +38,7 @@ RUN set -ex \
       E3FF2839C048B25C084DEBE9B26995E310250568 \
       a035c8c19219ba821ecea86b64e628f8d684696d \
     ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
     && for key in \
@@ -55,13 +55,13 @@ RUN set -ex \
       108F52B48DB57BB0CC439B2997B01419BD92F80A \
       B9E2F5981AA6E0CD28160D9FF13993A75599653C \
     ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
     && for key in \
       6A010C5166006599AA17F08146C2130DFD2497F5 \
     ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
