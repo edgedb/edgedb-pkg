@@ -12,6 +12,8 @@ fi
 
 dist="${PKG_PLATFORM_VERSION}"
 
+export DEBIAN_FRONTEND="noninteractive"
+
 apt-get update
 apt-get install -y curl gnupg apt-transport-https jq
 curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
