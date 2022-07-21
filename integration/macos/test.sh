@@ -41,6 +41,7 @@ function finally {
 }
 trap finally EXIT ERR
 
+mkdir "${workdir}/bin"
 curl --proto '=https' --tlsv1.2 -sSfL  -o "${workdir}/bin/edgedb" \
     "${cliurl}/edgedb-cli"
 chmod +x "${workdir}/bin/edgedb"
