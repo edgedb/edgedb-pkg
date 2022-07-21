@@ -116,7 +116,7 @@ class Python(packages.BundledPackage):
             arch = build.target.machine_architecture
             if arch == "x86_64":
                 configure_flags["--with-universal-archs"] = "intel-64"
-            elif arch == "arm64":
+            elif arch == "aarch64":
                 configure_flags["--with-universal-archs"] = "arm-64"
             else:
                 raise RuntimeError(f"unexpected architecture: {arch}")

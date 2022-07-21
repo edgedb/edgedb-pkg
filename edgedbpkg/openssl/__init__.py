@@ -47,7 +47,7 @@ class OpenSSL(packages.BundledCPackage):
             if platform.system() == "Darwin":
                 configure_flags["darwin64-x86_64-cc"] = None
             configure_flags["enable-ec_nistp_64_gcc_128"] = None
-        elif arch == "arm64":
+        elif arch == "aarch64":
             if platform.system() == "Darwin":
                 configure_flags["darwin64-arm64-cc"] = None
         else:
