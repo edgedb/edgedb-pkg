@@ -71,16 +71,9 @@ class OpenSSL(packages.BundledCPackage):
             ]
         )
 
-    def get_build_install_script(self, build: targets.Build) -> str:
-        script = super().get_build_install_script(build)
-        installdest = build.get_install_dir(self, relative_to="pkgbuild")
-        make = build.sh_get_command("make")
-
-        return script + textwrap.dedent(
-            f"""\
-            {make} DESTDIR=$(pwd)/"{installdest}" install_sw
-            """
-        )
+    def get_install_make_target(self, build: targets.Build) -> str:
+        # Don't bother installing a gazillion of man pages.
+        return "install_sw"
 
     @classmethod
     def from_upstream_version(cls, version: str) -> OpenSSL:

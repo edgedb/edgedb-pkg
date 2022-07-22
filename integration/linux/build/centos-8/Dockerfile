@@ -146,6 +146,7 @@ RUN set -ex \
 		ppc64el) ARCH='ppc64le';; \
 		s390x) ARCH='s390x';; \
 		arm64) ARCH='arm64';; \
+		aarch64) ARCH='arm64';; \
 		armhf) ARCH='armv7l';; \
 		i386) ARCH='x86';; \
 		*) echo "unsupported architecture"; exit 1 ;; \
@@ -184,7 +185,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.1.2
+ENV PYTHON_PIP_VERSION 22.2
 
 RUN set -ex; \
 	\
