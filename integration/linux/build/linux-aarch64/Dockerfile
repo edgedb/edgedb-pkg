@@ -7,46 +7,46 @@
 FROM centos:7
 
 # ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:$PATH
-
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG en_US.UTF-8
-
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
-    && source /etc/os-release; \
-     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
-    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y) || true)
-
-RUN yum install -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
-    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates
-
+ENV LANG C
 
 ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION 3.9.13
-ENV GIT_VERSION 2.20.1
+ENV GIT_VERSION 2.33.1
+ENV PATCHELF_VERSION 0.13
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/cargo/bin:$PATH
+ENV GO_VERSION 1.18.1
 ENV RUST_VERSION 1.60.0
 ENV NODE_VERSION 16.4.1
 ENV YARN_VERSION 1.22.17
+ENV GCC_VERSION 11
+
+
+RUN yum install -y centos-release-scl epel-release \
+	&& yum install -y \
+	devtoolset-${GCC_VERSION} make patch flex bison \
+    wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
+    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
+	curl-devel xz-devel libffi-devel gettext \
+    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
+	sudo ca-certificates zstd
+
+RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
+	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
+
+# Needed to pick up SCL stuff from profile.d/
+SHELL ["/bin/bash", "--login", "-c"]
 
 RUN set -ex \
-	\
 	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
 	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
+	&& wget -O patchelf.tar.bz2 "https://github.com/NixOS/patchelf/releases/download/${PATCHELF_VERSION}/patchelf-${PATCHELF_VERSION}.tar.bz2" \
 	&& wget -O tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
 	&& wget -O tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
 	&& export GNUPGHOME="$(mktemp -d)" \
@@ -93,7 +93,6 @@ RUN set -ex \
 	&& mkdir -p /usr/src/python \
 	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
 	&& rm python.tar.xz \
-	\
 	&& mkdir -p /usr/src/git \
 	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
 	&& rm git.tar.xz \
@@ -102,8 +101,11 @@ RUN set -ex \
 	&& mkdir -p /usr/src/tar \
 	&& tar -xJC /usr/src/tar --strip-components=1 -f tar.tar.xz \
 	&& rm tar.tar.xz \
-	\
+	&& mkdir -p /usr/src/patchelf \
+	&& tar -xjC /usr/src/patchelf --strip-components=1 -f patchelf.tar.bz2 \
+	&& rm patchelf.tar.bz2 \
 	&& cd /usr/src/python \
+	\
 	&& gnuArch="$(gcc -dumpmachine)" \
 	&& ./configure \
 		--build="$gnuArch" \
@@ -135,9 +137,15 @@ RUN set -ex \
 	&& make -j $(nproc) \
 	&& make install \
 	&& rm -rf /usr/src/tar \
+	&& cd /usr/src/patchelf \
+	&& ./configure \
+	&& make -j $(nproc) \
+	&& make install \
+	&& rm -rf /usr/src/patchelf \
 	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+		-y --no-modify-path --profile minimal \
+		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	\
 	&& dpkgArch="$(rpm --eval '%{_arch}')" \
@@ -165,6 +173,10 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& curl --proto '=https' --tlsv1.2 -sSfL \
+		https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o /tmp/go.tgz \
+	&& tar -C /usr/local -xzf /tmp/go.tgz \
+	&& rm /tmp/go.tgz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
@@ -277,4 +289,10 @@ fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN gcc --version \
+	&& python3 --version \
+	&& git --version \
+	&& rustc --version \
+	&& patchelf --version
+
+ENTRYPOINT ["/bin/sh", "--login", "-c", "/entrypoint.sh"]
