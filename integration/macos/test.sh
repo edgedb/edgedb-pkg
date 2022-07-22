@@ -57,6 +57,6 @@ export PATH="${workdir}/bin/:${PATH}"
 
 "${workdir}/bin/python3" \
     -m edb.tools --no-devmode test \
-    ./edgedb/data/tests \
+    "${workdir}/data/tests" \
     -e cqa_ -e tools_ \
     --verbose ${dash_j}
