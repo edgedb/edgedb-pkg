@@ -4,8 +4,8 @@ signing_key = "A3FF3633DF29BDBF"
 [generic]
 
 [apt]
-architectures = ["amd64", "source"]
-components = ["main", "nightly"]
+architectures = ["amd64", "arm64", "source"]
+components = ["main", "testing", "nightly"]
 
 [[apt.distributions]]
 name = "Debian Stretch"
