@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -Exeo pipefail
+shopt -s nullglob
 
 extraopts=
 if [ -n "${SRC_REF}" ]; then
@@ -57,6 +58,10 @@ if [ -z "${VIRTUAL_ENV}"]; then
 fi
 
 python3 -m pip install -U git+https://github.com/edgedb/edgedb-pkg
+
+for old in "${dest}"/*.tar; do
+    rm -f "${old}"
+done
 
 echo python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
 python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
