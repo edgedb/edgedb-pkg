@@ -4,7 +4,8 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:bullseye
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}buildpack-deps:bullseye
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
@@ -19,16 +20,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 		patchelf \
 		sudo \
 		zstd \
-	&& rm -rf /var/lib/apt/lists/*
+	&& machine=$(uname -m) \
+	&& if [ ! -e /usr/bin/${machine}-linux-musl-gcc ]; then ln -s musl-gcc /usr/bin/${machine}-linux-musl-gcc; fi \
+	&& rm -rf /var/lib/apt/lists/* \
 
 ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION 3.9.13
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.60.0
-ENV NODE_VERSION 16.4.1
-ENV YARN_VERSION 1.22.17
+ENV RUST_VERSION 1.62.0
+ENV NODE_VERSION 18.4.0
+ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
 	\

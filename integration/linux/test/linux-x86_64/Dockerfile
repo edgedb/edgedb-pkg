@@ -5,8 +5,7 @@
 #
 
 ARG DOCKER_ARCH=
-ARG TARGETPLATFORM=
-FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}buildpack-deps:bullseye AS busybox
+FROM ${DOCKER_ARCH}buildpack-deps:bullseye AS busybox
 RUN apt-get update -y \
     && apt-get install -y musl-tools flex bison
 
@@ -52,7 +51,7 @@ RUN set -ex \
     && cp jq /build/jq \
     && chmod +x /build/jq
 
-FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}golang:1.17-alpine3.15 AS golang
+FROM ${DOCKER_ARCH}golang:1.17-alpine3.15 AS golang
 ENV GOSU_VERSION 1.14
 ENV CGO_ENABLED 0
 RUN set -ex \
@@ -69,7 +68,7 @@ RUN set -ex \
     && go build -v -ldflags '-d -s -w' -o /bin/gosu \
     && chmod +x /bin/gosu
 
-FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}centos:7 AS glibc
+FROM ${DOCKER_ARCH}centos:7 AS glibc
 RUN repoquery -l "glibc" "glibc-common" \
 	| grep -v --fixed-strings -- '/.build-id' \
 	| grep -v --fixed-strings -- '/usr/share/doc' \
@@ -85,7 +84,7 @@ RUN repoquery -l "glibc" "glibc-common" \
         --file=/tmp/glibc.tar >/dev/null 2>&1 \
         || true
 
-FROM --platform=$TARGETPLATFORM scratch
+FROM scratch
 COPY --from=busybox /build/busybox /bin/busybox
 COPY --from=busybox /build/jq /bin/jq
 COPY --from=golang /bin/gosu /bin/gosu

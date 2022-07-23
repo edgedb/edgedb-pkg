@@ -24,9 +24,9 @@ ENV PYTHON_VERSION 3.9.13
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.60.0
-ENV NODE_VERSION 16.4.1
-ENV YARN_VERSION 1.22.17
+ENV RUST_VERSION 1.62.0
+ENV NODE_VERSION 18.4.0
+ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
 	\
@@ -138,7 +138,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.1.2
+ENV PYTHON_PIP_VERSION 22.2
 
 RUN set -ex; \
 	\

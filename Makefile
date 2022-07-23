@@ -118,7 +118,6 @@ build: check-target
 	make -C integration/linux/build
 	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/build:$(TARGET) \
 		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
-		--build-arg TARGETPLATFORM=$(DOCKER_PLATFORM) \
 		--platform $(DOCKER_PLATFORM) \
 		integration/linux/build/$(TARGET)
 	docker run -it --rm \
@@ -139,7 +138,6 @@ test: check-target
 	make -C integration/linux/test
 	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/test:$(TARGET) \
 		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
-		--build-arg TARGETPLATFORM=$(DOCKER_PLATFORM) \
 		--platform $(DOCKER_PLATFORM) \
 		integration/linux/test/$(TARGET)
 	docker run -it --rm \
