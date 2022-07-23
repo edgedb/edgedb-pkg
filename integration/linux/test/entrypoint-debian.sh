@@ -53,6 +53,7 @@ if [ -z "${slot}" ]; then
     exit 1
 fi
 
+machine=$(uname -m)
 tmpdir=$(mktemp -d)
 tar -x -C "${tmpdir}" -f "${pack}" "${deb}"
 apt-get install -y "${tmpdir}/${deb}"
@@ -62,7 +63,7 @@ edgedb-server-${slot} --version
 
 if [ "$1" == "bash" ]; then
     echo su edgedb -c \
-        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
+        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \
          -m edb.tools --no-devmode test \
          /usr/share/edgedb-server-${slot}/tests \
          -e cqa_ -e tools_ \
@@ -75,7 +76,7 @@ else
         dash_j=""
     fi
     su edgedb -c \
-        "/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3 \
+        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \
          -m edb.tools --no-devmode test \
          /usr/share/edgedb-server-${slot}/tests \
          -e cqa_ -e tools_ \

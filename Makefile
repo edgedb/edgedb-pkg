@@ -14,10 +14,13 @@ SUPPORTED_TARGETS = \
 	centos-8 \
 	fedora-29 \
 	linux-x86_64 \
-	linuxmusl-x86_64
+	linuxmusl-x86_64 \
+	linux-aarch64 \
+	linuxmusl-aarch64
 
 ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PLATFORM = $(firstword $(subst -, ,$(TARGET)))
+ARCH ?= $(shell uname -m)
 DISTRO = $(lastword $(subst -, ,$(TARGET)))
 OUTPUTDIR := /tmp/artifacts
 GET_SHELL :=
@@ -27,6 +30,20 @@ PKG_TEST_JOBS :=
 
 EXTRAENV =
 EXTRAVOLUMES =
+
+DOCKER_ARCH__x86_64 = amd64
+DOCKER_ARCH__aarch64 = arm64v8
+DOCKER_ARCH__arm64 = arm64v8
+DOCKER_ARCH = $(DOCKER_ARCH__$(ARCH))
+ifeq ($(DOCKER_ARCH),)
+	DOCKER_ARCH=$(ARCH)
+endif
+DOCKER_ARCH_PREFIX=$(DOCKER_ARCH)/
+DOCKER_PLATFORM__arm64v8 = linux/arm64/v8
+DOCKER_PLATFORM= $(DOCKER_PLATFORM__$(DOCKER_ARCH))
+ifeq ($(DOCKER_PLATFORM),)
+	DOCKER_PLATFORM=linux/$(DOCKER_ARCH)
+endif
 
 ifeq ($(METAPKGDEV),true)
 	_METAPKG_PATH = $(shell python -c 'import metapkg;print(metapkg.__path__[0])')
@@ -99,7 +116,11 @@ endif
 
 build: check-target
 	make -C integration/linux/build
-	docker build -t edgedb-pkg/build:$(TARGET) integration/linux/build/$(TARGET)
+	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/build:$(TARGET) \
+		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
+		--build-arg TARGETPLATFORM=$(DOCKER_PLATFORM) \
+		--platform $(DOCKER_PLATFORM) \
+		integration/linux/build/$(TARGET)
 	docker run -it --rm \
 		-v $(ROOT):/src \
 		-v /tmp/pkgcache:/root/.cache/ \
@@ -110,12 +131,17 @@ build: check-target
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		-e PYTHONPATH=/src \
 		-w /src \
-		edgedb-pkg/build:$(TARGET) \
+		--platform $(DOCKER_PLATFORM) \
+		$(DOCKER_ARCH_PREFIX)edgedb-pkg/build:$(TARGET) \
 		$(COMMAND)
 
 test: check-target
 	make -C integration/linux/test
-	docker build -t edgedb-pkg/test:$(TARGET) integration/linux/test/$(TARGET)
+	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/test:$(TARGET) \
+		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
+		--build-arg TARGETPLATFORM=$(DOCKER_PLATFORM) \
+		--platform $(DOCKER_PLATFORM) \
+		integration/linux/test/$(TARGET)
 	docker run -it --rm \
 		-v $(ROOT):/src \
 		-v $(OUTPUTDIR):/artifacts \
@@ -123,7 +149,8 @@ test: check-target
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
 		-e PKG_TEST_JOBS=$(PKG_TEST_JOBS) \
-		edgedb-pkg/test:$(TARGET) \
+		--platform $(DOCKER_PLATFORM) \
+		$(DOCKER_ARCH_PREFIX)edgedb-pkg/test:$(TARGET) \
 		$(COMMAND)
 
 test-systemd: check-target

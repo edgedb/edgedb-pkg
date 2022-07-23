@@ -4,45 +4,72 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:bullseye AS busybox
+ARG DOCKER_ARCH=
+ARG TARGETPLATFORM=
+FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}buildpack-deps:bullseye AS busybox
 RUN apt-get update -y \
-    && apt-get install -y musl-tools
+    && apt-get install -y musl-tools flex bison
 
 ENV BUSYBOX_VERSION 1.34.1
+ENV JQ_VERSION cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
 
 RUN set -ex \
 	\
-    && ln -s /usr/include/x86_64-linux-gnu/asm/ /usr/include/x86_64-linux-musl/asm \
-    && ln -s /usr/include/asm-generic/ /usr/include/x86_64-linux-musl/asm-generic \
-    && ln -s /usr/include/linux/ /usr/include/x86_64-linux-musl/linux \
-    && ln -s /usr/include/mtd/ /usr/include/x86_64-linux-musl/mtd \
-	&& curl --proto '=https' --tlsv1.2 -sSf "https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2" > busybox.tar.bz2 \
+    && machine=$(uname -m) \
+    && ln -s /usr/include/${machine}-linux-gnu/asm/ /usr/include/${machine}-linux-musl/asm \
+    && ln -s /usr/include/asm-generic/ /usr/include/${machine}-linux-musl/asm-generic \
+    && ln -s /usr/include/linux/ /usr/include/${machine}-linux-musl/linux \
+    && ln -s /usr/include/mtd/ /usr/include/${machine}-linux-musl/mtd \
+    && cd /tmp \
+	&& curl --proto '=https' --tlsv1.2 -sSfL "https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2" -o busybox.tar.bz2 \
 	&& mkdir -p /usr/src/busybox \
 	&& tar -xjC /usr/src/busybox --strip-components=1 -f busybox.tar.bz2 \
 	&& rm busybox.tar.bz2 \
 	&& cd /usr/src/busybox \
-    && make defconfig \
+    && make -j "$(nproc)" defconfig \
     && sed -i \
         -e 's/.*CONFIG_STATIC\b.*/CONFIG_STATIC=y/' \
         -e 's/.*CONFIG_FEATURE_PREFER_APPLETS\b.*/CONFIG_FEATURE_PREFER_APPLETS=y/' \
         -e 's/.*CONFIG_FEATURE_SH_STANDALONE\b.*/CONFIG_FEATURE_SH_STANDALONE=y/' \
         .config \
     && cat .config \
-    && echo 1 \
 	&& make CC=musl-gcc -j "$(nproc)" \
-    && cp busybox_unstripped /bin/busybox \
-    && chmod +x /bin/busybox
+    && mkdir /build \
+    && cp busybox_unstripped /build/busybox \
+    && chmod +x /build/busybox \
+    && file /build/busybox
 
-FROM centos:7 AS glibc
-RUN curl --proto '=https' --tlsv1.2 -sSfL \
-        "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64" \
-        > /bin/jq \
-    && chmod +x /bin/jq \
-    && curl --proto '=https' --tlsv1.2 -sSfL \
-        "https://github.com/tianon/gosu/releases/download/1.14/gosu-amd64" \
-        > /bin/gosu \
+RUN set -ex \
+    \
+    && cd /tmp \
+	&& mkdir -p /usr/src/jq \
+    && git clone --recursive https://github.com/stedolan/jq /usr/src/jq \
+    && cd /usr/src/jq \
+    && git reset --hard "${JQ_VERSION}" \
+    && autoreconf -fi \
+    && ./configure --with-oniguruma=builtin \
+    && make LDFLAGS=-all-static -j "$(nproc)" \
+    && cp jq /build/jq \
+    && chmod +x /build/jq
+
+FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}golang:1.17-alpine3.15 AS golang
+ENV GOSU_VERSION 1.14
+ENV CGO_ENABLED 0
+RUN set -ex \
+	\
+    && apk add --no-cache curl \
+    && cd /tmp \
+	&& curl --proto '=https' --tlsv1.2 -sSfL "https://github.com/tianon/gosu/archive/refs/tags/${GOSU_VERSION}.tar.gz" -o gosu.tar.gz \
+	&& mkdir -p /go/src/github.com/tianon/gosu \
+	&& tar -xzC /go/src/github.com/tianon/gosu --strip-components=1 -f gosu.tar.gz \
+	&& rm gosu.tar.gz \
+	&& cd /go/src/github.com/tianon/gosu \
+    && go mod download \
+    && go mod verify \
+    && go build -v -ldflags '-d -s -w' -o /bin/gosu \
     && chmod +x /bin/gosu
 
+FROM --platform=$TARGETPLATFORM ${DOCKER_ARCH}centos:7 AS glibc
 RUN repoquery -l "glibc" "glibc-common" \
 	| grep -v --fixed-strings -- '/.build-id' \
 	| grep -v --fixed-strings -- '/usr/share/doc' \
@@ -58,16 +85,15 @@ RUN repoquery -l "glibc" "glibc-common" \
         --file=/tmp/glibc.tar >/dev/null 2>&1 \
         || true
 
-FROM scratch
-COPY --from=busybox /bin/busybox /bin/busybox
-COPY --from=glibc /bin/jq /bin/jq
-COPY --from=glibc /bin/gosu /bin/gosu
+FROM --platform=$TARGETPLATFORM scratch
+COPY --from=busybox /build/busybox /bin/busybox
+COPY --from=busybox /build/jq /bin/jq
+COPY --from=golang /bin/gosu /bin/gosu
 COPY --from=glibc /tmp/glibc.tar /tmp/glibc.tar
 
-RUN ["/bin/busybox", "ln", "/bin/busybox", "/bin/sh"]
-
-RUN tar xf /tmp/glibc.tar -C / && rm /tmp/glibc.tar
-RUN ln /bin/busybox /bin/echo
+RUN ["/bin/busybox", "--install", "-s", "/bin/"]
+RUN ["/bin/tar", "xvf", "/tmp/glibc.tar", "-C", "/"]
+RUN ["/bin/rm", "/tmp/glibc.tar"]
 RUN /bin/echo -e '#!/bin/sh\n\
 \n\
 set -ex\n\
@@ -85,7 +111,9 @@ else\n\
     dash_j=""\n\
 fi\n\
 \n\
-wget "https://packages.edgedb.com/dist/x86_64-unknown-linux-musl/edgedb-cli" \\\n\
+machine=$(uname -m)\n\
+\n\
+wget "https://packages.edgedb.com/dist/${machine}-unknown-linux-musl.nightly/edgedb-cli" \\\n\
     -O /bin/edgedb\n\
 chmod +x /bin/edgedb\n\
 \n\
