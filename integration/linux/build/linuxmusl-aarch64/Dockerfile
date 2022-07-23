@@ -96,7 +96,7 @@ RUN set -ex \
 	\
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
-		--target x86_64-unknown-linux-musl \
+		--target $(uname -m)-unknown-linux-musl \
 		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	\

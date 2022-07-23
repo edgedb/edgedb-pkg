@@ -96,7 +96,7 @@ RUN set -ex \
 	\
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
-		--target x86_64-unknown-linux-musl \
+		--target $(uname -m)-unknown-linux-musl \
 		--default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	\
@@ -142,7 +142,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.1.2
+ENV PYTHON_PIP_VERSION 22.2
 
 RUN set -ex; \
 	\
