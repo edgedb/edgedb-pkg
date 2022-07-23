@@ -38,7 +38,7 @@ ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION 1.62.0
-ENV NODE_VERSION 18.4.0
+ENV NODE_VERSION 16.15.1
 ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
