@@ -1,4 +1,5 @@
-FROM centos:7
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}centos:7
 
 # ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
@@ -17,7 +18,7 @@ ENV GO_VERSION %%PLACEHOLDER%%
 ENV RUST_VERSION %%PLACEHOLDER%%
 ENV NODE_VERSION %%PLACEHOLDER%%
 ENV YARN_VERSION %%PLACEHOLDER%%
-ENV GCC_VERSION 11
+ENV GCC_VERSION 10
 
 
 RUN yum install -y centos-release-scl epel-release \
