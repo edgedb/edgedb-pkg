@@ -39,6 +39,9 @@ RUN yum install -y centos-release-scl epel-release \
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
 
+# aarch64 images somehow don't have the en_US locale
+RUN localedef -f UTF-8 -i en_US en_US.UTF-8
+
 # Needed to pick up SCL stuff from profile.d/
 SHELL ["/bin/bash", "--login", "-c"]
 
