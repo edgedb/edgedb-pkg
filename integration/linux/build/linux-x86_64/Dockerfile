@@ -154,21 +154,38 @@ RUN set -ex \
 	\
 	&& dpkgArch="$(rpm --eval '%{_arch}')" \
 	&& case "${dpkgArch##*-}" in \
-		x86_64) ARCH='x64';; \
-		ppc64el) ARCH='ppc64le';; \
-		s390x) ARCH='s390x';; \
-		arm64) ARCH='arm64';; \
-		aarch64) ARCH='arm64';; \
-		armhf) ARCH='armv7l';; \
-		i386) ARCH='x86';; \
+		x86_64) \
+			NODE_ARCH='x64' \
+			GO_ARCH='amd64' \
+			;; \
+		ppc64el) \
+			NODE_ARCH='ppc64le' \
+			GO_ARCH='ppc64le' \
+			;; \
+		s390x) \
+			NODE_ARCH='s390x' \
+			GO_ARCH='s390x' \
+			;; \
+		arm64) \
+			NODE_ARCH='arm64' \
+			GO_ARCH='arm64' \
+			;; \
+		aarch64) \
+			NODE_ARCH='arm64' \
+			GO_ARCH='arm64' \
+			;; \
+		i386) \
+			NODE_ARCH='x86' \
+			GO_ARCH='386' \
+			;; \
 		*) echo "unsupported architecture"; exit 1 ;; \
 	esac \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" \
 	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
 	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+	&& grep " node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+	&& tar -xJf "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+	&& rm "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
 	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
 	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
 	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
@@ -179,7 +196,7 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
 	&& curl --proto '=https' --tlsv1.2 -sSfL \
-		https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o /tmp/go.tgz \
+		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
 	&& tar -C /usr/local -xzf /tmp/go.tgz \
 	&& rm /tmp/go.tgz \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
