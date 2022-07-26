@@ -1,49 +1,53 @@
 ARG DOCKER_ARCH=
-FROM ${DOCKER_ARCH}buildpack-deps:bullseye AS busybox
-RUN apt-get update -y \
-    && apt-get install -y musl-tools flex bison
+FROM ${DOCKER_ARCH}alpine:3.15 AS builder
 
 ENV BUSYBOX_VERSION 1.34.1
 ENV JQ_VERSION cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
 
+RUN apk add --no-cache \
+    curl \
+    coreutils \
+    build-base \
+    autoconf \
+    automake \
+    libtool \
+    linux-headers \
+    bison \
+    flex \
+    git
+
 RUN set -ex \
-	\
-    && machine=$(uname -m) \
-    && ln -s /usr/include/${machine}-linux-gnu/asm/ /usr/include/${machine}-linux-musl/asm \
-    && ln -s /usr/include/asm-generic/ /usr/include/${machine}-linux-musl/asm-generic \
-    && ln -s /usr/include/linux/ /usr/include/${machine}-linux-musl/linux \
-    && ln -s /usr/include/mtd/ /usr/include/${machine}-linux-musl/mtd \
+    \
     && cd /tmp \
 	&& curl --proto '=https' --tlsv1.2 -sSfL "https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2" -o busybox.tar.bz2 \
 	&& mkdir -p /usr/src/busybox \
 	&& tar -xjC /usr/src/busybox --strip-components=1 -f busybox.tar.bz2 \
 	&& rm busybox.tar.bz2 \
 	&& cd /usr/src/busybox \
+    && machine=$(uname -m) \
+    && ls -al /usr/include \
     && make -j "$(nproc)" defconfig \
     && sed -i \
         -e 's/.*CONFIG_STATIC\b.*/CONFIG_STATIC=y/' \
         -e 's/.*CONFIG_FEATURE_PREFER_APPLETS\b.*/CONFIG_FEATURE_PREFER_APPLETS=y/' \
         -e 's/.*CONFIG_FEATURE_SH_STANDALONE\b.*/CONFIG_FEATURE_SH_STANDALONE=y/' \
         .config \
-    && cat .config \
-	&& make CC=musl-gcc -j "$(nproc)" \
+	&& make -j "$(nproc)" \
     && mkdir /build \
     && cp busybox_unstripped /build/busybox \
     && chmod +x /build/busybox \
-    && file /build/busybox
-
-RUN set -ex \
-    \
     && cd /tmp \
 	&& mkdir -p /usr/src/jq \
     && git clone --recursive https://github.com/stedolan/jq /usr/src/jq \
     && cd /usr/src/jq \
     && git reset --hard "${JQ_VERSION}" \
     && autoreconf -fi \
-    && ./configure --with-oniguruma=builtin \
+    && ./configure --with-oniguruma=builtin --disable-valgrind --enable-all-static \
     && make LDFLAGS=-all-static -j "$(nproc)" \
     && cp jq /build/jq \
-    && chmod +x /build/jq
+    && chmod +x /build/jq \
+    && file /build/busybox \
+    && file /build/jq
 
 FROM ${DOCKER_ARCH}golang:1.17-alpine3.15 AS golang
 ENV GOSU_VERSION 1.14
@@ -79,8 +83,8 @@ RUN repoquery -l "glibc" "glibc-common" \
         || true
 
 FROM scratch
-COPY --from=busybox /build/busybox /bin/busybox
-COPY --from=busybox /build/jq /bin/jq
+COPY --from=builder /build/busybox /bin/busybox
+COPY --from=builder /build/jq /bin/jq
 COPY --from=golang /bin/gosu /bin/gosu
 COPY --from=glibc /tmp/glibc.tar /tmp/glibc.tar
 
