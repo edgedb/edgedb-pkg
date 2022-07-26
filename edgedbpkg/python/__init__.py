@@ -104,7 +104,6 @@ class Python(packages.BundledPackage):
                     (
                         "-fgraphite-identity",
                         "-floop-nest-optimize",
-                        "-fipa-pta",
                         "-fno-semantic-interposition",
                     ),
                 )
