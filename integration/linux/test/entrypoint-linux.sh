@@ -16,9 +16,16 @@ else
 fi
 
 machine=$(uname -m)
+cliurl="https://packages.edgedb.com/dist/${machine}-unknown-linux-musl.nightly/edgedb-cli"
 
-wget "https://packages.edgedb.com/dist/${machine}-unknown-linux-musl.nightly/edgedb-cli" \
-    -O /bin/edgedb
+try=1
+while [ $try -le 30 ]; do
+    wget "$cliurl" -O /bin/edgedb && break || true
+    try=$(( $try + 1 ))
+    echo "Retrying in 10 seconds (try #${try})"
+    sleep 10
+done
+
 chmod +x /bin/edgedb
 
 tarball=
