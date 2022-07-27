@@ -5,15 +5,24 @@
 #
 
 ARG DOCKER_ARCH=
-FROM ${DOCKER_ARCH}alpine:3.15 AS builder
+FROM ${DOCKER_ARCH}alpine:3.16 AS builder
 
-ENV BUSYBOX_VERSION 1.34.1
+ENV CURL_VERSION 7.84.0
 ENV JQ_VERSION cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
 
 RUN apk add --no-cache \
+    busybox-static \
     curl \
     coreutils \
     build-base \
+    clang \
+    openssl-dev \
+    nghttp2-dev \
+    nghttp2-static \
+    libssh2-dev \
+    libssh2-static \
+    openssl-libs-static \
+    zlib-static \
     autoconf \
     automake \
     libtool \
@@ -24,24 +33,22 @@ RUN apk add --no-cache \
 
 RUN set -ex \
     \
-    && cd /tmp \
-	&& curl --proto '=https' --tlsv1.2 -sSfL "https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2" -o busybox.tar.bz2 \
-	&& mkdir -p /usr/src/busybox \
-	&& tar -xjC /usr/src/busybox --strip-components=1 -f busybox.tar.bz2 \
-	&& rm busybox.tar.bz2 \
-	&& cd /usr/src/busybox \
-    && machine=$(uname -m) \
-    && ls -al /usr/include \
-    && make -j "$(nproc)" defconfig \
-    && sed -i \
-        -e 's/.*CONFIG_STATIC\b.*/CONFIG_STATIC=y/' \
-        -e 's/.*CONFIG_FEATURE_PREFER_APPLETS\b.*/CONFIG_FEATURE_PREFER_APPLETS=y/' \
-        -e 's/.*CONFIG_FEATURE_SH_STANDALONE\b.*/CONFIG_FEATURE_SH_STANDALONE=y/' \
-        .config \
-	&& make -j "$(nproc)" \
     && mkdir /build \
-    && cp busybox_unstripped /build/busybox \
-    && chmod +x /build/busybox \
+    && cp /bin/busybox.static /build/busybox \
+    && cd /tmp \
+	&& curl --proto '=https' --tlsv1.2 -sSfL \
+        "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.gz" \
+        -o curl.tar.gz \
+	&& mkdir -p /usr/src/curl \
+	&& tar -xzC /usr/src/curl --strip-components=1 -f curl.tar.gz \
+	&& rm curl.tar.gz \
+	&& cd /usr/src/curl \
+    && env CC="clang" LDFLAGS="-static -all-static" PKG_CONFIG="pkg-config --static" \
+        ./configure \
+            --disable-shared --enable-static --disable-ldap \
+            --enable-ipv6 --enable-unix-sockets --with-ssl --with-libssh2 \
+    && make -j "$(nproc)" \
+    && cp src/curl /build/curl \
     && cd /tmp \
 	&& mkdir -p /usr/src/jq \
     && git clone --recursive https://github.com/stedolan/jq /usr/src/jq \
@@ -53,7 +60,8 @@ RUN set -ex \
     && cp jq /build/jq \
     && chmod +x /build/jq \
     && file /build/busybox \
-    && file /build/jq
+    && file /build/jq \
+    && file /build/curl
 
 FROM ${DOCKER_ARCH}golang:1.17-alpine3.15 AS golang
 ENV GOSU_VERSION 1.14
@@ -91,6 +99,8 @@ RUN repoquery -l "glibc" "glibc-common" \
 FROM scratch
 COPY --from=builder /build/busybox /bin/busybox
 COPY --from=builder /build/jq /bin/jq
+COPY --from=builder /build/curl /bin/curl
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=golang /bin/gosu /bin/gosu
 COPY --from=glibc /tmp/glibc.tar /tmp/glibc.tar
 
@@ -118,8 +128,8 @@ machine=$(uname -m)\n\
 cliurl="https://packages.edgedb.com/dist/${machine}-unknown-linux-musl.nightly/edgedb-cli"\n\
 \n\
 try=1\n\
-while [ $try -le 30 ]; do\n\
-    wget "$cliurl" -O /bin/edgedb && break || true\n\
+while [ $try -le 5 ]; do\n\
+    curl --proto '\''=https'\'' --tlsv1.2 -sSfL "$cliurl" -o /bin/edgedb && break || true\n\
     try=$(( $try + 1 ))\n\
     echo "Retrying in 10 seconds (try #${try})"\n\
     sleep 10\n\

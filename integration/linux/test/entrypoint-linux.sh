@@ -19,8 +19,8 @@ machine=$(uname -m)
 cliurl="https://packages.edgedb.com/dist/${machine}-unknown-linux-musl.nightly/edgedb-cli"
 
 try=1
-while [ $try -le 30 ]; do
-    wget "$cliurl" -O /bin/edgedb && break || true
+while [ $try -le 5 ]; do
+    curl --proto '=https' --tlsv1.2 -sSfL "$cliurl" -o /bin/edgedb && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})"
     sleep 10
