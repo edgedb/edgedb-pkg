@@ -1,4 +1,6 @@
+{libdir}/engines*
 {libdir}/engines*/**
+{libdir}/pkgconfig
 {libdir}/pkgconfig/**
 {libdir}/*.a
 {libdir}/*.la

@@ -64,8 +64,8 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version="14.4"),
-        python_bundle.Python(version="3.10.5"),
+        postgresql.PostgreSQL(version="14.5"),
+        python_bundle.Python(version="3.10.6"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
     ]
 
@@ -153,6 +153,7 @@ class EdgeDB(packages.BundledPythonPackage):
         repo = super().get_package_repository(target, io)
         repo.register_package_impl("cryptography", Cryptography)
         repo.register_package_impl("cffi", Cffi)
+        repo.register_package_impl("jwcrypto", JWCrypto)
         return repo
 
     @property
@@ -242,9 +243,13 @@ class EdgeDB(packages.BundledPythonPackage):
 
         data_dir = f'!"$("{src_python}" -c "{rel_datadir_script}")"'
 
+        env["EDGEDB_BUILD_PACKAGE"] = "1"
         env["EDGEDB_BUILD_PG_CONFIG"] = pg_config
         env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
         env["EDGEDB_BUILD_SHARED_DIR"] = data_dir
+        env["_EDGEDB_BUILDMETA_SHARED_DATA_DIR"] = str(
+            build.get_build_dir(self, relative_to="pkgsource") / "share"
+        )
 
         return env
 
@@ -343,7 +348,9 @@ class EdgeDB(packages.BundledPythonPackage):
         self,
         build: targets.Build,
     ) -> list[str]:
-        if (self.version.major, self.version.minor) < (2, 0):
+        ver = (self.version.major, self.version.minor)
+        if ver < (2, 0) or ver >= (2, 2):
+            # 2.2+ builds the UI in `setup.py build`.
             return []
 
         src_python = build.sh_get_command(
@@ -505,3 +512,11 @@ class Cffi(packages.PythonPackage):
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("libffi", "*"))
         return reqs
+
+
+class JWCrypto(packages.PythonPackage):
+    def get_file_no_install_entries(self, build: targets.Build) -> list[str]:
+        entries = super().get_file_no_install_entries(build)
+        entries.append("{prefix}/share/doc/jwcrypto")
+        entries.append("{prefix}/share/doc/jwcrypto/**")
+        return entries
