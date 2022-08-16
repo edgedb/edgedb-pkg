@@ -55,6 +55,7 @@ fi
 if [ -z "${VIRTUAL_ENV}"]; then
     python3 -m venv .venv
     source .venv/bin/activate
+    python3 -m pip install -U pip setuptools wheel
 fi
 
 python3 -m pip install -U git+https://github.com/edgedb/edgedb-pkg
