@@ -1,11 +1,11 @@
-From 60ae38dd72267f189ceb106c003639eb009504dc Mon Sep 17 00:00:00 2001
+From 54b851dda1cc2a6ab5fe2f2a9d594b66209751b4 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Use pkg-config for libuuid and openssl
 
 ---
- configure                        | 361 +++++++++++++++++++++++++++++--
- configure.ac                     |  51 ++++-
+ configure                        | 366 +++++++++++++++++++++++++++++--
+ configure.ac                     |  56 ++++-
  contrib/pgcrypto/Makefile        |   4 +
  contrib/sslinfo/Makefile         |   2 +
  src/Makefile.global.in           |   7 +-
@@ -15,10 +15,10 @@ Subject: [PATCH] Use pkg-config for libuuid and openssl
  src/bin/pgbench/Makefile         |   3 +
  src/common/Makefile              |   1 +
  src/interfaces/libpq/Makefile    |   1 +
- 11 files changed, 413 insertions(+), 26 deletions(-)
+ 11 files changed, 423 insertions(+), 26 deletions(-)
 
 diff --git a/configure b/configure
-index b5af4426d4..41732cafdc 100755
+index 048a803266..3fb86da297 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,12 @@ CFLAGS_SSE42
@@ -390,8 +390,7 @@ index b5af4426d4..41732cafdc 100755
 +$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
 +if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
 +  $as_echo_n "(cached) " >&6
- else
--  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++else
 +  ac_check_lib_save_LIBS=$LIBS
 +LIBS="-luuid  $LIBS"
 +cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -425,8 +424,8 @@ index b5af4426d4..41732cafdc 100755
 +$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
 +if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
 +  have_uuid=yes
- fi
- 
++fi
++
 +
 +fi
 +
@@ -437,14 +436,15 @@ index b5af4426d4..41732cafdc 100755
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
 +        UUID_LIBS=${UUID_LIBS-"-luuid"}
 +
- fi
- 
++fi
++
 +      CPPFLAGS=$pgac_save_CPPFLAGS
 +      LDFLAGS=$pgac_save_LDFLAGS
 +      LIBS=$pgac_save_LIBS
 +
 +
-+else
+ else
+-  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
 +	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
 +	UUID_LIBS=$pkg_cv_UUID_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -474,16 +474,16 @@ index b5af4426d4..41732cafdc 100755
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
 +        UUID_LIBS=${UUID_LIBS-""}
 +
-+fi
-+
+ fi
+ 
 +
 +fi
 +
 +done
 +
 +
-+fi
-+
+ fi
+ 
 +  if test "x$have_uuid" = xmissing; then :
 +
 +    as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
@@ -492,8 +492,27 @@ index b5af4426d4..41732cafdc 100755
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
+@@ -14070,6 +14395,9 @@ fi
+ 
+ fi
+ 
++pgac_save_CPPFLAGS=$CPPFLAGS
++CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++
+ # for contrib/uuid-ossp
+ if test "$with_uuid" = bsd ; then
+   for ac_header in uuid.h
+@@ -14204,6 +14532,8 @@ done
+ 
+ fi
+ 
++CPPFLAGS=$pgac_save_CPPFLAGS
++
+ if test "$PORTNAME" = "win32" ; then
+    for ac_header in crtdefs.h
+ do :
 diff --git a/configure.ac b/configure.ac
-index cd0abe1b34..6e6edc2228 100644
+index c181058531..ee7290f3fa 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1279,9 +1279,14 @@ fi
@@ -572,6 +591,25 @@ index cd0abe1b34..6e6edc2228 100644
  elif test "$with_uuid" = ossp ; then
    AC_CHECK_LIB(ossp-uuid, uuid_export,
      [UUID_LIBS="-lossp-uuid"],
+@@ -1550,6 +1591,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
+ dnl just add -ldns_sd to LIBS manually.
+ fi
+ 
++pgac_save_CPPFLAGS=$CPPFLAGS
++CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++
+ # for contrib/uuid-ossp
+ if test "$with_uuid" = bsd ; then
+   AC_CHECK_HEADERS(uuid.h,
+@@ -1574,6 +1618,8 @@ elif test "$with_uuid" = ossp ; then
+       [AC_MSG_ERROR([header file <ossp/uuid.h> or <uuid.h> is required for OSSP UUID])])])
+ fi
+ 
++CPPFLAGS=$pgac_save_CPPFLAGS
++
+ if test "$PORTNAME" = "win32" ; then
+    AC_CHECK_HEADERS(crtdefs.h)
+ fi
 diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
 index c0b4f1fcf6..a039cfe14a 100644
 --- a/contrib/pgcrypto/Makefile

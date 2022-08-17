@@ -1,151 +1,37 @@
 ARG DOCKER_ARCH=
-FROM ${DOCKER_ARCH}buildpack-deps:bullseye
-
-# ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:$PATH
+FROM ${DOCKER_ARCH}alpine:3.16.2
 
 ENV LANG C.UTF-8
-
-# extra dependencies (over what buildpack-deps already includes)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		libssl-dev \
-		tk-dev \
-		musl-tools \
-		patchelf \
-		sudo \
-		zstd \
-	&& machine=$(uname -m) \
-	&& if [ ! -e /usr/bin/${machine}-linux-musl-gcc ]; then ln -s musl-gcc /usr/bin/${machine}-linux-musl-gcc; fi \
-	&& rm -rf /var/lib/apt/lists/* \
-
-ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION %%PLACEHOLDER%%
-ENV RUSTUP_HOME /usr/local/rustup
-ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION %%PLACEHOLDER%%
-ENV NODE_VERSION %%PLACEHOLDER%%
-ENV YARN_VERSION %%PLACEHOLDER%%
 
-RUN set -ex \
-	\
-	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-    && for key in \
-      "${PYTHON_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${NODE_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${YARN_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& rm -rf python.tar.xz.asc \
-	&& mkdir -p /usr/src/python \
-	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
-	&& rm python.tar.xz \
-	\
-	&& cd /usr/src/python \
-	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
-	&& ./configure \
-		--build="$gnuArch" \
-		--enable-loadable-sqlite-extensions \
-		--enable-shared \
-		--with-system-expat \
-		--with-system-ffi \
-		--without-ensurepip \
-	&& make -j "$(nproc)" \
-	&& make install \
-	&& ldconfig \
-	\
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& cd / \
-	&& rm -rf /usr/src/python \
-	\
-	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal \
-		--target $(uname -m)-unknown-linux-musl \
-		--default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	\
-	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& case "${dpkgArch##*-}" in \
-		amd64) ARCH='x64';; \
-		ppc64el) ARCH='ppc64le';; \
-		s390x) ARCH='s390x';; \
-		arm64) ARCH='arm64';; \
-		armhf) ARCH='armv7l';; \
-		i386) ARCH='x86';; \
-		*) echo "unsupported architecture"; exit 1 ;; \
-	esac \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
-	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
-	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
-	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& mkdir -p /opt \
-	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
-	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" \
-	\
-	&& python3 --version \
-	&& rustc --version \
-	&& node --version \
-	&& npm --version \
-	&& yarn --version
+RUN apk add --no-cache \
+		bash \
+		bison \
+		build-base \
+		curl \
+		flex \
+		git \
+		linux-headers \
+		nodejs \
+		patchelf \
+		perl \
+		python3 \
+		python3-dev \
+		py3-pip \
+		sudo \
+		tar \
+		yarn \
+		zstd
 
-# make some useful symlinks that are expected to exist
-RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
+RUN set -x; \
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
+	-y --no-modify-path --profile minimal \
+	--target $(uname -m)-unknown-linux-musl \
+	--default-toolchain $RUST_VERSION
 
-# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
+ENV PATH /root/.cargo/bin:$PATH
 
-RUN set -ex; \
-	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	python get-pip.py \
-		--disable-pip-version-check \
-		"pip==$PYTHON_PIP_VERSION" \
-	; \
-	pip --version; \
-	\
-	find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' +; \
-	rm -f get-pip.py
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
 %%WRITE_ENTRYPOINT%%
 RUN chmod +x /entrypoint.sh

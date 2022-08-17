@@ -218,7 +218,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.2
+ENV PYTHON_PIP_VERSION 22.2.2
 
 RUN set -ex; \
 	\
@@ -241,6 +241,12 @@ RUN set -ex; \
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -Exeo pipefail\n\
+\n\
+mkdir -p ~/.cache/cargo/{git,registry}\n\
+mkdir -p ~/.cargo\n\
+rm -rf ~/.cargo/registry ~/.cargo/git\n\
+ln -s ~/.cache/cargo/registry ~/.cargo/registry\n\
+ln -s ~/.cache/cargo/git ~/.cargo/git\n\
 \n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\

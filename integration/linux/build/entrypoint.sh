@@ -2,6 +2,12 @@
 
 set -Exeo pipefail
 
+mkdir -p ~/.cache/cargo/{git,registry}
+mkdir -p ~/.cargo
+rm -rf ~/.cargo/registry ~/.cargo/git
+ln -s ~/.cache/cargo/registry ~/.cargo/registry
+ln -s ~/.cache/cargo/git ~/.cargo/git
+
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 if [ -n "${METAPKG_PATH}" ]; then

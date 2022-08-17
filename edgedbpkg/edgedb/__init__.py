@@ -325,6 +325,7 @@ class EdgeDB(packages.BundledPythonPackage):
                 ${{_sudo}} env \\
                     {ld_env} {extraenv} \\
                     PYTHONPATH="${{_pythonpath}}" \\
+                    PG_DISABLE_PS_DISPLAY=1 \\
                     _EDGEDB_BUILDMETA_PG_CONFIG_PATH="${{_pg_config}}" \\
                     _EDGEDB_WRITE_DATA_CACHE_TO="${{_cachedir}}" \\
                     "${{_build_python}}" \\
