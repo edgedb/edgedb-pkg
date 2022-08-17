@@ -37,8 +37,8 @@ ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.62.0
-ENV NODE_VERSION 16.15.1
+ENV RUST_VERSION 1.63.0
+ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
@@ -209,11 +209,13 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -Exeo pipefail\n\
 \n\
+: "${CARGO_HOME:=$HOME/.cargo}"\n\
+\n\
 mkdir -p ~/.cache/cargo/{git,registry}\n\
-mkdir -p ~/.cargo\n\
-rm -rf ~/.cargo/registry ~/.cargo/git\n\
-ln -s ~/.cache/cargo/registry ~/.cargo/registry\n\
-ln -s ~/.cache/cargo/git ~/.cargo/git\n\
+mkdir -p "$CARGO_HOME"\n\
+rm -rf "${CARGO_HOME}"/{git,registry}\n\
+ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
+ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\

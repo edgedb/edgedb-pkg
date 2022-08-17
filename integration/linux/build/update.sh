@@ -58,8 +58,8 @@ cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.9"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.62.0"
-nodeVersion="16.15.1"
+rustVersion="1.63.0"
+nodeVersion="16.16.0"
 yarnVersion="1.22.19"
 goVersion="1.18.4"
 

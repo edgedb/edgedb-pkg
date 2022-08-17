@@ -2,11 +2,13 @@
 
 set -Exeo pipefail
 
+: "${CARGO_HOME:=$HOME/.cargo}"
+
 mkdir -p ~/.cache/cargo/{git,registry}
-mkdir -p ~/.cargo
-rm -rf ~/.cargo/registry ~/.cargo/git
-ln -s ~/.cache/cargo/registry ~/.cargo/registry
-ln -s ~/.cache/cargo/git ~/.cargo/git
+mkdir -p "$CARGO_HOME"
+rm -rf "${CARGO_HOME}"/{git,registry}
+ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"
+ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"
 
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg
 

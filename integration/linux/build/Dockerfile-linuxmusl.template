@@ -3,6 +3,9 @@ FROM ${DOCKER_ARCH}alpine:3.16.2
 
 ENV LANG C.UTF-8
 ENV RUST_VERSION %%PLACEHOLDER%%
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 
 RUN apk add --no-cache \
 		bash \
@@ -11,6 +14,7 @@ RUN apk add --no-cache \
 		curl \
 		flex \
 		git \
+		libffi-dev \
 		linux-headers \
 		nodejs \
 		patchelf \
@@ -24,12 +28,10 @@ RUN apk add --no-cache \
 		zstd
 
 RUN set -x; \
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-	-y --no-modify-path --profile minimal \
-	--target $(uname -m)-unknown-linux-musl \
-	--default-toolchain $RUST_VERSION
-
-ENV PATH /root/.cargo/bin:$PATH
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
+		-y --profile minimal --default-toolchain $RUST_VERSION \
+	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
+	&& rustc --version
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 

@@ -8,7 +8,10 @@ ARG DOCKER_ARCH=
 FROM ${DOCKER_ARCH}alpine:3.16.2
 
 ENV LANG C.UTF-8
-ENV RUST_VERSION 1.62.0
+ENV RUST_VERSION 1.63.0
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 
 RUN apk add --no-cache \
 		bash \
@@ -17,6 +20,7 @@ RUN apk add --no-cache \
 		curl \
 		flex \
 		git \
+		libffi-dev \
 		linux-headers \
 		nodejs \
 		patchelf \
@@ -30,12 +34,10 @@ RUN apk add --no-cache \
 		zstd
 
 RUN set -x; \
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-	-y --no-modify-path --profile minimal \
-	--target $(uname -m)-unknown-linux-musl \
-	--default-toolchain $RUST_VERSION
-
-ENV PATH /root/.cargo/bin:$PATH
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
+		-y --profile minimal --default-toolchain $RUST_VERSION \
+	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
+	&& rustc --version
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -43,11 +45,13 @@ RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -Exeo pipefail\n\
 \n\
+: "${CARGO_HOME:=$HOME/.cargo}"\n\
+\n\
 mkdir -p ~/.cache/cargo/{git,registry}\n\
-mkdir -p ~/.cargo\n\
-rm -rf ~/.cargo/registry ~/.cargo/git\n\
-ln -s ~/.cache/cargo/registry ~/.cargo/registry\n\
-ln -s ~/.cache/cargo/git ~/.cargo/git\n\
+mkdir -p "$CARGO_HOME"\n\
+rm -rf "${CARGO_HOME}"/{git,registry}\n\
+ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
+ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
