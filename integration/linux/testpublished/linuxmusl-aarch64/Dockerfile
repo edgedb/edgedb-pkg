@@ -36,8 +36,8 @@ try=1\n\
 while [ $try -le 30 ]; do\n\
     wget --secure-protocol=PFS --https-only "${url}" && break || true\n\
     try=$(( $try + 1 ))\n\
-    echo "Retrying in 10 seconds (try #${try})"\n\
-    sleep 10\n\
+    echo "Retrying in 30 seconds (try #${try})"\n\
+    sleep 30\n\
 done\n\
 \n\
 artifact=$(basename "${install_ref}")\n\

@@ -98,11 +98,12 @@ dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest+="/${PKG_PLATFORM}"\n\
 fi\n\
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then\n\
+    dest+="${PKG_PLATFORM_LIBC}"\n\
+    extraopts+=" --libc=${PKG_PLATFORM_LIBC}"\n\
+fi\n\
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
-fi\n\
-if [ -n "${PKG_PLATFORM_LIBC}" ]; then\n\
-    extraopts+=" --libc=${PKG_PLATFORM_LIBC}"\n\
 fi\n\
 if [ -n "${PKG_PLATFORM_ARCH}" ]; then\n\
     extraopts+=" --arch=${PKG_PLATFORM_ARCH}"\n\

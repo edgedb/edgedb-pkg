@@ -38,8 +38,8 @@ try=1
 while [ $try -le 30 ]; do
     apt-get update && apt-get install -y "${install_ref}" && break || true
     try=$(( $try + 1 ))
-    echo "Retrying in 10 seconds (try #${try})"
-    sleep 10
+    echo "Retrying in 30 seconds (try #${try})"
+    sleep 30
 done
 
 edgedb-server-${slot} --help

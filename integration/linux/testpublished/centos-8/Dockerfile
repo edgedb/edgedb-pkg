@@ -41,8 +41,8 @@ while [ $try -le 30 ]; do\n\
     && yum install --enablerepo="${repo}" --verbose -y "${install_ref}" \\\n\
     && break || true\n\
     try=$(( $try + 1 ))\n\
-    echo "Retrying in 10 seconds (try #${try})"\n\
-    sleep 10\n\
+    echo "Retrying in 30 seconds (try #${try})"\n\
+    sleep 30\n\
 done\n\
 \n\
 edgedb-server-${slot} --help\n\' >/entrypoint.sh
