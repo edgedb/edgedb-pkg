@@ -326,7 +326,9 @@ def describe_installref(
 
 
 def is_metadata_object(key: str) -> bool:
-    return key.endswith((".sha256", ".blake2b", ".asc", ".metadata.json"))
+    return key.endswith(
+        (".sha256", ".blake2b", ".asc", ".metadata.json", "index.html")
+    )
 
 
 def get_metadata(bucket: s3.Bucket, key: str) -> dict[str, Any]:
