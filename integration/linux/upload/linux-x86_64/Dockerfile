@@ -46,6 +46,10 @@ if [ -n "${PKG_PLATFORM}" ]; then\n\
     key+="-${PKG_PLATFORM}"\n\
     dest+="/${PKG_PLATFORM}"\n\
 fi\n\
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then\n\
+    key+="${PKG_PLATFORM_LIBC}"\n\
+    dest+="${PKG_PLATFORM_LIBC}"\n\
+fi\n\
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     key+="-${PKG_PLATFORM_VERSION}"\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
