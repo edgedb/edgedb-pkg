@@ -108,6 +108,16 @@ class Python(packages.BundledPackage):
                     ),
                 )
 
+        if "musl" in build.target.triple:
+            # Set explicit stack size on musl where the default is too
+            # low to support the default recursion limit.
+            # See https://github.com/python/cpython/issues/76488
+            build.sh_append_flags(
+                configure_flags,
+                "LDFLAGS",
+                ("-Wl,-z,stack_size=1000000",),
+            )
+
         if platform.system() == "Darwin":
             configure_flags[
                 "--enable-universalsdk"
