@@ -8,3 +8,4 @@ python_version = "3.9"
 ignore_missing_imports = true
 show_error_codes = true
 strict = true
+namespace_packages = true

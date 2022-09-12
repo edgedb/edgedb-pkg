@@ -115,7 +115,7 @@ class Python(packages.BundledPackage):
             build.sh_append_flags(
                 configure_flags,
                 "LDFLAGS",
-                ("-Wl,-z,stack_size=1000000",),
+                ("-Wl,-z,stack-size=1000000",),
             )
 
         if platform.system() == "Darwin":
