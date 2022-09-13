@@ -13,7 +13,7 @@ index 0e351d2d..37ae2df8 100644
 +++ b/pyproject.toml
 @@ -2,7 +2,7 @@
  name = "graphql-core"
- version = "3.2.1"
+ version = "3.1.7"
  description = """
 -GraphQL-core is a Python port of GraphQL.js,
 +GraphQL-core is a Python port of GraphQL.js,\
