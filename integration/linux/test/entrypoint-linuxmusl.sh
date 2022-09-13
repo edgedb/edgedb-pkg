@@ -6,6 +6,9 @@ dest="artifacts"
 if [ -n "${PKG_PLATFORM}" ]; then
     dest="${dest}/${PKG_PLATFORM}"
 fi
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then
+    dest="${dest}${PKG_PLATFORM_LIBC}"
+fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
     dest="${dest}-${PKG_PLATFORM_VERSION}"
 fi

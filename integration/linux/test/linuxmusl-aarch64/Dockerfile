@@ -111,6 +111,9 @@ dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
     dest="${dest}/${PKG_PLATFORM}"\n\
 fi\n\
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then\n\
+    dest="${dest}${PKG_PLATFORM_LIBC}"\n\
+fi\n\
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest="${dest}-${PKG_PLATFORM_VERSION}"\n\
 fi\n\

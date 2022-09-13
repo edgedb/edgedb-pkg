@@ -21,7 +21,7 @@ if [ -z "${install_ref}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
-dist="${PKG_PLATFORM_VERSION}-unknown-linux-gnu"\n\
+dist="${PKG_PLATFORM_VERSION}-unknown-linux-musl"\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     dist+=".${PKG_SUBDIST}"\n\
 fi\n\

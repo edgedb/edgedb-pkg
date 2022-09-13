@@ -27,13 +27,13 @@ if [ "$1" == "bash" ]; then
 fi
 
 dest="artifacts"
-key=""
 if [ -n "${PKG_PLATFORM}" ]; then
-    key+="-${PKG_PLATFORM}"
     dest+="/${PKG_PLATFORM}"
 fi
+if [ -n "${PKG_PLATFORM_LIBC}" ]; then
+    dest+="${PKG_PLATFORM_LIBC}"
+fi
 if [ -n "${PKG_PLATFORM_VERSION}" ]; then
-    key+="-${PKG_PLATFORM_VERSION}"
     dest+="-${PKG_PLATFORM_VERSION}"
 fi
 
