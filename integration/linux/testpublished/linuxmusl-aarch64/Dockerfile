@@ -4,10 +4,12 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:bullseye
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		wget ca-certificates \
-	&& rm -rf /var/lib/apt/lists/*
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}alpine:3.16.2
+RUN apk add --no-cache \
+	bash \
+	wget \
+	tar
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
