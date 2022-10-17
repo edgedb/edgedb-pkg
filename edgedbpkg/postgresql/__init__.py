@@ -5,10 +5,12 @@ import platform
 import re
 import textwrap
 
+from poetry.core.semver import version as poetry_version
+
 from metapkg import packages
 from metapkg import targets
 
-from edgedbpkg import icu, openssl
+from edgedbpkg import icu, libuuid, openssl, zlib
 
 
 class PostgreSQL(packages.BundledCPackage):
@@ -42,13 +44,22 @@ class PostgreSQL(packages.BundledCPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL("3.0.5"),
         icu.ICU("71.1"),
+        libuuid.LibUUID("2.38"),
+        openssl.OpenSSL("3.0.5"),
+        zlib.Zlib("1.2.13"),
     ]
 
     @classmethod
     def to_vcs_version(cls, version: str) -> str:
         return f"REL_{version.replace('.', '_')}"
+
+    @classmethod
+    def parse_vcs_version(cls, version: str) -> poetry_version.Version:
+        if version.startswith("REL_"):
+            return super().parse_vcs_version(version[4:].replace("_", "."))
+        else:
+            return super().parse_vcs_version(version)
 
     def get_patches(self) -> dict[str, list[tuple[str, str]]]:
         patches = dict(super().get_patches())
