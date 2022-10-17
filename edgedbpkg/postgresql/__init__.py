@@ -222,7 +222,6 @@ class PostgreSQL(packages.BundledCPackage):
 
         return script + textwrap.dedent(
             f"""\
-            {make} DESTDIR=$(pwd)/"{installdest}" install
             {make} DESTDIR=$(pwd)/"{installdest}" -C contrib install
             """
         )
