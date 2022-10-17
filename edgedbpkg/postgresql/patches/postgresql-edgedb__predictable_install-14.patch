@@ -1,0 +1,65 @@
+From 97f4038d5a7761b6859707fca4c91051bd273b47 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Mon, 17 Oct 2022 16:32:14 -0700
+Subject: [PATCH] Make sure installation directories are predictable
+
+Remove attempts by Postgres to strip the trailing `postgresql` part of
+the installation path if any of the prior path parts contain `postgres`
+or `pgsql`.
+---
+ src/Makefile.global.in | 25 -------------------------
+ 1 file changed, 25 deletions(-)
+
+diff --git a/src/Makefile.global.in b/src/Makefile.global.in
+index a999019c6e..1996c91da8 100644
+--- a/src/Makefile.global.in
++++ b/src/Makefile.global.in
+@@ -101,45 +101,20 @@ datarootdir := @datarootdir@
+ bindir := @bindir@
+ 
+ datadir := @datadir@
+-ifeq "$(findstring pgsql, $(datadir))" ""
+-ifeq "$(findstring postgres, $(datadir))" ""
+-override datadir := $(datadir)/postgresql
+-endif
+-endif
+ 
+ sysconfdir := @sysconfdir@
+-ifeq "$(findstring pgsql, $(sysconfdir))" ""
+-ifeq "$(findstring postgres, $(sysconfdir))" ""
+-override sysconfdir := $(sysconfdir)/postgresql
+-endif
+-endif
+ 
+ libdir := @libdir@
+ 
+ pkglibdir = $(libdir)
+-ifeq "$(findstring pgsql, $(pkglibdir))" ""
+-ifeq "$(findstring postgres, $(pkglibdir))" ""
+-override pkglibdir := $(pkglibdir)/postgresql
+-endif
+-endif
+ 
+ includedir := @includedir@
+ 
+ pkgincludedir = $(includedir)
+-ifeq "$(findstring pgsql, $(pkgincludedir))" ""
+-ifeq "$(findstring postgres, $(pkgincludedir))" ""
+-override pkgincludedir := $(pkgincludedir)/postgresql
+-endif
+-endif
+ 
+ mandir := @mandir@
+ 
+ docdir := @docdir@
+-ifeq "$(findstring pgsql, $(docdir))" ""
+-ifeq "$(findstring postgres, $(docdir))" ""
+-override docdir := $(docdir)/postgresql
+-endif
+-endif
+ 
+ htmldir := @htmldir@
+ 
+-- 
+2.37.3
+
