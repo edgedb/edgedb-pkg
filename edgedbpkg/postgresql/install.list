@@ -1,6 +1,8 @@
 {bindir}/initdb
-{bindir}/pg_config
+{bindir}/pg_basebackup
 {bindir}/pg_ctl
+{bindir}/pg_config
+{bindir}/pg_rewind
 {bindir}/psql
 {bindir}/postgres
 {libdir}/postgresql/*.so
