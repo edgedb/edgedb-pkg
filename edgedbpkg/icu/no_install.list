@@ -4,3 +4,6 @@
 {libdir}/pkgconfig/**
 {libdir}/*.a
 {libdir}/*.la
+{libdir}/libicuio*
+{libdir}/libicutest*
+{libdir}/libicutu*
