@@ -31,7 +31,7 @@ RUN yum install -y \
 
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.13
+ENV PYTHON_VERSION 3.9.15
 ENV GIT_VERSION 2.20.1
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
@@ -185,7 +185,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.2.2
+ENV PYTHON_PIP_VERSION 22.3
 
 RUN set -ex; \
 	\
