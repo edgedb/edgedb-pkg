@@ -1,0 +1,28 @@
+From 4ee9a2e36f203eafc7d6f37beff26802127f3c22 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Mon, 24 Oct 2022 22:47:40 -0700
+Subject: [PATCH] Make sure LD_SONAME is not a symlink
+
+ICU has a weird scheme where LD_SONAME is actually a symlink to a .so
+with a major.minor version.  This is a problem for deployments that are
+unable to handle symlinks sanely.
+---
+ icu4c/source/icudefs.mk.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/icu4c/source/icudefs.mk.in b/icu4c/source/icudefs.mk.in
+index 2c358167a8..fa6db1aa48 100644
+--- a/icu4c/source/icudefs.mk.in
++++ b/icu4c/source/icudefs.mk.in
+@@ -44,7 +44,7 @@ PACKAGE_ICU_URL = "http://icu-project.org"
+ PACKAGE = @PACKAGE@
+ VERSION = @VERSION@
+ UNICODE_VERSION = @UNICODE_VERSION@
+-SO_TARGET_VERSION = @LIB_VERSION@
++SO_TARGET_VERSION = @LIB_VERSION_MAJOR@
+ SO_TARGET_VERSION_MAJOR = @LIB_VERSION_MAJOR@
+ 
+ # The ICU data external name is usually icudata; the entry point name is
+-- 
+2.37.4
+
