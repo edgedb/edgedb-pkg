@@ -302,6 +302,16 @@ class Python(packages.BundledPackage):
         else:
             extra_install = ""
 
+        bin_dir = build.get_install_path("bin")
+        minorv = self.version.minor
+        extra_install += textwrap.dedent(
+            f"""\
+            rm $(pwd)/"{installdest}"/"{bin_dir}"/python3
+            mv $(pwd)/"{installdest}"/"{bin_dir}"/python3.{minorv} \
+                $(pwd)/"{installdest}"/"{bin_dir}"/python3
+            """
+        )
+
         env = self._get_make_env(build, "$(pwd)")
 
         script += textwrap.dedent(
