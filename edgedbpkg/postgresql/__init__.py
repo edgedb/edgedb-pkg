@@ -101,7 +101,6 @@ class PostgreSQL(packages.BundledCPackage):
             "--with-extra-version": extra_version,
             "--with-icu": None,
             "--without-pam": None,
-            "--without-zlib": None,
             "--with-openssl": None,
             "--with-uuid": uuid_lib,
             "--without-readline": None,
@@ -130,6 +129,17 @@ class PostgreSQL(packages.BundledCPackage):
                 uuid_pkg, relative_to="pkgbuild"
             )
             configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}"
+
+        zlib_pkg = build.get_package("zlib")
+        if build.is_bundled(zlib_pkg):
+            zlib_path = build.get_install_dir(zlib_pkg, relative_to="pkgbuild")
+            zlib_path /= build.get_full_install_prefix().relative_to("/")
+            zlib_rel_path = f'$(pwd)/"{zlib_path}"'
+            configure_flags["ZLIB_CFLAGS"] = f"!-I{zlib_rel_path}/include/"
+            zlib_ldflags = build.sh_get_bundled_shlib_ldflags(
+                zlib_pkg, relative_to="pkgbuild"
+            )
+            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}"
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
