@@ -12,8 +12,8 @@ unable to handle symlinks sanely.
 
 diff --git a/icu4c/source/icudefs.mk.in b/icu4c/source/icudefs.mk.in
 index 2c358167a8..fa6db1aa48 100644
---- a/source/icudefs.mk.in
-+++ b/source/icudefs.mk.in
+--- a/icu4c/source/icudefs.mk.in
++++ b/icu4c/source/icudefs.mk.in
 @@ -44,7 +44,7 @@ PACKAGE_ICU_URL = "http://icu-project.org"
  PACKAGE = @PACKAGE@
  VERSION = @VERSION@
