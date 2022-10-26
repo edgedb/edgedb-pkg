@@ -1,11 +1,11 @@
-From 6c6d946960dc10aead3c2f779384509d8d2629b3 Mon Sep 17 00:00:00 2001
+From 30dbd81e4943dd511004e2dbd874ee16fd783437 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
 
 ---
- configure                        | 536 +++++++++++++++++++++++++++++--
- configure.ac                     |  89 ++++-
+ configure                        | 552 +++++++++++++++++++++++++++++--
+ configure.ac                     | 105 +++++-
  contrib/pgcrypto/Makefile        |   4 +
  contrib/sslinfo/Makefile         |   2 +
  src/Makefile.global.in           |   9 +-
@@ -16,10 +16,10 @@ Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
  src/common/Makefile              |   1 +
  src/include/pg_config.h.in       |   2 +-
  src/interfaces/libpq/Makefile    |   1 +
- 12 files changed, 620 insertions(+), 36 deletions(-)
+ 12 files changed, 652 insertions(+), 36 deletions(-)
 
 diff --git a/configure b/configure
-index 048a803266..fbbcddd35f 100755
+index 048a803266..73286f23b4 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,14 @@ CFLAGS_SSE42
@@ -122,19 +122,19 @@ index 048a803266..fbbcddd35f 100755
 +  have_zlib=missing
 +
 +pkg_failed=no
-+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for zlib >= 1.2.13" >&5
-+$as_echo_n "checking for zlib >= 1.2.13... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for zlib" >&5
++$as_echo_n "checking for zlib... " >&6; }
 +
 +if test -n "$ZLIB_CFLAGS"; then
 +    pkg_cv_ZLIB_CFLAGS="$ZLIB_CFLAGS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib >= 1.2.13\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "zlib >= 1.2.13") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib >= 1.2.13" 2>/dev/null`
++  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -146,12 +146,12 @@ index 048a803266..fbbcddd35f 100755
 +    pkg_cv_ZLIB_LIBS="$ZLIB_LIBS"
 + elif test -n "$PKG_CONFIG"; then
 +    if test -n "$PKG_CONFIG" && \
-+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib >= 1.2.13\""; } >&5
-+  ($PKG_CONFIG --exists --print-errors "zlib >= 1.2.13") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
 +  ac_status=$?
 +  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
 +  test $ac_status = 0; }; then
-+  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib >= 1.2.13" 2>/dev/null`
++  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
 +else
 +  pkg_failed=yes
@@ -172,9 +172,9 @@ index 048a803266..fbbcddd35f 100755
 +        _pkg_short_errors_supported=no
 +fi
 +        if test $_pkg_short_errors_supported = yes; then
-+	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "zlib >= 1.2.13" 2>&1`
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "zlib" 2>&1`
 +        else
-+	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "zlib >= 1.2.13" 2>&1`
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "zlib" 2>&1`
 +        fi
 +	# Put the nasty error message in config.log where it belongs
 +	echo "$ZLIB_PKG_ERRORS" >&5
@@ -190,7 +190,7 @@ index 048a803266..fbbcddd35f 100755
  $as_echo_n "checking for inflate in -lz... " >&6; }
  if ${ac_cv_lib_z_inflate+:} false; then :
    $as_echo_n "(cached) " >&6
-@@ -12499,19 +12597,104 @@ fi
+@@ -12499,19 +12597,105 @@ fi
  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
  $as_echo "$ac_cv_lib_z_inflate" >&6; }
  if test "x$ac_cv_lib_z_inflate" = xyes; then :
@@ -267,15 +267,16 @@ index 048a803266..fbbcddd35f 100755
 +      CPPFLAGS=$pgac_save_CPPFLAGS
 +      LDFLAGS=$pgac_save_LDFLAGS
 +      LIBS=$pgac_save_LIBS
-+
-+
-+else
+ 
+-  LIBS="-lz $LIBS"
+ 
+ else
+-  as_fn_error $? "zlib library not found
 +	ZLIB_CFLAGS=$pkg_cv_ZLIB_CFLAGS
 +	ZLIB_LIBS=$pkg_cv_ZLIB_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
- 
--  LIBS="-lz $LIBS"
++
 +      have_zlib=yes
 +
 +fi
@@ -286,9 +287,9 @@ index 048a803266..fbbcddd35f 100755
 +$as_echo "#define HAVE_LIBZ 1" >>confdefs.h
 +
 +    LIBS="-lz $LIBS"
- 
- else
--  as_fn_error $? "zlib library not found
++    LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++
++else
 +
 +    as_fn_error $? "zlib library not found
  If you have zlib already installed, see config.log for details on the
@@ -300,7 +301,7 @@ index 048a803266..fbbcddd35f 100755
  fi
  
  if test "$enable_spinlocks" = yes; then
-@@ -12659,10 +12842,105 @@ if test "$with_openssl" = yes ; then
+@@ -12659,10 +12843,108 @@ if test "$with_openssl" = yes ; then
  fi
  
  if test "$with_ssl" = openssl ; then
@@ -396,26 +397,32 @@ index 048a803266..fbbcddd35f 100755
 +$as_echo "yes" >&6; }
 +
 +fi
-+  pgac_save_LIBS=$LIBS
 +  # Minimum required OpenSSL version is 1.0.1
  
  $as_echo "#define OPENSSL_API_COMPAT 0x10001000L" >>confdefs.h
  
 +
-+  CPPFLAGS="$OPENSSL_CFLAGS $CPPFLAGS"
++  pgac_save_CPPFLAGS=$CPPFLAGS
++  CPPFLAGS="$CFLAGS $OPENSSL_CFLAGS $ZLIB_CFLAGS"
++  pgac_save_LDFLAGS=$LDFLAGS
++  LDFLAGS="$LDFLAGS $OPENSSL_LIBS $ZLIB_LIBS"
++  pgac_save_LIBS=$LIBS
 +
    if test "$PORTNAME" != "win32"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
-@@ -12922,6 +13200,7 @@ done
+@@ -12922,6 +13204,10 @@ done
  
  $as_echo "#define USE_OPENSSL 1" >>confdefs.h
  
++
++  CPPFLAGS=$pgac_save_CPPFLAGS
++  LDFLAGS=$pgac_save_LDFLAGS
 +  LIBS=$pgac_save_LIBS
  elif test "$with_ssl" != no ; then
    as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
  fi
-@@ -13370,14 +13649,85 @@ else
+@@ -13370,14 +13656,85 @@ else
  fi
  
  elif test "$with_uuid" = e2fs ; then
@@ -508,7 +515,7 @@ index 048a803266..fbbcddd35f 100755
    $as_echo_n "(cached) " >&6
  else
    ac_check_lib_save_LIBS=$LIBS
-@@ -13391,34 +13741,167 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -13391,34 +13748,167 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  #ifdef __cplusplus
  extern "C"
  #endif
@@ -685,7 +692,41 @@ index 048a803266..fbbcddd35f 100755
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
-@@ -14070,6 +14553,9 @@ fi
+@@ -13828,6 +14318,8 @@ done
+ fi
+ 
+ if test "$with_zlib" = yes; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
+ if test "x$ac_cv_header_zlib_h" = xyes; then :
+ 
+@@ -13839,6 +14331,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
+ fi
+ 
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_lz4" = yes; then
+@@ -13889,6 +14382,8 @@ done
+ fi
+ 
+ if test "$with_ssl" = openssl ; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $OPENSSL_CFLAGS"
+   ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
+ if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
+ 
+@@ -13905,6 +14400,7 @@ else
+ fi
+ 
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_pam" = yes ; then
+@@ -14070,6 +14566,9 @@ fi
  
  fi
  
@@ -695,7 +736,7 @@ index 048a803266..fbbcddd35f 100755
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    for ac_header in uuid.h
-@@ -14204,6 +14690,8 @@ done
+@@ -14204,6 +14703,8 @@ done
  
  fi
  
@@ -704,11 +745,28 @@ index 048a803266..fbbcddd35f 100755
  if test "$PORTNAME" = "win32" ; then
     for ac_header in crtdefs.h
  do :
+@@ -15098,6 +15599,8 @@ if test "$with_zlib" = yes; then
+   # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
+   # did not).  While we could work around the lack of z_streamp, it
+   # seems unwise to encourage people to use such old zlib versions...
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   ac_fn_c_check_type "$LINENO" "z_streamp" "ac_cv_type_z_streamp" "#include <zlib.h>
+ "
+ if test "x$ac_cv_type_z_streamp" = xyes; then :
+@@ -15107,6 +15610,7 @@ else
+ Use --without-zlib to disable zlib support." "$LINENO" 5
+ fi
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ case $host_cpu in
 diff --git a/configure.ac b/configure.ac
-index c181058531..ffbcdcd861 100644
+index c181058531..01c36acd01 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1233,11 +1233,38 @@ Use --without-readline to disable readline support.])
+@@ -1233,11 +1233,39 @@ Use --without-readline to disable readline support.])
  fi
  
  if test "$with_zlib" = yes; then
@@ -716,7 +774,7 @@ index c181058531..ffbcdcd861 100644
 -               [AC_MSG_ERROR([zlib library not found
 +  have_zlib=missing
 +  PKG_CHECK_MODULES(
-+    [ZLIB], [zlib >= 1.2.13], [
++    [ZLIB], [zlib], [
 +      have_zlib=yes
 +    ], [
 +      pgac_save_CPPFLAGS=$CPPFLAGS
@@ -740,6 +798,7 @@ index c181058531..ffbcdcd861 100644
 +  AS_VAR_IF([have_zlib], [yes], [
 +    AC_DEFINE(HAVE_LIBZ, 1, [Define to 1 if you have zlib.])
 +    LIBS="-lz $LIBS"
++    LDFLAGS="$LDFLAGS $ZLIB_LIBS"
 +  ], [
 +    AC_MSG_ERROR([zlib library not found
  If you have zlib already installed, see config.log for details on the
@@ -750,30 +809,36 @@ index c181058531..ffbcdcd861 100644
  fi
  
  if test "$enable_spinlocks" = yes; then
-@@ -1279,9 +1306,14 @@ fi
+@@ -1279,9 +1307,17 @@ fi
  
  if test "$with_ssl" = openssl ; then
    dnl Order matters!
 +  PKG_CHECK_MODULES(OPENSSL, openssl)
-+  pgac_save_LIBS=$LIBS
    # Minimum required OpenSSL version is 1.0.1
    AC_DEFINE(OPENSSL_API_COMPAT, [0x10001000L],
              [Define to the OpenSSL API version in use. This avoids deprecation warnings from newer OpenSSL versions.])
 +
-+  CPPFLAGS="$OPENSSL_CFLAGS $CPPFLAGS"
++  pgac_save_CPPFLAGS=$CPPFLAGS
++  CPPFLAGS="$CFLAGS $OPENSSL_CFLAGS $ZLIB_CFLAGS"
++  pgac_save_LDFLAGS=$LDFLAGS
++  LDFLAGS="$LDFLAGS $OPENSSL_LIBS $ZLIB_LIBS"
++  pgac_save_LIBS=$LIBS
 +
    if test "$PORTNAME" != "win32"; then
       AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
-@@ -1302,6 +1334,7 @@ if test "$with_ssl" = openssl ; then
+@@ -1302,6 +1338,10 @@ if test "$with_ssl" = openssl ; then
    # function was removed.
    AC_CHECK_FUNCS([CRYPTO_lock])
    AC_DEFINE([USE_OPENSSL], 1, [Define to 1 to build with OpenSSL support. (--with-ssl=openssl)])
++
++  CPPFLAGS=$pgac_save_CPPFLAGS
++  LDFLAGS=$pgac_save_LDFLAGS
 +  LIBS=$pgac_save_LIBS
  elif test "$with_ssl" != no ; then
    AC_MSG_ERROR([--with-ssl must specify openssl])
  fi
-@@ -1375,12 +1408,47 @@ if test "$with_uuid" = bsd ; then
+@@ -1375,12 +1415,47 @@ if test "$with_uuid" = bsd ; then
      [UUID_LIBS=""],
      [AC_MSG_ERROR([BSD UUID functions are not present])])
  elif test "$with_uuid" = e2fs ; then
@@ -826,7 +891,33 @@ index c181058531..ffbcdcd861 100644
  elif test "$with_uuid" = ossp ; then
    AC_CHECK_LIB(ossp-uuid, uuid_export,
      [UUID_LIBS="-lossp-uuid"],
-@@ -1550,6 +1618,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
+@@ -1484,10 +1559,13 @@ Use --without-readline to disable libedit support.])])])])
+ fi
+ 
+ if test "$with_zlib" = yes; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   AC_CHECK_HEADER(zlib.h, [], [AC_MSG_ERROR([zlib header not found
+ If you have zlib already installed, see config.log for details on the
+ failure.  It is possible the compiler isn't looking in the proper directory.
+ Use --without-zlib to disable zlib support.])])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_lz4" = yes; then
+@@ -1500,8 +1578,11 @@ if test "$with_gssapi" = yes ; then
+ fi
+ 
+ if test "$with_ssl" = openssl ; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $OPENSSL_CFLAGS"
+   AC_CHECK_HEADER(openssl/ssl.h, [], [AC_MSG_ERROR([header file <openssl/ssl.h> is required for OpenSSL])])
+   AC_CHECK_HEADER(openssl/err.h, [], [AC_MSG_ERROR([header file <openssl/err.h> is required for OpenSSL])])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_pam" = yes ; then
+@@ -1550,6 +1631,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
  dnl just add -ldns_sd to LIBS manually.
  fi
  
@@ -836,7 +927,7 @@ index c181058531..ffbcdcd861 100644
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    AC_CHECK_HEADERS(uuid.h,
-@@ -1574,6 +1645,8 @@ elif test "$with_uuid" = ossp ; then
+@@ -1574,6 +1658,8 @@ elif test "$with_uuid" = ossp ; then
        [AC_MSG_ERROR([header file <ossp/uuid.h> or <uuid.h> is required for OSSP UUID])])])
  fi
  
@@ -845,6 +936,19 @@ index c181058531..ffbcdcd861 100644
  if test "$PORTNAME" = "win32" ; then
     AC_CHECK_HEADERS(crtdefs.h)
  fi
+@@ -1636,9 +1722,12 @@ if test "$with_zlib" = yes; then
+   # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
+   # did not).  While we could work around the lack of z_streamp, it
+   # seems unwise to encourage people to use such old zlib versions...
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   AC_CHECK_TYPE(z_streamp, [], [AC_MSG_ERROR([zlib version is too old
+ Use --without-zlib to disable zlib support.])],
+                 [#include <zlib.h>])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ case $host_cpu in
 diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
 index c0b4f1fcf6..a039cfe14a 100644
 --- a/contrib/pgcrypto/Makefile
