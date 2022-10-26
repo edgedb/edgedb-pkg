@@ -1,11 +1,11 @@
-From f1420656b9a94a929c0db447ca0046fadbdf5619 Mon Sep 17 00:00:00 2001
+From 6c6d946960dc10aead3c2f779384509d8d2629b3 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
 
 ---
- configure                        | 528 +++++++++++++++++++++++++++++--
- configure.ac                     |  85 ++++-
+ configure                        | 536 +++++++++++++++++++++++++++++--
+ configure.ac                     |  89 ++++-
  contrib/pgcrypto/Makefile        |   4 +
  contrib/sslinfo/Makefile         |   2 +
  src/Makefile.global.in           |   9 +-
@@ -16,10 +16,10 @@ Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
  src/common/Makefile              |   1 +
  src/include/pg_config.h.in       |   2 +-
  src/interfaces/libpq/Makefile    |   1 +
- 12 files changed, 608 insertions(+), 36 deletions(-)
+ 12 files changed, 620 insertions(+), 36 deletions(-)
 
 diff --git a/configure b/configure
-index 048a803266..592337d8a2 100755
+index 048a803266..fbbcddd35f 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,14 @@ CFLAGS_SSE42
@@ -190,7 +190,7 @@ index 048a803266..592337d8a2 100755
  $as_echo_n "checking for inflate in -lz... " >&6; }
  if ${ac_cv_lib_z_inflate+:} false; then :
    $as_echo_n "(cached) " >&6
-@@ -12499,19 +12597,96 @@ fi
+@@ -12499,19 +12597,104 @@ fi
  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
  $as_echo "$ac_cv_lib_z_inflate" >&6; }
  if test "x$ac_cv_lib_z_inflate" = xyes; then :
@@ -203,6 +203,10 @@ index 048a803266..592337d8a2 100755
 +
 +fi
 +
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
 +
 +
 +elif test $pkg_failed = untried; then
@@ -260,20 +264,24 @@ index 048a803266..592337d8a2 100755
 +fi
 +
 +
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
 +
 +else
 +	ZLIB_CFLAGS=$pkg_cv_ZLIB_CFLAGS
 +	ZLIB_LIBS=$pkg_cv_ZLIB_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
-+
+ 
+-  LIBS="-lz $LIBS"
 +      have_zlib=yes
 +
 +fi
 +
 +  if test "x$have_zlib" = xyes; then :
- 
--  LIBS="-lz $LIBS"
++
 +
 +$as_echo "#define HAVE_LIBZ 1" >>confdefs.h
 +
@@ -292,7 +300,7 @@ index 048a803266..592337d8a2 100755
  fi
  
  if test "$enable_spinlocks" = yes; then
-@@ -12659,10 +12834,105 @@ if test "$with_openssl" = yes ; then
+@@ -12659,10 +12842,105 @@ if test "$with_openssl" = yes ; then
  fi
  
  if test "$with_ssl" = openssl ; then
@@ -399,7 +407,7 @@ index 048a803266..592337d8a2 100755
    if test "$PORTNAME" != "win32"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
-@@ -12922,6 +13192,7 @@ done
+@@ -12922,6 +13200,7 @@ done
  
  $as_echo "#define USE_OPENSSL 1" >>confdefs.h
  
@@ -407,7 +415,7 @@ index 048a803266..592337d8a2 100755
  elif test "$with_ssl" != no ; then
    as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
  fi
-@@ -13370,14 +13641,85 @@ else
+@@ -13370,14 +13649,85 @@ else
  fi
  
  elif test "$with_uuid" = e2fs ; then
@@ -450,7 +458,10 @@ index 048a803266..592337d8a2 100755
 +  test $ac_status = 0; }; then
 +  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid >= 2.20" 2>/dev/null`
 +		      test "x$?" != "x0" && pkg_failed=yes
-+else
+ else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate in -luuid" >&5
+-$as_echo_n "checking for uuid_generate in -luuid... " >&6; }
+-if ${ac_cv_lib_uuid_uuid_generate+:} false; then :
 +  pkg_failed=yes
 +fi
 + else
@@ -465,10 +476,7 @@ index 048a803266..592337d8a2 100755
 +
 +if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
 +        _pkg_short_errors_supported=yes
- else
--  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate in -luuid" >&5
--$as_echo_n "checking for uuid_generate in -luuid... " >&6; }
--if ${ac_cv_lib_uuid_uuid_generate+:} false; then :
++else
 +        _pkg_short_errors_supported=no
 +fi
 +        if test $_pkg_short_errors_supported = yes; then
@@ -500,7 +508,7 @@ index 048a803266..592337d8a2 100755
    $as_echo_n "(cached) " >&6
  else
    ac_check_lib_save_LIBS=$LIBS
-@@ -13391,34 +13733,167 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -13391,34 +13741,167 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  #ifdef __cplusplus
  extern "C"
  #endif
@@ -598,8 +606,7 @@ index 048a803266..592337d8a2 100755
 +_ACEOF
 +if ac_fn_c_try_link "$LINENO"; then :
 +  ac_cv_lib_uuid_uuid_generate_time=yes
- else
--  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++else
 +  ac_cv_lib_uuid_uuid_generate_time=no
 +fi
 +rm -f core conftest.err conftest.$ac_objext \
@@ -610,11 +617,11 @@ index 048a803266..592337d8a2 100755
 +$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
 +if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
 +  have_uuid=yes
- fi
- 
++fi
 +
- fi
- 
++
++fi
++
 +done
 +
 +      if test "x$have_uuid" = xyes; then :
@@ -629,7 +636,8 @@ index 048a803266..592337d8a2 100755
 +      LIBS=$pgac_save_LIBS
 +
 +
-+else
+ else
+-  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
 +	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
 +	UUID_LIBS=$pkg_cv_UUID_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -659,11 +667,11 @@ index 048a803266..592337d8a2 100755
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
 +        UUID_LIBS=${UUID_LIBS-""}
 +
-+fi
+ fi
+ 
 +
-+
-+fi
-+
+ fi
+ 
 +done
 +
 +
@@ -677,7 +685,7 @@ index 048a803266..592337d8a2 100755
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
-@@ -14070,6 +14545,9 @@ fi
+@@ -14070,6 +14553,9 @@ fi
  
  fi
  
@@ -687,7 +695,7 @@ index 048a803266..592337d8a2 100755
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    for ac_header in uuid.h
-@@ -14204,6 +14682,8 @@ done
+@@ -14204,6 +14690,8 @@ done
  
  fi
  
@@ -697,10 +705,10 @@ index 048a803266..592337d8a2 100755
     for ac_header in crtdefs.h
  do :
 diff --git a/configure.ac b/configure.ac
-index c181058531..12095c8921 100644
+index c181058531..ffbcdcd861 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1233,11 +1233,34 @@ Use --without-readline to disable readline support.])
+@@ -1233,11 +1233,38 @@ Use --without-readline to disable readline support.])
  fi
  
  if test "$with_zlib" = yes; then
@@ -722,6 +730,10 @@ index c181058531..12095c8921 100644
 +        ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
 +        have_zlib=yes
 +      ])
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
 +    ]
 +  )
 +
@@ -738,7 +750,7 @@ index c181058531..12095c8921 100644
  fi
  
  if test "$enable_spinlocks" = yes; then
-@@ -1279,9 +1302,14 @@ fi
+@@ -1279,9 +1306,14 @@ fi
  
  if test "$with_ssl" = openssl ; then
    dnl Order matters!
@@ -753,7 +765,7 @@ index c181058531..12095c8921 100644
    if test "$PORTNAME" != "win32"; then
       AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
-@@ -1302,6 +1330,7 @@ if test "$with_ssl" = openssl ; then
+@@ -1302,6 +1334,7 @@ if test "$with_ssl" = openssl ; then
    # function was removed.
    AC_CHECK_FUNCS([CRYPTO_lock])
    AC_DEFINE([USE_OPENSSL], 1, [Define to 1 to build with OpenSSL support. (--with-ssl=openssl)])
@@ -761,7 +773,7 @@ index c181058531..12095c8921 100644
  elif test "$with_ssl" != no ; then
    AC_MSG_ERROR([--with-ssl must specify openssl])
  fi
-@@ -1375,12 +1404,47 @@ if test "$with_uuid" = bsd ; then
+@@ -1375,12 +1408,47 @@ if test "$with_uuid" = bsd ; then
      [UUID_LIBS=""],
      [AC_MSG_ERROR([BSD UUID functions are not present])])
  elif test "$with_uuid" = e2fs ; then
@@ -814,7 +826,7 @@ index c181058531..12095c8921 100644
  elif test "$with_uuid" = ossp ; then
    AC_CHECK_LIB(ossp-uuid, uuid_export,
      [UUID_LIBS="-lossp-uuid"],
-@@ -1550,6 +1614,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
+@@ -1550,6 +1618,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
  dnl just add -ldns_sd to LIBS manually.
  fi
  
@@ -824,7 +836,7 @@ index c181058531..12095c8921 100644
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    AC_CHECK_HEADERS(uuid.h,
-@@ -1574,6 +1641,8 @@ elif test "$with_uuid" = ossp ; then
+@@ -1574,6 +1645,8 @@ elif test "$with_uuid" = ossp ; then
        [AC_MSG_ERROR([header file <ossp/uuid.h> or <uuid.h> is required for OSSP UUID])])])
  fi
  
