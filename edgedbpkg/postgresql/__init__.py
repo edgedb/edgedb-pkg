@@ -106,69 +106,12 @@ class PostgreSQL(packages.BundledCPackage):
             "--without-readline": None,
         }
 
-        icu_pkg = build.get_package("icu")
-        if build.is_bundled(icu_pkg):
-            icu_path = build.get_install_dir(icu_pkg, relative_to="pkgbuild")
-            icu_path /= build.get_full_install_prefix().relative_to("/")
-            icu_rel_path = f'$(pwd)/"{icu_path}"'
-            configure_flags["ICU_CFLAGS"] = f"!-I{icu_rel_path}/include/"
-            icu_ldflags = build.sh_get_bundled_shlib_ldflags(
-                icu_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["ICU_LIBS"] = f"!{icu_ldflags}"
-
-        uuid_pkg = build.get_package("uuid")
-        if build.is_bundled(uuid_pkg):
-            uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
-            uuid_path /= build.get_full_install_prefix().relative_to("/")
-            uuid_rel_path = f'$(pwd)/"{uuid_path}"'
-            configure_flags[
-                "UUID_CFLAGS"
-            ] = f"!-I{uuid_rel_path}/include/uuid/"
-            uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
-                uuid_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["UUID_LIBS"] = f"!{uuid_ldflags}"
-
-        zlib_pkg = build.get_package("zlib")
-        if build.is_bundled(zlib_pkg):
-            zlib_path = build.get_install_dir(zlib_pkg, relative_to="pkgbuild")
-            zlib_path /= build.get_full_install_prefix().relative_to("/")
-            zlib_rel_path = f'$(pwd)/"{zlib_path}"'
-            configure_flags["ZLIB_CFLAGS"] = f"!-I{zlib_rel_path}/include/"
-            zlib_ldflags = build.sh_get_bundled_shlib_ldflags(
-                zlib_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}"
-
-        openssl_pkg = build.get_package("openssl")
-        if build.is_bundled(openssl_pkg):
-            openssl_root = build.get_install_dir(
-                openssl_pkg, relative_to="pkgbuild"
-            )
-            openssl_path = (
-                openssl_root / build.get_full_install_prefix().relative_to("/")
-            )
-            openssl_rel_path = f'$(pwd)/"{openssl_path}"'
-            configure_flags[
-                "OPENSSL_CFLAGS"
-            ] = f"!-I{openssl_rel_path}/include/"
-            openssl_ldflags = build.sh_get_bundled_shlib_ldflags(
-                openssl_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["OPENSSL_LIBS"] = f"!{openssl_ldflags}"
-
-            ldflags = f"!-L{openssl_rel_path}/lib"
-
-            if system == "Darwin":
-                # ./configure tries to compile and test a program
-                # and it fails because openssl is not yet installed
-                # at its install_name location.
-                configure_flags["DYLD_FALLBACK_LIBRARY_PATH"] = openssl_root
-            else:
-                ldflags += f'" "-Wl,-rpath-link,{openssl_rel_path}/lib'
-
-            configure_flags["LDFLAGS"] = ldflags
+        self.configure_dependency(build, configure_flags, "icu", "ICU")
+        self.configure_dependency(
+            build, configure_flags, "uuid", "UUID", include_dir_suffix="uuid"
+        )
+        self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
+        self.configure_dependency(build, configure_flags, "openssl", "OPENSSL")
 
         if build.target.has_capability("tzdata"):
             zoneinfo = build.target.get_resource_path(build, "tzdata")

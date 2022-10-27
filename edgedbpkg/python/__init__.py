@@ -15,7 +15,7 @@ from edgedbpkg import openssl
 from edgedbpkg import zlib
 
 
-class Python(packages.BundledPackage):
+class Python(packages.BundledCPackage):
 
     title = "Python"
     name = "python-edgedb"
@@ -130,19 +130,9 @@ class Python(packages.BundledPackage):
             else:
                 raise RuntimeError(f"unexpected architecture: {arch}")
 
+        self.configure_dependency(build, configure_flags, "libffi", "LIBFFI")
         libffi_pkg = build.get_package("libffi")
-        if build.is_bundled(libffi_pkg):
-            libffi_path = build.get_install_dir(
-                libffi_pkg, relative_to="pkgbuild"
-            )
-            libffi_path /= build.get_full_install_prefix().relative_to("/")
-            libffi_rel_path = f'$(pwd)/"{libffi_path}"'
-            configure_flags["LIBFFI_CFLAGS"] = f"!-I{libffi_rel_path}/include/"
-            libffi_ldflags = build.sh_get_bundled_shlib_ldflags(
-                libffi_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["LIBFFI_LIBS"] = f"!{libffi_ldflags}"
-        else:
+        if not build.is_bundled(libffi_pkg):
             # This is somewhat confusing, but Python treats
             # --without-system-ffi on macOS as instruction to actually
             # _use_ the native system libffi (as opposed to pkg-config),
@@ -160,41 +150,23 @@ class Python(packages.BundledPackage):
                 "--with-openssl-rpath"
             ] = openssl_pkg.get_shlib_paths(build)[0]
 
-        uuid_pkg = build.get_package("uuid")
-        if build.is_bundled(uuid_pkg):
-            uuid_path = build.get_install_dir(uuid_pkg, relative_to="pkgbuild")
-            uuid_path /= build.get_full_install_prefix().relative_to("/")
-            uuid_rel_path = f'$(pwd)/"{uuid_path}"'
-            configure_flags[
-                "LIBUUID_CFLAGS"
-            ] = f"!-I{uuid_rel_path}/include/uuid/"
-            uuid_ldflags = build.sh_get_bundled_shlib_ldflags(
-                uuid_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["LIBUUID_LIBS"] = f"!{uuid_ldflags}"
-
-        zlib_pkg = build.get_package("zlib")
-        if build.is_bundled(zlib_pkg):
-            zlib_path = build.get_install_dir(zlib_pkg, relative_to="pkgbuild")
-            zlib_path /= build.get_full_install_prefix().relative_to("/")
-            zlib_rel_path = f'$(pwd)/"{zlib_path}"'
-            configure_flags["ZLIB_CFLAGS"] = f"!-I{zlib_rel_path}/include/"
-            zlib_ldflags = build.sh_get_bundled_shlib_ldflags(
-                zlib_pkg, relative_to="pkgbuild"
-            )
-            configure_flags["ZLIB_LIBS"] = f"!{zlib_ldflags}"
+        self.configure_dependency(
+            build, configure_flags, "uuid", "UUID", include_dir_suffix="uuid"
+        )
+        self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
 
         return build.sh_configure(configure, configure_flags)
 
-    def _get_make_env(self, build: targets.Build, wd: str) -> str:
+    def get_make_env(self, build: targets.Build, wd: str) -> str:
+        env = super().get_make_env(build, wd)
         openssl_pkg = build.get_package("openssl")
         libffi_pkg = build.get_package("libffi")
         uuid_pkg = build.get_package("uuid")
         zlib_pkg = build.get_package("zlib")
-        env = build.get_ld_env(
+        ld_env = build.get_ld_env(
             [openssl_pkg, libffi_pkg, uuid_pkg, zlib_pkg], wd
         )
-        return " ".join(env)
+        return env + " ".join(ld_env)
 
     def get_build_script(self, build: targets.Build) -> str:
         make = build.sh_get_command("make")
@@ -215,7 +187,7 @@ class Python(packages.BundledPackage):
 
         python = f"python{exe_suffix}"
 
-        wrapper_env = self._get_make_env(build, "${d}")
+        wrapper_env = self.get_make_env(build, "${d}")
         bash = build.sh_get_command("bash")
 
         make_wrapper = textwrap.dedent(
@@ -254,7 +226,7 @@ class Python(packages.BundledPackage):
             "spwd",
         ]
 
-        make_env = self._get_make_env(build, "$(pwd)")
+        make_env = self.get_make_env(build, "$(pwd)")
 
         return textwrap.dedent(
             f"""\
@@ -272,10 +244,13 @@ class Python(packages.BundledPackage):
             {make_wrapper}"""
         )
 
+    def get_make_install_env(self, build: targets.Build, wd: str) -> str:
+        env = super().get_make_install_env(build, wd)
+        return f"{env} ENSUREPIP=no"
+
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
         installdest = build.get_install_dir(self, relative_to="pkgbuild")
-        make = build.sh_get_command("make")
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
@@ -312,12 +287,8 @@ class Python(packages.BundledPackage):
             """
         )
 
-        env = self._get_make_env(build, "$(pwd)")
-
         script += textwrap.dedent(
             f"""\
-            {make} -j1 DESTDIR=$(pwd)/"{installdest}" {env} \
-                ENSUREPIP=no install
             {extra_install}
             """
         )

@@ -71,7 +71,7 @@ class OpenSSL(packages.BundledCPackage):
             ]
         )
 
-    def get_install_make_target(self, build: targets.Build) -> str:
+    def get_make_install_target(self, build: targets.Build) -> str:
         # Don't bother installing a gazillion of man pages.
         return "install_sw"
 
