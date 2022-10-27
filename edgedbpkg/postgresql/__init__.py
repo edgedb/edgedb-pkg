@@ -107,9 +107,7 @@ class PostgreSQL(packages.BundledCPackage):
         }
 
         self.configure_dependency(build, configure_flags, "icu", "ICU")
-        self.configure_dependency(
-            build, configure_flags, "uuid", "UUID", include_dir_suffix="uuid"
-        )
+        self.configure_dependency(build, configure_flags, "uuid", "UUID")
         self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
         self.configure_dependency(build, configure_flags, "openssl", "OPENSSL")
 

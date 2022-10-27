@@ -1,4 +1,4 @@
-From 30dbd81e4943dd511004e2dbd874ee16fd783437 Mon Sep 17 00:00:00 2001
+From 1c7952119ff7c47e3f7832d12cad52b8c0c346ab Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
@@ -19,7 +19,7 @@ Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
  12 files changed, 652 insertions(+), 36 deletions(-)
 
 diff --git a/configure b/configure
-index 048a803266..73286f23b4 100755
+index 048a803266..213844c664 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,14 @@ CFLAGS_SSE42
@@ -556,6 +556,7 @@ index 048a803266..73286f23b4 100755
 +
 +done
 +
++
 +      if test "x$have_uuid" = xyes; then :
 +
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
@@ -590,7 +591,8 @@ index 048a803266..73286f23b4 100755
 +$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
 +if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
 +  $as_echo_n "(cached) " >&6
-+else
+ else
+-  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
 +  ac_check_lib_save_LIBS=$LIBS
 +LIBS="-luuid  $LIBS"
 +cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -619,17 +621,18 @@ index 048a803266..73286f23b4 100755
 +rm -f core conftest.err conftest.$ac_objext \
 +    conftest$ac_exeext conftest.$ac_ext
 +LIBS=$ac_check_lib_save_LIBS
-+fi
+ fi
 +{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
 +$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
 +if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
 +  have_uuid=yes
 +fi
 +
-+
-+fi
-+
+ 
+ fi
+ 
 +done
++
 +
 +      if test "x$have_uuid" = xyes; then :
 +
@@ -643,16 +646,13 @@ index 048a803266..73286f23b4 100755
 +      LIBS=$pgac_save_LIBS
 +
 +
- else
--  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++else
 +	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
 +	UUID_LIBS=$pkg_cv_UUID_LIBS
 +        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 +$as_echo "yes" >&6; }
 +
 +      have_uuid=yes
-+      $as_echo "#define HAVE_UUID_H 1" >>confdefs.h
-+
 +
 +fi
 +
@@ -674,11 +674,11 @@ index 048a803266..73286f23b4 100755
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
 +        UUID_LIBS=${UUID_LIBS-""}
 +
- fi
- 
++fi
 +
- fi
- 
++
++fi
++
 +done
 +
 +
@@ -763,7 +763,7 @@ index 048a803266..73286f23b4 100755
  
  case $host_cpu in
 diff --git a/configure.ac b/configure.ac
-index c181058531..01c36acd01 100644
+index c181058531..ecbdd555e6 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1233,11 +1233,39 @@ Use --without-readline to disable readline support.])
@@ -847,7 +847,6 @@ index c181058531..01c36acd01 100644
 +  PKG_CHECK_MODULES(
 +    [UUID], [uuid >= 2.20], [
 +      have_uuid=yes
-+      AC_DEFINE([HAVE_UUID_H], [1])
 +    ], [
 +      pgac_save_CPPFLAGS=$CPPFLAGS
 +      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
@@ -858,6 +857,7 @@ index c181058531..01c36acd01 100644
 +      AC_CHECK_HEADERS([uuid/uuid.h], [
 +        AC_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
 +      ])
++
 +      AS_VAR_IF([have_uuid], [yes], [
 +        UUID_CFLAGS=${UUID_CFLAGS-""}
 +        UUID_LIBS=${UUID_LIBS-"-luuid"}

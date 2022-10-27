@@ -150,9 +150,7 @@ class Python(packages.BundledCPackage):
                 "--with-openssl-rpath"
             ] = openssl_pkg.get_shlib_paths(build)[0]
 
-        self.configure_dependency(
-            build, configure_flags, "uuid", "UUID", include_dir_suffix="uuid"
-        )
+        self.configure_dependency(build, configure_flags, "uuid", "LIBUUID")
         self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
 
         return build.sh_configure(configure, configure_flags)
