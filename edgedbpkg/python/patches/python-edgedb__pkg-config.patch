@@ -1,4 +1,4 @@
-From e6e509da9b86928a8ebc3b4d8a2ba45d0ea25a1c Mon Sep 17 00:00:00 2001
+From 97360ea4676487f279183dd0ba61d28d4a108a7c Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Oct 2021 12:10:56 -0700
 Subject: [PATCH] Look up for zlib, libuuid and libffi with pkg-config
@@ -40,12 +40,12 @@ index 4b0ec240ad..f4e841c745 100644
  ##########################################################################
  # Parser
 diff --git a/aclocal.m4 b/aclocal.m4
-index 2f1bd37528..8960899828 100644
+index 2f1bd37528..9ee5f5b887 100644
 --- a/aclocal.m4
 +++ b/aclocal.m4
 @@ -1,6 +1,6 @@
 -# generated automatically by aclocal 1.16.3 -*- Autoconf -*-
-+# generated automatically by aclocal 1.16.4 -*- Autoconf -*-
++# generated automatically by aclocal 1.16.5 -*- Autoconf -*-
  
 -# Copyright (C) 1996-2020 Free Software Foundation, Inc.
 +# Copyright (C) 1996-2021 Free Software Foundation, Inc.
@@ -71,7 +71,7 @@ index 2f1bd37528..8960899828 100644
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure b/configure
-index 5568b674a5..2992a48808 100755
+index 5568b674a5..d929208514 100755
 --- a/configure
 +++ b/configure
 @@ -661,10 +661,17 @@ DTRACE
@@ -914,7 +914,7 @@ index 5568b674a5..2992a48808 100755
 +
 +if test "x$have_zlib" = xyes; then :
 +
-+  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -n -E -e 's/^-I(^[:space:]+).*$/\1/p'`"
++  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -n -E -e 's/-I([^[:space:]]+).*$/\1/p'`"
 +
 +else
 +
@@ -1237,7 +1237,7 @@ index 5568b674a5..2992a48808 100755
 +fi
 +
 +if test -n "$LIBFFI_CFLAGS"; then
-+  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I(^[:space:]+).*$/\1/p'`"
++  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I([^[:space:]]+).*$/\1/p'`"
 +else
 +  LIBFFI_INCLUDEDIR=""
  fi
@@ -1263,7 +1263,7 @@ index 5568b674a5..2992a48808 100755
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure.ac b/configure.ac
-index 632c39a087..5ab6206d63 100644
+index 632c39a087..2d46453e62 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -18,6 +18,60 @@ m4_ifdef(
@@ -1475,7 +1475,7 @@ index 632c39a087..5ab6206d63 100644
 +])
 +
 +AS_VAR_IF([have_zlib], [yes], [
-+  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -n -E -e 's/^-I([^[:space:]]+).*$/\1/p'`"
++  ZLIB_INCLUDEDIR="`echo $ZLIB_CFLAGS | sed -n -E -e 's/-I([[^[:space:]]]+).*$/\1/p'`"
 +], [
 +  ZLIB_INCLUDEDIR=":none:"
 +])
@@ -1532,7 +1532,7 @@ index 632c39a087..5ab6206d63 100644
 +])
 +
 +if test -n "$LIBFFI_CFLAGS"; then
-+  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I([^[:space:]]+).*$/\1/p'`"
++  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I([[^[:space:]]]+).*$/\1/p'`"
  else
 -    LIBFFI_INCLUDEDIR=""
 +  LIBFFI_INCLUDEDIR=""
