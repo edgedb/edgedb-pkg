@@ -1,4 +1,4 @@
-From 97360ea4676487f279183dd0ba61d28d4a108a7c Mon Sep 17 00:00:00 2001
+From 5a96e42a0a8d073a32065b587acf9fcdad1e8310 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Oct 2021 12:10:56 -0700
 Subject: [PATCH] Look up for zlib, libuuid and libffi with pkg-config
@@ -7,11 +7,11 @@ This also enables external *_CFLAGS/*_LIBS override
 ---
  Makefile.pre.in |    8 +
  aclocal.m4      |    8 +-
- configure       | 1056 +++++++++++++++++++++++++++++++++++++++++++----
- configure.ac    |  228 ++++++++--
+ configure       | 1057 +++++++++++++++++++++++++++++++++++++++++++----
+ configure.ac    |  231 +++++++++--
  pyconfig.h.in   |   10 +-
  setup.py        |   60 ++-
- 6 files changed, 1225 insertions(+), 145 deletions(-)
+ 6 files changed, 1230 insertions(+), 144 deletions(-)
 
 diff --git a/Makefile.pre.in b/Makefile.pre.in
 index 4b0ec240ad..f4e841c745 100644
@@ -71,7 +71,7 @@ index 2f1bd37528..9ee5f5b887 100644
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure b/configure
-index 5568b674a5..d929208514 100755
+index 5568b674a5..b746b69caa 100755
 --- a/configure
 +++ b/configure
 @@ -661,10 +661,17 @@ DTRACE
@@ -926,7 +926,7 @@ index 5568b674a5..d929208514 100755
  # Check for use of the system expat library
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-system-expat" >&5
  $as_echo_n "checking for --with-system-expat... " >&6; }
-@@ -10826,10 +11426,313 @@ $as_echo "$as_me: WARNING: --with(out)-system-ffi is ignored on this platform" >
+@@ -10826,10 +11426,316 @@ $as_echo "$as_me: WARNING: --with(out)-system-ffi is ignored on this platform" >
      with_system_ffi="yes"
  fi
  
@@ -1208,7 +1208,6 @@ index 5568b674a5..d929208514 100755
 +          LIBFFI_LIBS="-lffi"
 +
  else
--    LIBFFI_INCLUDEDIR=""
 +  have_libffi=no
 +fi
 +
@@ -1238,12 +1237,15 @@ index 5568b674a5..d929208514 100755
 +
 +if test -n "$LIBFFI_CFLAGS"; then
 +  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I([^[:space:]]+).*$/\1/p'`"
++  if test "$LIBFFI_INCLUDEDIR" == "${UNIVERSALSDK}/usr/include/ffi"; then
+     LIBFFI_INCLUDEDIR=""
++  fi
 +else
 +  LIBFFI_INCLUDEDIR=""
  fi
  
  
-@@ -13819,6 +14722,7 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
+@@ -13819,6 +14725,7 @@ $as_echo "#define TIME_WITH_SYS_TIME 1" >>confdefs.h
  
  fi
  
@@ -1251,7 +1253,7 @@ index 5568b674a5..d929208514 100755
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether struct tm is in sys/time.h or time.h" >&5
  $as_echo_n "checking whether struct tm is in sys/time.h or time.h... " >&6; }
  if ${ac_cv_struct_tm+:} false; then :
-@@ -17747,8 +18651,8 @@ fi
+@@ -17747,8 +18654,8 @@ fi
      if ! $found; then
          OPENSSL_INCLUDES=
          for ssldir in $ssldirs; do
@@ -1263,7 +1265,7 @@ index 5568b674a5..d929208514 100755
                  OPENSSL_INCLUDES="-I$ssldir/include"
                  OPENSSL_LDFLAGS="-L$ssldir/lib"
 diff --git a/configure.ac b/configure.ac
-index 632c39a087..2d46453e62 100644
+index 632c39a087..59f15ac842 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -18,6 +18,60 @@ m4_ifdef(
@@ -1484,12 +1486,13 @@ index 632c39a087..2d46453e62 100644
  # Check for use of the system expat library
  AC_MSG_CHECKING(for --with-system-expat)
  AC_ARG_WITH(system_expat,
-@@ -3131,10 +3227,51 @@ else
+@@ -3131,10 +3227,54 @@ else
      with_system_ffi="yes"
  fi
  
 -if test "$with_system_ffi" = "yes" && test -n "$PKG_CONFIG"; then
 -    LIBFFI_INCLUDEDIR="`"$PKG_CONFIG" libffi --cflags-only-I 2>/dev/null | sed -e 's/^-I//;s/ *$//'`"
+-else
 +dnl detect libffi
 +have_libffi=missing
 +AS_VAR_IF([with_system_ffi], [yes], [
@@ -1533,13 +1536,15 @@ index 632c39a087..2d46453e62 100644
 +
 +if test -n "$LIBFFI_CFLAGS"; then
 +  LIBFFI_INCLUDEDIR="`echo $LIBFFI_CFLAGS | sed -n -E -e 's/^-I([[^[:space:]]]+).*$/\1/p'`"
- else
--    LIBFFI_INCLUDEDIR=""
++  if test "$LIBFFI_INCLUDEDIR" == "${UNIVERSALSDK}/usr/include/ffi"; then
+     LIBFFI_INCLUDEDIR=""
++  fi
++else
 +  LIBFFI_INCLUDEDIR=""
  fi
  AC_SUBST(LIBFFI_INCLUDEDIR)
  
-@@ -4250,6 +4387,7 @@ AC_CHECK_FUNCS(getnameinfo)
+@@ -4250,6 +4390,7 @@ AC_CHECK_FUNCS(getnameinfo)
  
  # checks for structures
  AC_HEADER_TIME
