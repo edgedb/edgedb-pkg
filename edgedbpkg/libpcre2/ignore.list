@@ -1,3 +1,0 @@
-{bindir}/*
-{prefix}/share/**
-{prefix}/include/**
