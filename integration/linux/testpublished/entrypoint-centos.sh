@@ -9,13 +9,6 @@ if [ -z "${install_ref}" ]; then
     exit 1
 fi
 
-slot="${PKG_VERSION_SLOT}"
-
-if [ -z "${slot}" ]; then
-    echo ::error "Cannot determine package version slot."
-    exit 1
-fi
-
 repo="edgedb"
 if [ -n "${PKG_SUBDIST}" ]; then
     repo+="-${PKG_SUBDIST}"
@@ -38,4 +31,17 @@ while [ $try -le 30 ]; do
     sleep 30
 done
 
-edgedb-server-${slot} --help
+if [ "${PKG_NAME}" == "edgedb-cli" ]; then
+    edgedb --help
+    edgedb --version
+else
+    slot="${PKG_VERSION_SLOT}"
+
+    if [ -z "${slot}" ]; then
+        echo ::error "Cannot determine package version slot."
+        exit 1
+    fi
+
+    edgedb-server-${slot} --help
+    edgedb-server-${slot} --version
+fi

@@ -9,7 +9,8 @@ FROM ${DOCKER_ARCH}alpine:3.16.2
 RUN apk add --no-cache \
 	bash \
 	wget \
-	tar
+	tar \
+	zstd
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
@@ -48,7 +49,7 @@ if ! [ -e "${artifact}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
-tdir="edgedb-server-extracted"\n\
+tdir="$(pwd -P)/output"\n\
 mkdir -p "$tdir"\n\
 \n\
 case "${artifact}" in\n\
@@ -58,14 +59,28 @@ case "${artifact}" in\n\
     *.tar.zst)\n\
         tar -f "${artifact}" -C "$tdir" -x --zstd --strip-components=1\n\
         ;;\n\
+    *.gz)\n\
+        cp -a "${artifact}" "$tdir/"\n\
+        cd "$tdir"\n\
+        cat "${artifact}" | gzip -d > "${PKG_NAME}"\n\
+        chmod +x "${PKG_NAME}"\n\
+        ;;\n\
+    *.zst)\n\
+        cp -a "${artifact}" "$tdir/"\n\
+        cd "$tdir"\n\
+        zstd -d "${artifact}" -o "${PKG_NAME}"\n\
+        chmod +x "${PKG_NAME}"\n\
+        ;;\n\
     *)\n\
-        echo ::error "Unrecognized archive: ${archive}"\n\
-        exit 1\n\
+        cp -a "${artifact}" "$tdir/${PKG_NAME}"\n\
+        chmod +x "${tdir}/${PKG_NAME}"\n\
         ;;\n\
 esac\n\
 \n\
-"${tdir}/bin/edgedb-server" --version\n\
-"${tdir}/bin/edgedb-server" --help\n\' >/entrypoint.sh
+export PATH="${tdir}/bin:${tdir}:${PATH}"\n\
+\n\
+"${PKG_NAME}" --help\n\
+"${PKG_NAME}" --version\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

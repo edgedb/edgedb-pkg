@@ -187,6 +187,7 @@ test-published: check-target
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
 		-e PKG_PLATFORM_VERSION=$(DISTRO) \
+		-e PKG_NAME=$(PKG_NAME) \
 		-v $(ROOT):/src \
 		edgedb-pkg/testpublished:$(TARGET) \
 		$(COMMAND)

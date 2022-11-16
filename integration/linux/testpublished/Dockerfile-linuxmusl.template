@@ -3,7 +3,8 @@ FROM ${DOCKER_ARCH}alpine:3.16.2
 RUN apk add --no-cache \
 	bash \
 	wget \
-	tar
+	tar \
+	zstd
 %%WRITE_ENTRYPOINT%%
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

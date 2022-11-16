@@ -36,7 +36,7 @@ if ! [ -e "${artifact}" ]; then
     exit 1
 fi
 
-tdir="edgedb-server-extracted"
+tdir="$(pwd -P)/output"
 mkdir -p "$tdir"
 
 case "${artifact}" in
@@ -46,11 +46,25 @@ case "${artifact}" in
     *.tar.zst)
         tar -f "${artifact}" -C "$tdir" -x --zstd --strip-components=1
         ;;
+    *.gz)
+        cp -a "${artifact}" "$tdir/"
+        cd "$tdir"
+        cat "${artifact}" | gzip -d > "${PKG_NAME}"
+        chmod +x "${PKG_NAME}"
+        ;;
+    *.zst)
+        cp -a "${artifact}" "$tdir/"
+        cd "$tdir"
+        zstd -d "${artifact}" -o "${PKG_NAME}"
+        chmod +x "${PKG_NAME}"
+        ;;
     *)
-        echo ::error "Unrecognized archive: ${archive}"
-        exit 1
+        cp -a "${artifact}" "$tdir/${PKG_NAME}"
+        chmod +x "${tdir}/${PKG_NAME}"
         ;;
 esac
 
-"${tdir}/bin/edgedb-server" --version
-"${tdir}/bin/edgedb-server" --help
+export PATH="${tdir}/bin:${tdir}:${PATH}"
+
+"${PKG_NAME}" --help
+"${PKG_NAME}" --version

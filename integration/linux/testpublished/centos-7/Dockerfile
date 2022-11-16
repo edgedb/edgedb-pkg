@@ -16,13 +16,6 @@ if [ -z "${install_ref}" ]; then\n\
     exit 1\n\
 fi\n\
 \n\
-slot="${PKG_VERSION_SLOT}"\n\
-\n\
-if [ -z "${slot}" ]; then\n\
-    echo ::error "Cannot determine package version slot."\n\
-    exit 1\n\
-fi\n\
-\n\
 repo="edgedb"\n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     repo+="-${PKG_SUBDIST}"\n\
@@ -45,7 +38,20 @@ while [ $try -le 30 ]; do\n\
     sleep 30\n\
 done\n\
 \n\
-edgedb-server-${slot} --help\n\' >/entrypoint.sh
+if [ "${PKG_NAME}" == "edgedb-cli" ]; then\n\
+    edgedb --help\n\
+    edgedb --version\n\
+else\n\
+    slot="${PKG_VERSION_SLOT}"\n\
+\n\
+    if [ -z "${slot}" ]; then\n\
+        echo ::error "Cannot determine package version slot."\n\
+        exit 1\n\
+    fi\n\
+\n\
+    edgedb-server-${slot} --help\n\
+    edgedb-server-${slot} --version\n\
+fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
