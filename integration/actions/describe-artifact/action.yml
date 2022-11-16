@@ -10,6 +10,8 @@ inputs:
 outputs:
   metadata:
     description: 'Build metadata JSON'
+  name:
+    description: 'Package name'
   version:
     description: 'Full version (e.g. 1.0-beta.3+faa334)'
   version-slot:
@@ -21,5 +23,5 @@ outputs:
   install-ref:
     description: 'The installation reference for the compiled artifact'
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'

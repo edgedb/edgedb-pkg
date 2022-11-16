@@ -62,6 +62,7 @@ async function run(): Promise<void> {
     const versionCore = version.split('+', 2)[0]
 
     actions.setOutput('metadata', metadataJSON)
+    actions.setOutput('name', metadata['name'])
     actions.setOutput('version', metadata['version'])
     actions.setOutput('version-slot', versionSlot)
     actions.setOutput('version-core', versionCore)
