@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, ContextManager, cast
+from typing import Any, ContextManager, cast, List, Optional
 from typing_extensions import TypedDict
 
 import apt_pkg
@@ -101,7 +101,7 @@ version_regexp = re.compile(
         (?P<pre_n>[0-9]+)?
     )?
     (?P<dev>
-        [\.]?
+        [\.-]?
         (?P<dev_l>dev)
         [\.]?
         (?P<dev_n>[0-9]+)?
@@ -1113,6 +1113,7 @@ def process_rpm(
         )
 
     for rpm in rpms:
+        print(f"process_rpm: running `rpm --resign {rpm}`")
         subprocess.run(
             [
                 "rpm",
@@ -1126,6 +1127,7 @@ def process_rpm(
 
         shutil.copy(incoming_dir / rpm, local_dist_dir / rpm)
 
+    print(f"process_rpm: running `createrepo_c --update`")
     subprocess.run(
         [
             "createrepo_c",
@@ -1135,8 +1137,10 @@ def process_rpm(
         check=True,
     )
 
+    print("process_rpm: signing repomd.xml")
     gpg_detach_sign(repomd)
 
+    print("process_rpm: loading index")
     existing: dict[tuple[str, str], Package] = {}
     packages: dict[tuple[str, str], Package] = {}
     idxfile = index_dir / f"{idx}.json"
@@ -1147,6 +1151,52 @@ def process_rpm(
                 for pkg in pkglist:
                     index_key = (pkg["basename"], pkg["version_key"])
                     existing[index_key] = Package(**pkg)
+
+    print("process_rpm: fetching changelogs")
+    changelogs = subprocess.run(
+        [
+            "dnf",
+            f"--repofrompath={dist},{local_dist_dir}",
+            f"--repoid={dist}",
+            f"--releasever={dist}",
+            "repoquery",
+            "--changelogs",
+            "-q",
+            "*",
+        ],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    lines_seen = 0
+    lines: List[str] = []
+    package: Optional[str] = None
+    metadatas = {}
+
+    for line in changelogs.stdout.splitlines():
+        m = re.match(r"^Changelog for (?P<nevra>.*)$", line)
+        if m:
+            lines_seen = 0
+            if lines and package:
+                possibly_metadata_json = "\n".join(lines)
+                try:
+                    pkgmetadata = json.loads(possibly_metadata_json)
+                except ValueError:
+                    pkgmetadata = None
+                else:
+                    metadatas[package] = pkgmetadata
+                lines.clear()
+            package = m.group("nevra")
+            assert package
+        elif lines_seen >= 2 and package:
+            if lines_seen == 2:
+                lines.append(line.lstrip(" -"))
+            else:
+                lines.append(line)
+        lines_seen += 1
+
+    slot_index: dict[str, list[tuple[str, str, str]]] = {}
 
     result = subprocess.run(
         [
@@ -1164,42 +1214,16 @@ def process_rpm(
         check=True,
     )
 
-    slot_index: dict[str, list[tuple[str, str, str]]] = {}
-
-    for line in result.stdout.split("\n"):
+    print("process_rpm: updating index")
+    for line in result.stdout.splitlines():
         if not line.strip():
             continue
 
         pkgname, pkgver, release, arch, size = line.split("|")
         nevra = f"{pkgname}-{pkgver}-{release}.{arch}"
+        pkgmetadata = metadatas.get(nevra)
 
         is_metapackage = int(size) == 0
-
-        changelog_proc = subprocess.run(
-            [
-                "dnf",
-                f"--repofrompath={dist},{local_dist_dir}",
-                f"--repoid={dist}",
-                f"--releasever={dist}",
-                "repoquery-nevra",
-                "--changelogs",
-                "-q",
-                nevra,
-            ],
-            text=True,
-            capture_output=True,
-            check=True,
-        )
-
-        changelog_lines = changelog_proc.stdout.split("\n")
-        if len(changelog_lines) < 3:
-            pkgmetadata = None
-        else:
-            pkgmetadata_json = changelog_lines[2][2:]
-            try:
-                pkgmetadata = json.loads(pkgmetadata_json)
-            except ValueError:
-                pkgmetadata = None
 
         m = slot_regexp.match(pkgname)
         if not m:
@@ -1251,6 +1275,7 @@ def process_rpm(
 
     need_db_update = False
     if channel == "nightly":
+        print("process_rpm: collecting garbage")
         comp = functools.cmp_to_key(apt_pkg.version_compare)
         for slot_name, versions in slot_index.items():
             sorted_versions = list(
@@ -1262,7 +1287,7 @@ def process_rpm(
             )
 
             for ver_key, name, ver_nevra in sorted_versions[3:]:
-                print(f"Deleting outdated {ver_nevra}")
+                print(f"process_rpm: deleting outdated {ver_nevra}")
                 packages.pop((name, ver_key))
                 outdated = local_dist_dir / f"{ver_nevra}.rpm"
                 if outdated.exists():
@@ -1270,6 +1295,7 @@ def process_rpm(
                 need_db_update = True
 
     if need_db_update:
+        print(f"process_rpm: running `createrepo_c --update` (again)")
         subprocess.run(
             [
                 "createrepo_c",
