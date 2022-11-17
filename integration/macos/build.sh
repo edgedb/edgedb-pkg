@@ -65,6 +65,6 @@ for old in "${dest}"/*.tar; do
 done
 
 echo python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
-python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
+python3 -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"
 
 ls -al "${dest}"
