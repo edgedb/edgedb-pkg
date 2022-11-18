@@ -23,11 +23,11 @@ curl --proto '=https' --tlsv1.2 -sSf \
     https://packages.edgedb.com/keys/edgedb-keyring.gpg
 echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \
     https://packages.edgedb.com/apt "${dist}" main \
-    > /etc/apt/sources.list.d/edgedb.list
+    > "/etc/apt/sources.list.d/edgedb.list"
 if [ -n "${PKG_SUBDIST}" ]; then
     echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \
         https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST}" \
-        > /etc/apt/sources.list.d/edgedb.list
+        > "/etc/apt/sources.list.d/edgedb-${PKG_SUBDIST}.list"
 fi
 
 try=1
