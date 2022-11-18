@@ -58,7 +58,8 @@ if [ -z "${VIRTUAL_ENV}"]; then
     python3 -m pip install -U pip setuptools wheel
 fi
 
-python3 -m pip install -U git+https://github.com/edgedb/edgedb-pkg
+python3 -m pip install --upgrade --upgrade-strategy=eager \
+    git+https://github.com/edgedb/edgedb-pkg
 
 for old in "${dest}"/*.tar; do
     rm -f "${old}"
