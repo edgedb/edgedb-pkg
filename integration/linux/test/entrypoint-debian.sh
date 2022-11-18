@@ -16,9 +16,19 @@ export DEBIAN_FRONTEND="noninteractive"
 
 apt-get update
 apt-get install -y curl gnupg apt-transport-https jq
-curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -
-echo deb https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST:-main}" \
-    >> /etc/apt/sources.list.d/edgedb.list
+
+mkdir -p /usr/local/share/keyrings
+curl --proto '=https' --tlsv1.2 -sSf \
+    -o /usr/local/share/keyrings/edgedb-keyring.gpg \
+    https://packages.edgedb.com/keys/edgedb-keyring.gpg
+echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \
+    https://packages.edgedb.com/apt "${dist}" main \
+    > /etc/apt/sources.list.d/edgedb.list
+if [ -n "${PKG_SUBDIST}" ]; then
+    echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \
+        https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST}" \
+        > /etc/apt/sources.list.d/edgedb.list
+fi
 
 try=1
 while [ $try -le 30 ]; do
