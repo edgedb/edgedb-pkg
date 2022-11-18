@@ -154,6 +154,7 @@ class EdgeDB(packages.BundledPythonPackage):
         repo.register_package_impl("cryptography", Cryptography)
         repo.register_package_impl("cffi", Cffi)
         repo.register_package_impl("jwcrypto", JWCrypto)
+        repo.register_package_impl("edgedb", EdgeDBPython)
         return repo
 
     @property
@@ -520,4 +521,11 @@ class JWCrypto(packages.PythonPackage):
         entries = super().get_file_no_install_entries(build)
         entries.append("{prefix}/share/doc/jwcrypto")
         entries.append("{prefix}/share/doc/jwcrypto/**")
+        return entries
+
+
+class EdgeDBPython(packages.PythonPackage):
+    def get_file_no_install_entries(self, build: targets.Build) -> list[str]:
+        entries = super().get_file_no_install_entries(build)
+        entries.append("{bindir}/*")
         return entries
