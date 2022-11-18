@@ -259,6 +259,12 @@ class EdgeDB(packages.BundledPythonPackage):
         # for the benefit of faster bootstrap in the package.
         common_script = super().get_build_script(build)
 
+        if build.channel == "stable" and not self.version.is_stable():
+            raise AssertionError(
+                f"cannot build non-stable edgedb-server=={self.version} "
+                f"for the stable channel"
+            )
+
         pg_pkg = build.get_package("postgresql-edgedb")
         icu_pkg = build.get_package("icu")
         openssl_pkg = build.get_package("openssl")
