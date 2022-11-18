@@ -162,7 +162,8 @@ class EdgeDB(packages.BundledPythonPackage):
         if self.version.is_prerelease():
             pre = self.version.pre
             assert pre is not None
-            return f"{self.version.major}-{pre.phase}{pre.number}"
+            pre_phase = packages.semver_pre_tag(self.version)
+            return f"{self.version.major}-{pre_phase}{pre.number}"
         else:
             return f"{self.version.major}"
 
@@ -177,7 +178,8 @@ class EdgeDB(packages.BundledPythonPackage):
             elif self.version.is_prerelease():
                 pre = self.version.pre
                 assert pre is not None
-                return f"{self.version.major}-{pre.phase}{pre.number}"
+                pre_phase = packages.semver_pre_tag(self.version)
+                return f"{self.version.major}-{pre_phase}{pre.number}"
             else:
                 return f"{self.version.major}"
         else:
