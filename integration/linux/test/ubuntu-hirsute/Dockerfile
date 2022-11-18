@@ -38,12 +38,17 @@ if [ -n "${PKG_SUBDIST}" ]; then\n\
 fi\n\
 \n\
 try=1\n\
-while [ $try -le 30 ]; do\n\
-    apt-get update && apt-get install -y edgedb-cli && break || true\n\
+while [ $try -le 3 ]; do\n\
+    apt-get update && apt-get install -y edgedb-cli && s=0 break || s=$?\n\
     try=$(( $try + 1 ))\n\
-    echo "Retrying in 10 seconds (try #${try})"\n\
-    sleep 10\n\
+    echo "Retrying in 10 seconds (try #${try})" >&2\n\
+    sleep 1\n\
 done\n\
+\n\
+if [ $s -ne 0 ]; then\n\
+    echo "could not install edgedb-cli" >&2\n\
+    exit $s\n\
+fi\n\
 \n\
 slot=\n\
 deb=\n\

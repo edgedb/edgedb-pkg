@@ -32,11 +32,16 @@ fi
 
 try=1
 while [ $try -le 30 ]; do
-    apt-get update && apt-get install -y edgedb-cli && break || true
+    apt-get update && apt-get install -y edgedb-cli && s=0 break || s=$?
     try=$(( $try + 1 ))
-    echo "Retrying in 10 seconds (try #${try})"
+    echo "Retrying in 10 seconds (try #${try})" >&2
     sleep 10
 done
+
+if [ $s -ne 0 ]; then
+    echo "could not install edgedb-cli" >&2
+    exit $s
+fi
 
 slot=
 deb=
