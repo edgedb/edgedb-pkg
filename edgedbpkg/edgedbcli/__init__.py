@@ -35,3 +35,12 @@ class EdgeDBCLI(packages.BundledRustPackage):
         metadata = dict(super().get_artifact_metadata(build))
         metadata["publish_link_to_latest"] = True
         return metadata
+
+    def get_build_script(self, build: targets.Build) -> str:
+        if build.channel == "stable" and not self.version.is_stable():
+            raise AssertionError(
+                f"cannot build non-stable edgedb-cli=={self.version} "
+                f"for the stable channel"
+            )
+
+        return super().get_build_script(build)
