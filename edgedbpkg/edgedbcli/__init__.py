@@ -20,10 +20,6 @@ class EdgeDBCLI(packages.BundledRustPackage):
     sources = [
         {
             "url": "git+https://github.com/edgedb/edgedb-cli.git",
-            "extras": {
-                "exclude_submodules": ["tests/shared-client-testcases"],
-                "clone_depth": 0,
-            },
         },
     ]
 
