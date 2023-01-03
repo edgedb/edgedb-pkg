@@ -275,6 +275,8 @@ def remove_old(
         else:
             key = f"{key}-{verslot}"
 
+        key += f"-{metadata['architecture']}"
+
         ver_details = metadata["version_details"]
         version = semver.VersionInfo(
             ver_details["major"],
@@ -286,10 +288,6 @@ def remove_old(
             ),
         )
         index.setdefault(key, {}).setdefault(version, []).append(obj.key)
-
-    import pprint
-
-    pprint.pprint(index)
 
     for _, versions in index.items():
         sorted_versions = sorted(versions, reverse=True)
@@ -338,7 +336,7 @@ def get_metadata(bucket: s3.Bucket, key: str) -> dict[str, Any]:
 
 
 def append_artifact(
-    packages: dict[tuple[str, str], Package],
+    packages: dict[tuple[str, str, str], Package],
     metadata: dict[str, Any],
     installref: InstallRef,
 ) -> None:
@@ -351,7 +349,7 @@ def append_artifact(
     )
     version_details = metadata["version_details"]
 
-    index_key = (metadata["name"], version_key)
+    index_key = (metadata["name"], version_key, metadata["architecture"])
     prev_pkg = packages.get(index_key)
     if prev_pkg is not None:
         for ref in prev_pkg["installrefs"]:
@@ -382,7 +380,7 @@ def make_generic_index(
     pkg_dir: str,
 ) -> None:
     print("make_index", bucket, prefix, pkg_dir)
-    packages: dict[tuple[str, str], Package] = {}
+    packages: dict[tuple[str, str, str], Package] = {}
     for obj in bucket.objects.filter(Prefix=str(prefix / pkg_dir)):
         path = pathlib.Path(obj.key)
         leaf = path.name
@@ -793,6 +791,7 @@ def process_apt(
             IncomingDir: {str(incoming_dir)}
             TempDir: {str(reprepro_tmp)}
             Allow: {dists}
+            Permit: older_version
             """
         )
         f.write(incoming)
@@ -880,8 +879,8 @@ def process_apt(
         + r"\n"
     )
 
-    existing: dict[str, dict[tuple[str, str], Package]] = {}
-    packages: dict[str, dict[tuple[str, str], Package]] = {}
+    existing: dict[str, dict[tuple[str, str, str], Package]] = {}
+    packages: dict[str, dict[tuple[str, str, str], Package]] = {}
 
     for dist in repo_dists:
         result = subprocess.run(
@@ -933,6 +932,7 @@ def process_apt(
                                 index_key = (
                                     pkg["basename"],
                                     pkg["version_key"],
+                                    pkg["architecture"],
                                 )
                                 prev_dist_packages[index_key] = Package(**pkg)
                 existing[index_dist] = prev_dist_packages
@@ -975,7 +975,7 @@ def process_apt(
 
             version_key = format_version_key(parsed_ver, revver)
             ver_metadata = pkgmetadata["version_details"]["metadata"]
-            index_key = (pkgmetadata["name"], version_key)
+            index_key = (pkgmetadata["name"], version_key, arch)
 
             if index_key in prev_dist_packages:
                 dist_packages[index_key] = prev_dist_packages[index_key]
@@ -1141,15 +1141,19 @@ def process_rpm(
     gpg_detach_sign(repomd)
 
     print("process_rpm: loading index")
-    existing: dict[tuple[str, str], Package] = {}
-    packages: dict[tuple[str, str], Package] = {}
+    existing: dict[tuple[str, str, str], Package] = {}
+    packages: dict[tuple[str, str, str], Package] = {}
     idxfile = index_dir / f"{idx}.json"
     if idxfile.exists():
         with open(idxfile, "r") as f:
             data = json.load(f)
             if isinstance(data, dict) and (pkglist := data.get("packages")):
                 for pkg in pkglist:
-                    index_key = (pkg["basename"], pkg["version_key"])
+                    index_key = (
+                        pkg["basename"],
+                        pkg["version_key"],
+                        pkg["architecture"],
+                    )
                     existing[index_key] = Package(**pkg)
 
     print("process_rpm: fetching changelogs")
@@ -1196,7 +1200,7 @@ def process_rpm(
                 lines.append(line)
         lines_seen += 1
 
-    slot_index: dict[str, list[tuple[str, str, str]]] = {}
+    slot_index: dict[str, list[tuple[str, str, str, str]]] = {}
 
     result = subprocess.run(
         [
@@ -1254,11 +1258,17 @@ def process_rpm(
         slot_name = pkgmetadata["name"]
         if pkgmetadata.get("version_slot"):
             slot_name += f".{pkgmetadata['version_slot']}"
+        slot_name += f".{pkgmetadata['architecture']}"
         slot_index.setdefault(slot_name, []).append(
-            (version_key, pkgmetadata["name"], nevra)
+            (
+                version_key,
+                pkgmetadata["name"],
+                nevra,
+                pkgmetadata["architecture"],
+            )
         )
 
-        index_key = (pkgmetadata["name"], version_key)
+        index_key = (pkgmetadata["name"], version_key, arch)
 
         if index_key in existing:
             packages[index_key] = existing[index_key]
@@ -1286,9 +1296,9 @@ def process_rpm(
                 )
             )
 
-            for ver_key, name, ver_nevra in sorted_versions[3:]:
+            for ver_key, name, ver_nevra, arch in sorted_versions[3:]:
                 print(f"process_rpm: deleting outdated {ver_nevra}")
-                packages.pop((name, ver_key))
+                packages.pop((name, ver_key, arch))
                 outdated = local_dist_dir / f"{ver_nevra}.rpm"
                 if outdated.exists():
                     os.unlink(outdated)
