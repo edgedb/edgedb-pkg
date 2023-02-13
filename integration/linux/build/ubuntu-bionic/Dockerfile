@@ -20,12 +20,12 @@ RUN apt-get update \
 		patchelf \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON_VERSION 3.9.15
+ENV PYTHON_VERSION 3.9.16
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION 1.63.0
-ENV NODE_VERSION 16.16.0
+ENV RUST_VERSION 1.67.1
+ENV NODE_VERSION 18.14.0
 ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
@@ -138,7 +138,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 22.3
+ENV PYTHON_PIP_VERSION 23.0
 
 RUN set -ex; \
 	\

@@ -58,10 +58,10 @@ cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.9"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.63.0"
-nodeVersion="16.16.0"
+rustVersion="1.67.1"
+nodeVersion="18.14.0"
 yarnVersion="1.22.19"
-goVersion="1.18.4"
+goVersion="1.20"
 
 generated_warning() {
 	cat <<-EOH
