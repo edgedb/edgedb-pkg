@@ -8,7 +8,6 @@ source = pathlib.Path(__file__).parent.resolve() / "rust"
 
 
 class PyEntryPoint(packages.BundledRustPackage):
-
     title = "pyentrypoint"
     name = "pyentrypoint"
     sources = [

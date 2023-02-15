@@ -11,7 +11,6 @@ from metapkg import targets
 
 
 class OpenSSL(packages.BundledCPackage):
-
     title = "OpenSSL"
     name = "openssl"
     aliases = ["openssl-dev"]

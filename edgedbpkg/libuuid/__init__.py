@@ -5,7 +5,6 @@ from metapkg import targets
 
 
 class LibUUID(packages.BundledCPackage):
-
     title = "uuid"
     name = "uuid"
     aliases = ["uuid-dev"]

@@ -8,7 +8,6 @@ from metapkg import targets
 
 
 class EdgeDBCLI(packages.BundledRustPackage):
-
     title = "EdgeDBCLI"
     name = "edgedb-cli"
     description = "EdgeDB Command Line Tools"
