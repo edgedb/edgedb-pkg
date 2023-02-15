@@ -5,7 +5,6 @@ from metapkg import targets
 
 
 class LibFFI(packages.BundledCPackage):
-
     title = "libffi"
     name = "libffi"
     aliases = ["libffi-dev"]

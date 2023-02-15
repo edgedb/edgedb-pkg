@@ -35,7 +35,6 @@ python.set_python_runtime_dependency(
 
 
 class EdgeDB(packages.BundledPythonPackage):
-
     title = "EdgeDB"
     name = "edgedb-server"
     description = "Next generation graph-relational database"

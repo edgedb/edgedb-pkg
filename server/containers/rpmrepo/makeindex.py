@@ -39,7 +39,6 @@ version_regexp = re.compile(
 
 
 class Version(TypedDict):
-
     major: int
     minor: int
     patch: int

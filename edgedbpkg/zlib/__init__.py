@@ -5,7 +5,6 @@ from metapkg import targets
 
 
 class Zlib(packages.BundledCPackage):
-
     title = "zlib"
     name = "zlib"
     aliases = ["zlib-dev"]

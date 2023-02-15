@@ -18,7 +18,6 @@ from edgedbpkg import zlib
 
 
 class Python(packages.BundledCPackage):
-
     title = "Python"
     name = "python-edgedb"
 

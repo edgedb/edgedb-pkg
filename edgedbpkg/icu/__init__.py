@@ -5,7 +5,6 @@ from metapkg import targets
 
 
 class ICU(packages.BundledCPackage):
-
     title = "ICU"
     name = "icu"
     aliases = ["icu-dev"]
