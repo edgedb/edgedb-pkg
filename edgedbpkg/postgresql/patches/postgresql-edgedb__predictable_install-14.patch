@@ -1,7 +1,7 @@
-From 6eb25cce570d70eafbf1c03b9ce597ed72c6a9de Mon Sep 17 00:00:00 2001
+From da56725992f530ecf3b466bd9620da119167e369 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Mon, 17 Oct 2022 16:32:14 -0700
-Subject: [PATCH] Make sure installation directories are predictable
+Subject: [PATCH 4/5] Make sure installation directories are predictable
 
 Remove attempts by Postgres to strip the trailing `postgresql` part of
 the installation path if any of the prior path parts contain `postgres`
@@ -11,7 +11,7 @@ or `pgsql`.
  1 file changed, 6 insertions(+), 32 deletions(-)
 
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index a999019c6e..5e477bb279 100644
+index 1891d957fa..26e0d63b28 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -82,8 +82,7 @@ vpathsearch = `for f in $(addsuffix /$(1),$(subst :, ,. $(VPATH))); do test -r $
@@ -77,5 +77,5 @@ index a999019c6e..5e477bb279 100644
  htmldir := @htmldir@
  
 -- 
-2.37.3
+2.39.3
 

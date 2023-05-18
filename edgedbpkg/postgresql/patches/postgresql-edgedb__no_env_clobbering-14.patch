@@ -1,7 +1,7 @@
-From cea4be47e135b4de96bd2e77eca0d64b5d1192f1 Mon Sep 17 00:00:00 2001
+From bb1115b2926b3eb24ed8700ce62999e248dcdcc9 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Tue, 16 Aug 2022 22:00:31 -0700
-Subject: [PATCH] Add an envvar escape hatch to disable argv clobbering
+Subject: [PATCH 3/5] Add an envvar escape hatch to disable argv clobbering
 
 The `set_ps_display` business clobbers the environment block on Linux,
 thus butchering all prior `getenv` calls, which includes
@@ -83,5 +83,5 @@ index bad8afb1b2..9455f292eb 100644
  	/* If ps_buffer is a pointer, it might still be null */
  	if (!ps_buffer)
 -- 
-2.35.1
+2.39.3
 
