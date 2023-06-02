@@ -1,0 +1,96 @@
+FROM rockylinux:%%PLACEHOLDER%%
+
+# ensure local python is preferred over distribution python
+ENV PATH /usr/local/bin:$PATH
+
+ENV LANG C.UTF-8
+
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+
+RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+    && source /etc/os-release; \
+     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y) || true)
+
+RUN yum install --enablerepo=devel -y \
+    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
+    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
+	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
+    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
+	perl-File-Compare \
+	systemd-rpm-macros sudo ca-certificates python3-pip git tar xz
+
+
+ENV GPG_KEY %%PLACEHOLDER%%
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+ENV PATH /usr/local/cargo/bin:$PATH
+ENV RUST_VERSION %%PLACEHOLDER%%
+ENV NODE_VERSION %%PLACEHOLDER%%
+ENV YARN_VERSION %%PLACEHOLDER%%
+
+RUN set -ex \
+    && for key in \
+      "${NODE_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
+    && for key in \
+      "${YARN_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
+	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
+		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
+	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
+	\
+	&& dpkgArch="$(rpm --eval '%{_arch}')" \
+	&& case "${dpkgArch##*-}" in \
+		x86_64) ARCH='x64';; \
+		ppc64el) ARCH='ppc64le';; \
+		s390x) ARCH='s390x';; \
+		arm64) ARCH='arm64';; \
+		aarch64) ARCH='arm64';; \
+		armhf) ARCH='armv7l';; \
+		i386) ARCH='x86';; \
+		*) echo "unsupported architecture"; exit 1 ;; \
+	esac \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
+	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
+	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
+	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
+	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& mkdir -p /opt \
+	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
+	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
+	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
+	&& rm -rf "$GNUPGHOME" \
+	\
+	&& python3 --version \
+	&& rustc --version \
+	&& node --version \
+	&& npm --version \
+	&& yarn --version \
+	&& git --version \
+	&& tar --version
+
+# make some useful symlinks that are expected to exist
+RUN cd /usr/local/bin \
+	&& ln -s /usr/bin/python3 python \
+	&& ln -s /usr/bin/python3-config python-config
+
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

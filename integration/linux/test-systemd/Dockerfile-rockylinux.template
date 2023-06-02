@@ -1,0 +1,12 @@
+FROM rockylinux:%%PLACEHOLDER%%
+
+ENV container docker
+
+STOPSIGNAL SIGRTMIN+3
+
+RUN yum install -y systemd jq
+
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

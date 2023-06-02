@@ -20,6 +20,10 @@ name = "Debian Bullseye"
 codename = "bullseye"
 
 [[apt.distributions]]
+name = "Debian Bookworm"
+codename = "bookworm"
+
+[[apt.distributions]]
 name = "Ubuntu 16.04"
 codename = "xenial"
 

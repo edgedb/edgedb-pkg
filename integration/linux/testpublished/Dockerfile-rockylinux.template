@@ -1,0 +1,4 @@
+FROM rockylinux:%%PLACEHOLDER%%
+%%WRITE_ENTRYPOINT%%
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

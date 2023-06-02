@@ -4,23 +4,32 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:focal
+FROM rockylinux:9
 
+# ensure local python is preferred over distribution python
 ENV PATH /usr/local/bin:$PATH
+
 ENV LANG C.UTF-8
 
-RUN apt-get update \
-	&& apt-get dist-upgrade -y \
-	&& apt-get install -y --no-install-recommends \
-		libssl-dev \
-		tk-dev \
-		sudo \
-		bison \
-		flex \
-		patchelf \
-	&& rm -rf /var/lib/apt/lists/*
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-ENV PYTHON_VERSION 3.9.16
+RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+    && source /etc/os-release; \
+     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y) || true)
+
+RUN yum install --enablerepo=devel -y \
+    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
+    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
+	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
+    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
+	perl-File-Compare \
+	systemd-rpm-macros sudo ca-certificates python3-pip git tar xz
+
+
+ENV GPG_KEY %%PLACEHOLDER%%
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -29,18 +38,6 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 
 RUN set -ex \
-	\
-	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-    && for key in \
-      E3FF2839C048B25C084DEBE9B26995E310250568 \
-      a035c8c19219ba821ecea86b64e628f8d684696d \
-    ; do \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
     && for key in \
       4ED778F539E3634C779C87C6D7062848A1AB005C \
       141F07595B7B3FFE74309A937405533BE57C7D57 \
@@ -55,53 +52,26 @@ RUN set -ex \
       108F52B48DB57BB0CC439B2997B01419BD92F80A \
       B9E2F5981AA6E0CD28160D9FF13993A75599653C \
     ; do \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
     && for key in \
       6A010C5166006599AA17F08146C2130DFD2497F5 \
     ; do \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
-	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& rm -rf python.tar.xz.asc \
-	&& mkdir -p /usr/src/python \
-	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
-	&& rm python.tar.xz \
-	\
-	&& cd /usr/src/python \
-	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
-	&& ./configure \
-		--build="$gnuArch" \
-		--enable-loadable-sqlite-extensions \
-		--enable-shared \
-		--with-system-expat \
-		--with-system-ffi \
-		--without-ensurepip \
-	&& make -j "$(nproc)" \
-	&& make install \
-	&& ldconfig \
-	\
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& cd / \
-	&& rm -rf /usr/src/python \
-	\
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	\
-	&& dpkgArch="$(dpkg --print-architecture)" \
+	&& dpkgArch="$(rpm --eval '%{_arch}')" \
 	&& case "${dpkgArch##*-}" in \
-		amd64) ARCH='x64';; \
+		x86_64) ARCH='x64';; \
 		ppc64el) ARCH='ppc64le';; \
 		s390x) ARCH='s390x';; \
 		arm64) ARCH='arm64';; \
+		aarch64) ARCH='arm64';; \
 		armhf) ARCH='armv7l';; \
 		i386) ARCH='x86';; \
 		*) echo "unsupported architecture"; exit 1 ;; \
@@ -128,35 +98,14 @@ RUN set -ex \
 	&& rustc --version \
 	&& node --version \
 	&& npm --version \
-	&& yarn --version
+	&& yarn --version \
+	&& git --version \
+	&& tar --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
-
-# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 23.1.2
-
-RUN set -ex; \
-	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	python get-pip.py \
-		--disable-pip-version-check \
-		"pip==$PYTHON_PIP_VERSION" \
-	; \
-	pip --version; \
-	\
-	find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' +; \
-	rm -f get-pip.py
+	&& ln -s /usr/bin/python3 python \
+	&& ln -s /usr/bin/python3-config python-config
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\

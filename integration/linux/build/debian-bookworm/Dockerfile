@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:focal
+FROM buildpack-deps:bookworm
 
 ENV PATH /usr/local/bin:$PATH
 ENV LANG C.UTF-8

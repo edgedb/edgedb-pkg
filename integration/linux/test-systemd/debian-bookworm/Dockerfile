@@ -4,38 +4,15 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM centos:8
+FROM debian:bullseye
 
 ENV container docker
 
 STOPSIGNAL SIGRTMIN+3
 
-COPY systemd-spec.patch /tmp/
-COPY systemd-patches/* /tmp/systemd-patches/
-
-RUN set -ex \
-	&& yum install -y wget rpm-build redhat-rpm-config yum-utils git \
-	&& mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
-	&& echo '%_topdir /tmp/rpmbuild' > ~/.rpmmacros \
-	&& wget -O systemd.src.rpm "http://vault.centos.org/7.6.1810/os/Source/SPackages/systemd-219-62.el7.src.rpm" \
-	&& yum-builddep -y systemd.src.rpm \
-	&& rpm -i systemd.src.rpm \
-	&& rm -f systemd.src.rpm \
-	&& cd /tmp/rpmbuild/SPECS \
-	&& git apply /tmp/systemd-spec.patch \
-	&& cp /tmp/systemd-patches/*.patch /tmp/rpmbuild/SOURCES \
-	&& rm -rf /tmp/systemd-spec.patch \
-	&& rm -rf /tmp/systemd-patches \
-	&& rpmbuild -ba /tmp/rpmbuild/SPECS/systemd.spec \
-	&& yum history undo -y last || true \
-	&& yum history undo -y last-2 || true \
-	&& rpm -e --nodeps systemd systemd-libs \
-	&& yum install --exclude systemd-libs.i686 -y \
-		/tmp/rpmbuild/RPMS/x86_64/systemd-219-*.el7.x86_64.rpm \
-		/tmp/rpmbuild/RPMS/x86_64/systemd-libs-219-*.el7.x86_64.rpm \
-	&& rm -rf /tmp/rpmbuild \
-	&& rm ~/.rpmmacros \
-	&& yum clean all
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    systemd jq curl gnupg apt-transport-https ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
@@ -52,15 +29,7 @@ function finish() {\n\
 \n\
 trap finish 0\n\
 \n\
-try=1\n\
-while [ $try -le 30 ]; do\n\
-    yum makecache \\\n\
-    && yum install --enablerepo=edgedb,edgedb-nightly --verbose -y edgedb-cli \\\n\
-    && break || true\n\
-    try=$(( $try + 1 ))\n\
-    echo "Retrying in 10 seconds (try #${try})"\n\
-    sleep 10\n\
-done\n\
+export DEBIAN_FRONTEND=noninteractive\n\
 \n\
 dest="artifacts"\n\
 if [ -n "${PKG_PLATFORM}" ]; then\n\
@@ -70,24 +39,38 @@ if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
     dest+="-${PKG_PLATFORM_VERSION}"\n\
 fi\n\
 \n\
+dist="${PKG_PLATFORM_VERSION}"\n\
+\n\
+apt-get update\n\
+curl https://packages.edgedb.com/keys/edgedb.asc | apt-key add -\n\
+echo deb https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST:-main}" \\\n\
+    >> /etc/apt/sources.list.d/edgedb.list\n\
+\n\
+try=1\n\
+while [ $try -le 30 ]; do\n\
+    apt-get update && apt-get install -y edgedb-cli && break || true\n\
+    try=$(( $try + 1 ))\n\
+    echo "Retrying in 10 seconds (try #${try})"\n\
+    sleep 10\n\
+done\n\
 \n\
 slot=\n\
-rpm=\n\
+deb=\n\
 for pack in ${dest}/*.tar; do\n\
     if [ -e "${pack}" ]; then\n\
         slot=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
                | jq -r ".version_slot")\n\
-        rpm=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
               | jq -r ".contents | keys[]" \\\n\
-              | grep "^edgedb-server.*\\.rpm$")\n\
-        if [ -n "${rpm}" ]; then\n\
+              | grep "^edgedb-server.*\\.deb$")\n\
+        if [ -n "${deb}" ]; then\n\
             break\n\
         fi\n\
     fi\n\
 done\n\
 \n\
-if [ -z "${rpm}" ]; then\n\
-    echo "${dest} does not seem to contain an edgedb-server .rpm" >&2\n\
+if [ -z "${deb}" ]; then\n\
+    echo "${dest} does not seem to contain an edgedb-server .deb" >&2\n\
     exit 1\n\
 fi\n\
 \n\
@@ -97,21 +80,23 @@ if [ -z "${slot}" ]; then\n\
 fi\n\
 \n\
 tmpdir=$(mktemp -d)\n\
-tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"\n\
-yum install -y "${tmpdir}/${rpm}"\n\
+tar -x -C "${tmpdir}" -f "${pack}" "${deb}"\n\
+apt-get install -y "${tmpdir}/${deb}"\n\
 rm -rf "${tmpdir}"\n\
 \n\
 systemctl enable --now edgedb-server-${slot} \\\n\
     || (journalctl -u edgedb-server-${slot} && exit 1)\n\
 \n\
-[[ "$(edgedb --admin -u edgedb query '\''select 1 + 3'\'')" == *4* ]] || exit 1\n\
+ls -al /var/run/edgedb/\n\
+\n\
+python="/usr/lib/x86_64-linux-gnu/edgedb-server-${slot}/bin/python3"\n\
+[[ "$(edgedb --admin -P5656 query '\''SELECT 1 + 3;'\'')" == *4* ]] || exit 1\n\
 echo "Success!"\n\
 \n\
 EOF\n\
 \n\
 chmod +x /usr/local/bin/script.sh\n\
 \n\
-mkdir -p /etc/systemd/system\n\
 cat >/etc/systemd/system/script.service <<EOF\n\
 [Unit]\n\
 Description=Main Script\n\

@@ -2,16 +2,16 @@
 
 
 SUPPORTED_TARGETS = \
-	debian-stretch \
 	debian-buster \
 	debian-bullseye \
-	ubuntu-bionic \
+	debian-bookworm \
 	ubuntu-xenial \
 	ubuntu-focal \
 	ubuntu-hirsute \
 	ubuntu-jammy \
 	centos-7 \
 	centos-8 \
+	rockylinux-9 \
 	fedora-29 \
 	linux-x86_64 \
 	linuxmusl-x86_64 \

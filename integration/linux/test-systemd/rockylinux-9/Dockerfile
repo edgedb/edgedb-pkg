@@ -4,38 +4,13 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM centos:8
+FROM rockylinux:9
 
 ENV container docker
 
 STOPSIGNAL SIGRTMIN+3
 
-COPY systemd-spec.patch /tmp/
-COPY systemd-patches/* /tmp/systemd-patches/
-
-RUN set -ex \
-	&& yum install -y wget rpm-build redhat-rpm-config yum-utils git \
-	&& mkdir -p /tmp/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
-	&& echo '%_topdir /tmp/rpmbuild' > ~/.rpmmacros \
-	&& wget -O systemd.src.rpm "http://vault.centos.org/7.6.1810/os/Source/SPackages/systemd-219-62.el7.src.rpm" \
-	&& yum-builddep -y systemd.src.rpm \
-	&& rpm -i systemd.src.rpm \
-	&& rm -f systemd.src.rpm \
-	&& cd /tmp/rpmbuild/SPECS \
-	&& git apply /tmp/systemd-spec.patch \
-	&& cp /tmp/systemd-patches/*.patch /tmp/rpmbuild/SOURCES \
-	&& rm -rf /tmp/systemd-spec.patch \
-	&& rm -rf /tmp/systemd-patches \
-	&& rpmbuild -ba /tmp/rpmbuild/SPECS/systemd.spec \
-	&& yum history undo -y last || true \
-	&& yum history undo -y last-2 || true \
-	&& rpm -e --nodeps systemd systemd-libs \
-	&& yum install --exclude systemd-libs.i686 -y \
-		/tmp/rpmbuild/RPMS/x86_64/systemd-219-*.el7.x86_64.rpm \
-		/tmp/rpmbuild/RPMS/x86_64/systemd-libs-219-*.el7.x86_64.rpm \
-	&& rm -rf /tmp/rpmbuild \
-	&& rm ~/.rpmmacros \
-	&& yum clean all
+RUN yum install -y systemd jq
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
