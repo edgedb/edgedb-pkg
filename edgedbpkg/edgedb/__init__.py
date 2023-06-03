@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 python.set_python_runtime_dependency(
     poetry_dep.Dependency(
         name="python-edgedb",
-        constraint=">=3.10.0,<=3.11.0",
+        constraint=">=3.10.0,<3.12.0",
         allows_prereleases=True,
     )
 )
@@ -55,9 +55,20 @@ class EdgeDB(packages.BundledPythonPackage):
         },
     ]
 
-    artifact_requirements = [
-        "postgresql-edgedb (>= 13.0)",
-    ]
+    artifact_requirements = {
+        "2.*": [
+            "postgresql-edgedb (~= 14.0)",
+            "python-edgedb (~= 3.10.0)",
+        ],
+        "3.*": [
+            "postgresql-edgedb (~= 14.0)",
+            "python-edgedb (~= 3.11.0)",
+        ],
+        "4.*": [
+            "postgresql-edgedb (~= 15.0)",
+            "python-edgedb (~= 3.11.0)",
+        ],
+    }
 
     artifact_build_requirements = [
         "pyentrypoint (>=1.0.0)",
@@ -65,7 +76,9 @@ class EdgeDB(packages.BundledPythonPackage):
 
     bundle_deps = [
         postgresql.PostgreSQL(version="14.8"),
+        postgresql.PostgreSQL(version="15.3"),
         python_bundle.Python(version="3.10.11"),
+        python_bundle.Python(version="3.11.3"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
     ]
 

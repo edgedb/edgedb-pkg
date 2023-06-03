@@ -1,0 +1,57 @@
+From 8a835c413d827262b6a575008a90ec7cf45df101 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Tue, 10 Aug 2021 19:51:36 -0700
+Subject: [PATCH 3/5] Stop eagerly checking for OpenSSL rpath directory
+ existence
+
+---
+ configure    | 11 ++---------
+ configure.ac | 10 +++-------
+ 2 files changed, 5 insertions(+), 16 deletions(-)
+
+diff --git a/configure b/configure
+index c26d6a0079..76fec6adbf 100755
+--- a/configure
++++ b/configure
+@@ -25013,15 +25013,8 @@ esac
+   no) :
+     OPENSSL_RPATH= ;; #(
+   *) :
+-    if test -d "$with_openssl_rpath"; then :
+-
+-          OPENSSL_RPATH="$with_openssl_rpath"
+-          OPENSSL_LDFLAGS_RPATH="${rpath_arg}$with_openssl_rpath"
+-
+-else
+-  as_fn_error $? "--with-openssl-rpath \"$with_openssl_rpath\" is not a directory" "$LINENO" 5
+-fi
+-
++    OPENSSL_RPATH="$with_openssl_rpath"
++    OPENSSL_LDFLAGS_RPATH="${rpath_arg}$with_openssl_rpath"
+  ;;
+ esac
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $OPENSSL_RPATH" >&5
+diff --git a/configure.ac b/configure.ac
+index 64bc74f484..0b369958d1 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -6875,13 +6875,9 @@ AS_CASE($with_openssl_rpath,
+       done
+     ],
+     [no], [OPENSSL_RPATH=],
+-    [AS_IF(
+-        [test -d "$with_openssl_rpath"],
+-        [
+-          OPENSSL_RPATH="$with_openssl_rpath"
+-          OPENSSL_LDFLAGS_RPATH="${rpath_arg}$with_openssl_rpath"
+-        ],
+-        AC_MSG_ERROR([--with-openssl-rpath "$with_openssl_rpath" is not a directory]))
++    [
++      OPENSSL_RPATH="$with_openssl_rpath"
++      OPENSSL_LDFLAGS_RPATH="${rpath_arg}$with_openssl_rpath"
+     ]
+ )
+ AC_MSG_RESULT($OPENSSL_RPATH)
+-- 
+2.39.3
+

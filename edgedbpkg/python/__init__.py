@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 import platform
+import re
 import textwrap
 
 from poetry.core.semver import version as poetry_version
@@ -56,22 +57,20 @@ class Python(packages.BundledCPackage):
         }
 
     def get_patches(self) -> dict[str, list[tuple[str, str]]]:
-        if (self.version.major, self.version.minor) >= (3, 10):
-            patches = dict(super().get_patches())
-            for pkg, pkg_patches in patches.items():
-                if pkg == self.name:
-                    for i, (pn, _) in enumerate(list(pkg_patches)):
-                        if pn == "openssl-rpath":
-                            pkg_patches.pop(i)
-                            break
-        else:
-            patches = dict(super().get_patches())
-            for pkg, pkg_patches in patches.items():
-                if pkg == self.name:
-                    for i, (pn, _) in enumerate(list(pkg_patches)):
-                        if pn == "openssl-rpath-310":
-                            pkg_patches.pop(i)
-                            break
+        v = f"{self.version.major}{self.version.minor}"
+
+        patches = dict(super().get_patches())
+        for pkg, pkg_patches in patches.items():
+            if pkg == self.name:
+                filtered = []
+                for i, (pn, pfile) in enumerate(list(pkg_patches)):
+                    m = re.match(r"^.*-(\d+)$", pn)
+                    if m and m.group(1) != v:
+                        pass
+                    else:
+                        filtered.append((pn, pfile))
+                patches[pkg] = filtered
+                break
 
         return patches
 

@@ -1,0 +1,87 @@
+From c1b5c305fe46593a78cc0a75758aebf68aecd2e1 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Tue, 16 Aug 2022 22:00:31 -0700
+Subject: [PATCH 3/5] Add an envvar escape hatch to disable argv clobbering
+
+The `set_ps_display` business clobbers the environment block on Linux,
+thus butchering all prior `getenv` calls, which includes
+`getenv(LD_LIBRARY_PATH)` done by `ld-musl.so`.  Musl is at fault too,
+because it really ought to `strdup` the entry, but until that's fixed,
+setting `PG_DISABLE_PS_DISPLAY=1` is the fix.
+---
+ src/backend/utils/misc/ps_status.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/src/backend/utils/misc/ps_status.c b/src/backend/utils/misc/ps_status.c
+index ec314c03f5..bb88570af0 100644
+--- a/src/backend/utils/misc/ps_status.c
++++ b/src/backend/utils/misc/ps_status.c
+@@ -14,6 +14,7 @@
+ 
+ #include "postgres.h"
+ 
++#include <stdlib.h>
+ #include <unistd.h>
+ #ifdef HAVE_SYS_PSTAT_H
+ #include <sys/pstat.h>			/* for HP-UX */
+@@ -34,6 +35,7 @@
+ 
+ extern char **environ;
+ bool		update_process_title = true;
++bool		disable_ps_display = false;
+ 
+ 
+ /*
+@@ -130,9 +132,16 @@ static char **save_argv;
+ char	  **
+ save_ps_display_args(int argc, char **argv)
+ {
++	char *disable_env = getenv("PG_DISABLE_PS_DISPLAY");
++
+ 	save_argc = argc;
+ 	save_argv = argv;
+ 
++	disable_ps_display = disable_env != NULL && *disable_env != '\0';
++
++	if (disable_ps_display)
++		return argv;
++
+ #if defined(PS_USE_CLOBBER_ARGV)
+ 
+ 	/*
+@@ -257,6 +266,9 @@ save_ps_display_args(int argc, char **argv)
+ void
+ init_ps_display(const char *fixed_part)
+ {
++	if (disable_ps_display)
++		return;
++
+ #ifndef PS_USE_NONE
+ 	bool		save_update_process_title;
+ #endif
+@@ -348,6 +360,9 @@ init_ps_display(const char *fixed_part)
+ void
+ set_ps_display(const char *activity)
+ {
++	if (disable_ps_display)
++		return;
++
+ #ifndef PS_USE_NONE
+ 	/* update_process_title=off disables updates */
+ 	if (!update_process_title)
+@@ -429,6 +444,12 @@ set_ps_display(const char *activity)
+ const char *
+ get_ps_display(int *displen)
+ {
++	if (disable_ps_display)
++	{
++		*displen = 0;
++		return "";
++	}
++
+ #ifdef PS_USE_CLOBBER_ARGV
+ 	/* If ps_buffer is a pointer, it might still be null */
+ 	if (!ps_buffer)
+-- 
+2.39.3
+

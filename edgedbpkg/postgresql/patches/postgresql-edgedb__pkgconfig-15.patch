@@ -1,0 +1,1167 @@
+From 79f5a1c98674eb5f715a9264ea01e7b2402b5ee9 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Mon, 11 Feb 2019 20:28:00 -0500
+Subject: [PATCH 5/5] Use pkg-config for libuuid, openssl and zlib
+
+---
+ configure                        | 650 +++++++++++++++++++++++++++++--
+ configure.ac                     | 109 +++++-
+ contrib/pgcrypto/Makefile        |   4 +
+ contrib/sslinfo/Makefile         |   2 +
+ src/Makefile.global.in           |   9 +-
+ src/backend/Makefile             |   4 +-
+ src/backend/libpq/Makefile       |   1 +
+ src/bin/pg_verifybackup/Makefile |   4 +
+ src/bin/pgbench/Makefile         |   3 +
+ src/common/Makefile              |   1 +
+ src/include/pg_config.h.in       |   2 +-
+ src/interfaces/libpq/Makefile    |   1 +
+ 12 files changed, 755 insertions(+), 35 deletions(-)
+
+diff --git a/configure b/configure
+index 08c30d9931..9da42eca0b 100755
+--- a/configure
++++ b/configure
+@@ -653,9 +653,14 @@ LIBOBJS
+ ZSTD
+ LZ4
+ UUID_LIBS
++UUID_CFLAGS
+ LDAP_LIBS_BE
+ LDAP_LIBS_FE
+ with_ssl
++OPENSSL_LIBS
++OPENSSL_CFLAGS
++ZLIB_LIBS
++ZLIB_CFLAGS
+ PTHREAD_CFLAGS
+ PTHREAD_LIBS
+ PTHREAD_CC
+@@ -910,6 +915,12 @@ LDFLAGS_EX
+ LDFLAGS_SL
+ PERL
+ PYTHON
++ZLIB_CFLAGS
++ZLIB_LIBS
++OPENSSL_CFLAGS
++OPENSSL_LIBS
++UUID_CFLAGS
++UUID_LIBS
+ MSGFMT
+ TCLSH'
+ 
+@@ -1621,6 +1632,14 @@ Some influential environment variables:
+   LDFLAGS_SL  extra linker flags for linking shared libraries only
+   PERL        Perl program
+   PYTHON      Python program
++  ZLIB_CFLAGS C compiler flags for ZLIB, overriding pkg-config
++  ZLIB_LIBS   linker flags for ZLIB, overriding pkg-config
++  OPENSSL_CFLAGS
++              C compiler flags for OPENSSL, overriding pkg-config
++  OPENSSL_LIBS
++              linker flags for OPENSSL, overriding pkg-config
++  UUID_CFLAGS C compiler flags for UUID, overriding pkg-config
++  UUID_LIBS   linker flags for UUID, overriding pkg-config
+   MSGFMT      msgfmt program for NLS
+   TCLSH       Tcl interpreter program (tclsh)
+ 
+@@ -12806,7 +12825,74 @@ Use --without-readline to disable readline support." "$LINENO" 5
+ fi
+ 
+ if test "$with_zlib" = yes; then
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inflate in -lz" >&5
++  have_zlib=missing
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for zlib" >&5
++$as_echo_n "checking for zlib... " >&6; }
++
++if test -n "$ZLIB_CFLAGS"; then
++    pkg_cv_ZLIB_CFLAGS="$ZLIB_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_ZLIB_CFLAGS=`$PKG_CONFIG --cflags "zlib" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$ZLIB_LIBS"; then
++    pkg_cv_ZLIB_LIBS="$ZLIB_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"zlib\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "zlib") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_ZLIB_LIBS=`$PKG_CONFIG --libs "zlib" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "zlib" 2>&1`
++        else
++	        ZLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "zlib" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$ZLIB_PKG_ERRORS" >&5
++
++
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $ZLIB_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inflate in -lz" >&5
+ $as_echo_n "checking for inflate in -lz... " >&6; }
+ if ${ac_cv_lib_z_inflate+:} false; then :
+   $as_echo_n "(cached) " >&6
+@@ -12843,19 +12929,105 @@ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
+ $as_echo "$ac_cv_lib_z_inflate" >&6; }
+ if test "x$ac_cv_lib_z_inflate" = xyes; then :
+-  cat >>confdefs.h <<_ACEOF
+-#define HAVE_LIBZ 1
++
++        ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
++        ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
++        have_zlib=yes
++
++fi
++
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $ZLIB_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inflate in -lz" >&5
++$as_echo_n "checking for inflate in -lz... " >&6; }
++if ${ac_cv_lib_z_inflate+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lz  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char inflate ();
++int
++main ()
++{
++return inflate ();
++  ;
++  return 0;
++}
+ _ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_z_inflate=yes
++else
++  ac_cv_lib_z_inflate=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
++$as_echo "$ac_cv_lib_z_inflate" >&6; }
++if test "x$ac_cv_lib_z_inflate" = xyes; then :
++
++        ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
++        ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
++        have_zlib=yes
++
++fi
++
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
++else
++	ZLIB_CFLAGS=$pkg_cv_ZLIB_CFLAGS
++	ZLIB_LIBS=$pkg_cv_ZLIB_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++      have_zlib=yes
++
++fi
++
++  if test "x$have_zlib" = xyes; then :
++
++
++$as_echo "#define HAVE_LIBZ 1" >>confdefs.h
+ 
+-  LIBS="-lz $LIBS"
++    LIBS="-lz $LIBS"
++    LDFLAGS="$LDFLAGS $ZLIB_LIBS"
+ 
+ else
+-  as_fn_error $? "zlib library not found
++
++    as_fn_error $? "zlib library not found
+ If you have zlib already installed, see config.log for details on the
+ failure.  It is possible the compiler isn't looking in the proper directory.
+ Use --without-zlib to disable zlib support." "$LINENO" 5
+-fi
+ 
++fi
+ fi
+ 
+ if test "$enable_spinlocks" = yes; then
+@@ -13003,10 +13175,108 @@ if test "$with_openssl" = yes ; then
+ fi
+ 
+ if test "$with_ssl" = openssl ; then
+-    # Minimum required OpenSSL version is 1.0.1
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for openssl" >&5
++$as_echo_n "checking for openssl... " >&6; }
++
++if test -n "$OPENSSL_CFLAGS"; then
++    pkg_cv_OPENSSL_CFLAGS="$OPENSSL_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"openssl\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "openssl") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_OPENSSL_CFLAGS=`$PKG_CONFIG --cflags "openssl" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$OPENSSL_LIBS"; then
++    pkg_cv_OPENSSL_LIBS="$OPENSSL_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"openssl\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "openssl") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_OPENSSL_LIBS=`$PKG_CONFIG --libs "openssl" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        OPENSSL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "openssl" 2>&1`
++        else
++	        OPENSSL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "openssl" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$OPENSSL_PKG_ERRORS" >&5
++
++	as_fn_error $? "Package requirements (openssl) were not met:
++
++$OPENSSL_PKG_ERRORS
++
++Consider adjusting the PKG_CONFIG_PATH environment variable if you
++installed software in a non-standard prefix.
++
++Alternatively, you may set the environment variables OPENSSL_CFLAGS
++and OPENSSL_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details." "$LINENO" 5
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
++is in your PATH or set the PKG_CONFIG environment variable to the full
++path to pkg-config.
++
++Alternatively, you may set the environment variables OPENSSL_CFLAGS
++and OPENSSL_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++
++To get pkg-config, see <http://pkg-config.freedesktop.org/>.
++See \`config.log' for more details" "$LINENO" 5; }
++else
++	OPENSSL_CFLAGS=$pkg_cv_OPENSSL_CFLAGS
++	OPENSSL_LIBS=$pkg_cv_OPENSSL_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++fi
++  # Minimum required OpenSSL version is 1.0.1
+ 
+ $as_echo "#define OPENSSL_API_COMPAT 0x10001000L" >>confdefs.h
+ 
++
++  pgac_save_CPPFLAGS=$CPPFLAGS
++  CPPFLAGS="$CFLAGS $OPENSSL_CFLAGS $ZLIB_CFLAGS"
++  pgac_save_LDFLAGS=$LDFLAGS
++  LDFLAGS="$LDFLAGS $OPENSSL_LIBS $ZLIB_LIBS"
++  pgac_save_LIBS=$LIBS
++
+   if test "$PORTNAME" != "win32"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
+ $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
+@@ -13278,6 +13548,10 @@ done
+ 
+ $as_echo "#define USE_OPENSSL 1" >>confdefs.h
+ 
++
++  CPPFLAGS=$pgac_save_CPPFLAGS
++  LDFLAGS=$pgac_save_LDFLAGS
++  LIBS=$pgac_save_LIBS
+ elif test "$with_ssl" != no ; then
+   as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
+ fi
+@@ -13776,14 +14050,85 @@ else
+ fi
+ 
+ elif test "$with_uuid" = e2fs ; then
+-  # On macOS, the UUID functions are in libc
+-  ac_fn_c_check_func "$LINENO" "uuid_generate" "ac_cv_func_uuid_generate"
+-if test "x$ac_cv_func_uuid_generate" = xyes; then :
+-  UUID_LIBS=""
++  have_uuid=missing
++
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid >= 2.20" >&5
++$as_echo_n "checking for uuid >= 2.20... " >&6; }
++
++if test -n "$UUID_CFLAGS"; then
++    pkg_cv_UUID_CFLAGS="$UUID_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_CFLAGS=`$PKG_CONFIG --cflags "uuid >= 2.20" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$UUID_LIBS"; then
++    pkg_cv_UUID_LIBS="$UUID_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"uuid >= 2.20\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "uuid >= 2.20") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UUID_LIBS=`$PKG_CONFIG --libs "uuid >= 2.20" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
+ else
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate in -luuid" >&5
+-$as_echo_n "checking for uuid_generate in -luuid... " >&6; }
+-if ${ac_cv_lib_uuid_uuid_generate+:} false; then :
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
++        else
++	        UUID_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "uuid >= 2.20" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$UUID_PKG_ERRORS" >&5
++
++
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
+   $as_echo_n "(cached) " >&6
+ else
+   ac_check_lib_save_LIBS=$LIBS
+@@ -13797,34 +14142,279 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ #ifdef __cplusplus
+ extern "C"
+ #endif
+-char uuid_generate ();
++char uuid_generate_time ();
+ int
+ main ()
+ {
+-return uuid_generate ();
++return uuid_generate_time ();
+   ;
+   return 0;
+ }
+ _ACEOF
+ if ac_fn_c_try_link "$LINENO"; then :
+-  ac_cv_lib_uuid_uuid_generate=yes
++  ac_cv_lib_uuid_uuid_generate_time=yes
+ else
+-  ac_cv_lib_uuid_uuid_generate=no
++  ac_cv_lib_uuid_uuid_generate_time=no
+ fi
+ rm -f core conftest.err conftest.$ac_objext \
+     conftest$ac_exeext conftest.$ac_ext
+ LIBS=$ac_check_lib_save_LIBS
+ fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate" >&5
+-$as_echo "$ac_cv_lib_uuid_uuid_generate" >&6; }
+-if test "x$ac_cv_lib_uuid_uuid_generate" = xyes; then :
+-  UUID_LIBS="-luuid"
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
++fi
++
++
+ else
+-  as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++
++        for ac_header in uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid.h" "ac_cv_header_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_H 1
++_ACEOF
++
++          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time ();
++int
++main ()
++{
++return uuid_generate_time ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
+ fi
+ 
++
++fi
++
++done
++
++
++fi
++
++done
++
++
++      if test "x$have_uuid" = xyes; then :
++
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++
+ fi
+ 
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
++elif test $pkg_failed = untried; then
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time ();
++int
++main ()
++{
++return uuid_generate_time ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
++fi
++
++
++else
++
++        for ac_header in uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid.h" "ac_cv_header_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_H 1
++_ACEOF
++
++          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
++$as_echo_n "checking for uuid_generate_time in -luuid... " >&6; }
++if ${ac_cv_lib_uuid_uuid_generate_time+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-luuid  $LIBS"
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char uuid_generate_time ();
++int
++main ()
++{
++return uuid_generate_time ();
++  ;
++  return 0;
++}
++_ACEOF
++if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_lib_uuid_uuid_generate_time=yes
++else
++  ac_cv_lib_uuid_uuid_generate_time=no
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_uuid_uuid_generate_time" >&5
++$as_echo "$ac_cv_lib_uuid_uuid_generate_time" >&6; }
++if test "x$ac_cv_lib_uuid_uuid_generate_time" = xyes; then :
++  have_uuid=yes
++fi
++
++
++fi
++
++done
++
++
++fi
++
++done
++
++
++      if test "x$have_uuid" = xyes; then :
++
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++
++fi
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++
++
++else
++	UUID_CFLAGS=$pkg_cv_UUID_CFLAGS
++	UUID_LIBS=$pkg_cv_UUID_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++      have_uuid=yes
++
++fi
++
++  # On macOS, the UUID functions are in libc
++  if test "x$have_uuid" = xmissing; then :
++
++    for ac_header in uuid/uuid.h
++do :
++  ac_fn_c_check_header_mongrel "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_uuid_h" = xyes; then :
++  cat >>confdefs.h <<_ACEOF
++#define HAVE_UUID_UUID_H 1
++_ACEOF
++
++      ac_fn_c_check_func "$LINENO" "uuid_generate_time" "ac_cv_func_uuid_generate_time"
++if test "x$ac_cv_func_uuid_generate_time" = xyes; then :
++
++        have_uuid=yes
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-""}
++
++fi
++
++
++fi
++
++done
++
++
++fi
++
++  if test "x$have_uuid" = xmissing; then :
++
++    as_fn_error $? "library 'uuid' is required for E2FS UUID" "$LINENO" 5
++
++fi
+ elif test "$with_uuid" = ossp ; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
+ $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
+@@ -14234,6 +14824,8 @@ done
+ fi
+ 
+ if test "$with_zlib" = yes; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
+ if test "x$ac_cv_header_zlib_h" = xyes; then :
+ 
+@@ -14245,6 +14837,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
+ fi
+ 
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test -z "$LZ4"; then
+@@ -14408,6 +15001,8 @@ done
+ fi
+ 
+ if test "$with_ssl" = openssl ; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $OPENSSL_CFLAGS"
+   ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
+ if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
+ 
+@@ -14424,6 +15019,7 @@ else
+ fi
+ 
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_pam" = yes ; then
+@@ -14589,6 +15185,9 @@ fi
+ 
+ fi
+ 
++pgac_save_CPPFLAGS=$CPPFLAGS
++CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++
+ # for contrib/uuid-ossp
+ if test "$with_uuid" = bsd ; then
+   for ac_header in uuid.h
+@@ -14723,6 +15322,8 @@ done
+ 
+ fi
+ 
++CPPFLAGS=$pgac_save_CPPFLAGS
++
+ if test "$PORTNAME" = "win32" ; then
+    for ac_header in crtdefs.h
+ do :
+@@ -15628,6 +16229,8 @@ if test "$with_zlib" = yes; then
+   # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
+   # did not).  While we could work around the lack of z_streamp, it
+   # seems unwise to encourage people to use such old zlib versions...
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   ac_fn_c_check_type "$LINENO" "z_streamp" "ac_cv_type_z_streamp" "#include <zlib.h>
+ "
+ if test "x$ac_cv_type_z_streamp" = xyes; then :
+@@ -15637,6 +16240,7 @@ else
+ Use --without-zlib to disable zlib support." "$LINENO" 5
+ fi
+ 
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ case $host_cpu in
+diff --git a/configure.ac b/configure.ac
+index c1202d1b86..a8b1ef108e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1284,11 +1284,39 @@ Use --without-readline to disable readline support.])
+ fi
+ 
+ if test "$with_zlib" = yes; then
+-  AC_CHECK_LIB(z, inflate, [],
+-               [AC_MSG_ERROR([zlib library not found
++  have_zlib=missing
++  PKG_CHECK_MODULES(
++    [ZLIB], [zlib], [
++      have_zlib=yes
++    ], [
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $ZLIB_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      AC_CHECK_LIB(z, inflate, [
++        ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
++        ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
++        have_zlib=yes
++      ])
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++    ]
++  )
++
++  AS_VAR_IF([have_zlib], [yes], [
++    AC_DEFINE(HAVE_LIBZ, 1, [Define to 1 if you have zlib.])
++    LIBS="-lz $LIBS"
++    LDFLAGS="$LDFLAGS $ZLIB_LIBS"
++  ], [
++    AC_MSG_ERROR([zlib library not found
+ If you have zlib already installed, see config.log for details on the
+ failure.  It is possible the compiler isn't looking in the proper directory.
+-Use --without-zlib to disable zlib support.])])
++Use --without-zlib to disable zlib support.])
++  ])
+ fi
+ 
+ if test "$enable_spinlocks" = yes; then
+@@ -1330,9 +1358,17 @@ fi
+ 
+ if test "$with_ssl" = openssl ; then
+   dnl Order matters!
++  PKG_CHECK_MODULES(OPENSSL, openssl)
+   # Minimum required OpenSSL version is 1.0.1
+   AC_DEFINE(OPENSSL_API_COMPAT, [0x10001000L],
+             [Define to the OpenSSL API version in use. This avoids deprecation warnings from newer OpenSSL versions.])
++
++  pgac_save_CPPFLAGS=$CPPFLAGS
++  CPPFLAGS="$CFLAGS $OPENSSL_CFLAGS $ZLIB_CFLAGS"
++  pgac_save_LDFLAGS=$LDFLAGS
++  LDFLAGS="$LDFLAGS $OPENSSL_LIBS $ZLIB_LIBS"
++  pgac_save_LIBS=$LIBS
++
+   if test "$PORTNAME" != "win32"; then
+      AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
+      AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
+@@ -1355,6 +1391,10 @@ if test "$with_ssl" = openssl ; then
+   # Function introduced in OpenSSL 1.1.1.
+   AC_CHECK_FUNCS([X509_get_signature_info])
+   AC_DEFINE([USE_OPENSSL], 1, [Define to 1 to build with OpenSSL support. (--with-ssl=openssl)])
++
++  CPPFLAGS=$pgac_save_CPPFLAGS
++  LDFLAGS=$pgac_save_LDFLAGS
++  LIBS=$pgac_save_LIBS
+ elif test "$with_ssl" != no ; then
+   AC_MSG_ERROR([--with-ssl must specify openssl])
+ fi
+@@ -1432,12 +1472,51 @@ if test "$with_uuid" = bsd ; then
+     [UUID_LIBS=""],
+     [AC_MSG_ERROR([BSD UUID functions are not present])])
+ elif test "$with_uuid" = e2fs ; then
++  have_uuid=missing
++
++  PKG_CHECK_MODULES(
++    [UUID], [uuid >= 2.20], [
++      have_uuid=yes
++    ], [
++      pgac_save_CPPFLAGS=$CPPFLAGS
++      CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++      pgac_save_LDFLAGS=$LDFLAGS
++      LDFLAGS="$LDFLAGS $UUID_LIBS"
++      pgac_save_LIBS=$LIBS
++
++      AC_CHECK_HEADERS([uuid/uuid.h], [
++        AC_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++      ], [
++        AC_CHECK_HEADERS([uuid.h], [
++          AC_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++        ])
++      ])
++
++      AS_VAR_IF([have_uuid], [yes], [
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-"-luuid"}
++      ])
++
++      CPPFLAGS=$pgac_save_CPPFLAGS
++      LDFLAGS=$pgac_save_LDFLAGS
++      LIBS=$pgac_save_LIBS
++    ]
++  )
++
+   # On macOS, the UUID functions are in libc
+-  AC_CHECK_FUNC(uuid_generate,
+-    [UUID_LIBS=""],
+-    [AC_CHECK_LIB(uuid, uuid_generate,
+-      [UUID_LIBS="-luuid"],
+-      [AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])])])
++  AS_VAR_IF([have_uuid], [missing], [
++    AC_CHECK_HEADERS([uuid/uuid.h], [
++      AC_CHECK_FUNC([uuid_generate_time], [
++        have_uuid=yes
++        UUID_CFLAGS=${UUID_CFLAGS-""}
++        UUID_LIBS=${UUID_LIBS-""}
++      ])
++    ])
++  ])
++
++  AS_VAR_IF([have_uuid], [missing], [
++    AC_MSG_ERROR([library 'uuid' is required for E2FS UUID])
++  ])
+ elif test "$with_uuid" = ossp ; then
+   AC_CHECK_LIB(ossp-uuid, uuid_export,
+     [UUID_LIBS="-lossp-uuid"],
+@@ -1542,10 +1621,13 @@ Use --without-readline to disable libedit support.])])])])
+ fi
+ 
+ if test "$with_zlib" = yes; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   AC_CHECK_HEADER(zlib.h, [], [AC_MSG_ERROR([zlib header not found
+ If you have zlib already installed, see config.log for details on the
+ failure.  It is possible the compiler isn't looking in the proper directory.
+ Use --without-zlib to disable zlib support.])])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ PGAC_PATH_PROGS(LZ4, lz4)
+@@ -1564,8 +1646,11 @@ if test "$with_gssapi" = yes ; then
+ fi
+ 
+ if test "$with_ssl" = openssl ; then
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $OPENSSL_CFLAGS"
+   AC_CHECK_HEADER(openssl/ssl.h, [], [AC_MSG_ERROR([header file <openssl/ssl.h> is required for OpenSSL])])
+   AC_CHECK_HEADER(openssl/err.h, [], [AC_MSG_ERROR([header file <openssl/err.h> is required for OpenSSL])])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ if test "$with_pam" = yes ; then
+@@ -1614,6 +1699,9 @@ dnl If you want to use Apple's own Bonjour code on another platform,
+ dnl just add -ldns_sd to LIBS manually.
+ fi
+ 
++pgac_save_CPPFLAGS=$CPPFLAGS
++CPPFLAGS="$CFLAGS $UUID_CFLAGS"
++
+ # for contrib/uuid-ossp
+ if test "$with_uuid" = bsd ; then
+   AC_CHECK_HEADERS(uuid.h,
+@@ -1638,6 +1726,8 @@ elif test "$with_uuid" = ossp ; then
+       [AC_MSG_ERROR([header file <ossp/uuid.h> or <uuid.h> is required for OSSP UUID])])])
+ fi
+ 
++CPPFLAGS=$pgac_save_CPPFLAGS
++
+ if test "$PORTNAME" = "win32" ; then
+    AC_CHECK_HEADERS(crtdefs.h)
+ fi
+@@ -1701,9 +1791,12 @@ if test "$with_zlib" = yes; then
+   # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
+   # did not).  While we could work around the lack of z_streamp, it
+   # seems unwise to encourage people to use such old zlib versions...
++  pgac_save_CPPFLAGS="$CPPFLAGS"
++  CPPFLAGS="$CPPFLAGS $ZLIB_CFLAGS"
+   AC_CHECK_TYPE(z_streamp, [], [AC_MSG_ERROR([zlib version is too old
+ Use --without-zlib to disable zlib support.])],
+                 [#include <zlib.h>])
++  CPPFLAGS="$pgac_save_CPPFLAGS"
+ fi
+ 
+ case $host_cpu in
+diff --git a/contrib/pgcrypto/Makefile b/contrib/pgcrypto/Makefile
+index 7fb59f51b7..16183af7f7 100644
+--- a/contrib/pgcrypto/Makefile
++++ b/contrib/pgcrypto/Makefile
+@@ -58,6 +58,10 @@ include $(top_builddir)/src/Makefile.global
+ include $(top_srcdir)/contrib/contrib-global.mk
+ endif
+ 
++ifeq ($(with_ssl),openssl)
++LIBS += $(OPENSSL_LIBS)
++endif
++
+ # Add libraries that pgcrypto depends (or might depend) on into the
+ # shared library link.  (The order in which you list them here doesn't
+ # matter.)
+diff --git a/contrib/sslinfo/Makefile b/contrib/sslinfo/Makefile
+index dd1ff83b16..20a4615287 100644
+--- a/contrib/sslinfo/Makefile
++++ b/contrib/sslinfo/Makefile
+@@ -20,4 +20,6 @@ include $(top_builddir)/src/Makefile.global
+ include $(top_srcdir)/contrib/contrib-global.mk
+ endif
+ 
++LIBS += $(OPENSSL_LIBS)
++
+ SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
+diff --git a/src/Makefile.global.in b/src/Makefile.global.in
+index 520c905418..de367447de 100644
+--- a/src/Makefile.global.in
++++ b/src/Makefile.global.in
+@@ -190,6 +190,13 @@ krb_srvtab = @krb_srvtab@
+ ICU_CFLAGS		= @ICU_CFLAGS@
+ ICU_LIBS		= @ICU_LIBS@
+ 
++OPENSSL_CFLAGS		= @OPENSSL_CFLAGS@
++OPENSSL_LIBS		= @OPENSSL_LIBS@
++
++UUID_CFLAGS = @UUID_CFLAGS@
++
++ZLIB_CFLAGS = @ZLIB_CFLAGS@
++
+ TCLSH			= @TCLSH@
+ TCL_LIBS		= @TCL_LIBS@
+ TCL_LIB_SPEC		= @TCL_LIB_SPEC@
+@@ -216,7 +223,7 @@ CPP = @CPP@
+ CPPFLAGS = @CPPFLAGS@
+ PG_SYSROOT = @PG_SYSROOT@
+ 
+-override CPPFLAGS := $(ICU_CFLAGS) $(CPPFLAGS)
++override CPPFLAGS := $(UUID_CFLAGS) $(OPENSSL_CFLAGS) $(ICU_CFLAGS) $(ZLIB_CFLAGS) $(CPPFLAGS)
+ 
+ ifdef PGXS
+ override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
+diff --git a/src/backend/Makefile b/src/backend/Makefile
+index 0231841a0f..488188f0e6 100644
+--- a/src/backend/Makefile
++++ b/src/backend/Makefile
+@@ -45,8 +45,8 @@ OBJS = \
+ 	$(top_builddir)/src/port/libpgport_srv.a
+ 
+ # We put libpgport and libpgcommon into OBJS, so remove it from LIBS; also add
+-# libldap and ICU
+-LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS)
++# libldap, ICU, and OpenSSL.
++LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS) $(OPENSSL_LIBS)
+ 
+ # The backend doesn't need everything that's in LIBS, however
+ LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
+diff --git a/src/backend/libpq/Makefile b/src/backend/libpq/Makefile
+index 6d385fd6a4..e385ab4c81 100644
+--- a/src/backend/libpq/Makefile
++++ b/src/backend/libpq/Makefile
+@@ -31,6 +31,7 @@ OBJS = \
+ 
+ ifeq ($(with_ssl),openssl)
+ OBJS += be-secure-openssl.o
++LIBS += $(OPENSSL_LIBS)
+ endif
+ 
+ ifeq ($(with_gssapi),yes)
+diff --git a/src/bin/pg_verifybackup/Makefile b/src/bin/pg_verifybackup/Makefile
+index 596df15118..046909d677 100644
+--- a/src/bin/pg_verifybackup/Makefile
++++ b/src/bin/pg_verifybackup/Makefile
+@@ -24,6 +24,10 @@ OBJS = \
+ 	parse_manifest.o \
+ 	pg_verifybackup.o
+ 
++ifeq ($(with_ssl),openssl)
++LIBS += $(OPENSSL_LIBS)
++endif
++
+ all: pg_verifybackup
+ 
+ pg_verifybackup: $(OBJS) | submake-libpq submake-libpgport submake-libpgfeutils
+diff --git a/src/bin/pgbench/Makefile b/src/bin/pgbench/Makefile
+index f402fe7b91..5dddfff378 100644
+--- a/src/bin/pgbench/Makefile
++++ b/src/bin/pgbench/Makefile
+@@ -20,6 +20,9 @@ override CFLAGS += $(PTHREAD_CFLAGS)
+ endif
+ LIBS += $(PTHREAD_LIBS)
+ 
++ifeq ($(with_ssl),openssl)
++LIBS += $(OPENSSL_LIBS)
++endif
+ 
+ all: pgbench
+ 
+diff --git a/src/common/Makefile b/src/common/Makefile
+index 15c12eec6b..a5a2cb10e1 100644
+--- a/src/common/Makefile
++++ b/src/common/Makefile
+@@ -87,6 +87,7 @@ OBJS_COMMON += \
+ 	protocol_openssl.o \
+ 	cryptohash_openssl.o \
+ 	hmac_openssl.o
++LIBS += $(OPENSSL_LIBS)
+ else
+ OBJS_COMMON += \
+ 	cryptohash.o \
+diff --git a/src/include/pg_config.h.in b/src/include/pg_config.h.in
+index c456566fae..66fce473ce 100644
+--- a/src/include/pg_config.h.in
++++ b/src/include/pg_config.h.in
+@@ -355,7 +355,7 @@
+ /* Define to 1 if you have the `xslt' library (-lxslt). */
+ #undef HAVE_LIBXSLT
+ 
+-/* Define to 1 if you have the `z' library (-lz). */
++/* Define to 1 if you have zlib. */
+ #undef HAVE_LIBZ
+ 
+ /* Define to 1 if you have the `zstd' library (-lzstd). */
+diff --git a/src/interfaces/libpq/Makefile b/src/interfaces/libpq/Makefile
+index 8abdb092c2..5bbfdff72e 100644
+--- a/src/interfaces/libpq/Makefile
++++ b/src/interfaces/libpq/Makefile
+@@ -55,6 +55,7 @@ endif
+ ifeq ($(with_ssl),openssl)
+ OBJS += \
+ 	fe-secure-openssl.o
++LIBS += $(OPENSSL_LIBS)
+ endif
+ 
+ ifeq ($(with_gssapi),yes)
+-- 
+2.39.3
+
