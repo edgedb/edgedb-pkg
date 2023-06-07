@@ -56,15 +56,15 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     artifact_requirements = {
-        "2.*": [
+        ">=2.0,<3.0.rc1": [
             "postgresql-edgedb (~= 14.0)",
             "python-edgedb (~= 3.10.0)",
         ],
-        "3.*": [
+        ">=3.0rc1,<4.0.dev1": [
             "postgresql-edgedb (~= 14.0)",
             "python-edgedb (~= 3.11.0)",
         ],
-        "4.*": [
+        ">=4.0.dev1,<5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
             "python-edgedb (~= 3.11.0)",
         ],
