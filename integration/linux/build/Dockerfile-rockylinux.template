@@ -19,8 +19,8 @@ RUN yum install --enablerepo=devel -y \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
-	perl-File-Compare \
-	systemd-rpm-macros sudo ca-certificates python3-pip git tar xz
+	perl-File-Compare python3-pip python3-devel \
+	systemd-rpm-macros sudo ca-certificates git tar xz
 
 
 ENV GPG_KEY %%PLACEHOLDER%%
