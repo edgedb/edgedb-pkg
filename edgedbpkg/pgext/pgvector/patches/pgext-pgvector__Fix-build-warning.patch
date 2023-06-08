@@ -1,0 +1,24 @@
+From e00805f0ea3cd53663f95f975b23a7437b9b8b88 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 8 Jun 2023 09:00:23 -0700
+Subject: [PATCH 2/2] Fix build warning
+
+---
+ src/ivfkmeans.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/ivfkmeans.c b/src/ivfkmeans.c
+index 35f32d1..406b051 100644
+--- a/src/ivfkmeans.c
++++ b/src/ivfkmeans.c
+@@ -1,6 +1,7 @@
+ #include "postgres.h"
+ 
+ #include <float.h>
++#include <math.h>
+ 
+ #include "ivfflat.h"
+ #include "miscadmin.h"
+-- 
+2.39.3
+

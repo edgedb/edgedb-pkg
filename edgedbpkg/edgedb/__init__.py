@@ -16,6 +16,7 @@ from metapkg import targets
 from metapkg.packages import python
 
 from edgedbpkg import postgresql
+from edgedbpkg.pgext import pgvector
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
 
@@ -37,7 +38,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     title = "EdgeDB"
     name = "edgedb-server"
-    description = "Next generation object-relational database"
+    description = "Next generation graph-relational database"
     license_id = "Apache-2.0"
     group = "Applications/Databases"
     identifier = "com.edgedb.edgedb-server"
@@ -63,10 +64,12 @@ class EdgeDB(packages.BundledPythonPackage):
         ">=3.0rc1,<4.0.dev1": [
             "postgresql-edgedb (~= 14.0)",
             "python-edgedb (~= 3.11.0)",
+            "pgext-pgvector",
         ],
         ">=4.0.dev1,<5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
             "python-edgedb (~= 3.11.0)",
+            "pgext-pgvector",
         ],
     }
 
@@ -80,6 +83,7 @@ class EdgeDB(packages.BundledPythonPackage):
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.3"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
+        pgvector.PgVector("v0.4.2"),
     ]
 
     @classmethod
