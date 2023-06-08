@@ -17,6 +17,7 @@ class PostgreSQL(packages.BundledCPackage):
 
     title = "PostgreSQL"
     name = "postgresql-edgedb"
+    group = "Applications/Databases"
 
     sources = [
         {
@@ -52,12 +53,21 @@ class PostgreSQL(packages.BundledCPackage):
 
     @classmethod
     def to_vcs_version(cls, version: str) -> str:
-        return f"REL_{version.replace('.', '_')}"
+        parts = version.split(".")
+        if len(parts) == 1:
+            return f"REL_{version}_STABLE"
+        else:
+            return f"REL_{version.replace('.', '_')}"
 
     @classmethod
     def parse_vcs_version(cls, version: str) -> poetry_version.Version:
         if version.startswith("REL_"):
-            return super().parse_vcs_version(version[4:].replace("_", "."))
+            v = (
+                version.removeprefix("REL_")
+                .removesuffix("_STABLE")
+                .replace("_", ".")
+            )
+            return super().parse_vcs_version(v)
         else:
             return super().parse_vcs_version(version)
 
@@ -182,6 +192,7 @@ class PostgreSQL(packages.BundledCPackage):
         datadir = build.get_install_path("data")
         libdir = build.get_install_path("lib")
         temp_install_path = build.get_build_dir(self) / "_install"
+        builddir_hlp = build.get_build_dir(self, relative_to="helpers")
 
         # Since we are using a temporary Postgres installation,
         # pg_config will return paths together with the temporary
@@ -194,11 +205,10 @@ class PostgreSQL(packages.BundledCPackage):
             import sys
 
             path = (
-                pathlib.Path(__file__).parent.parent.parent /
-                '{temp_install_path}'
+                pathlib.Path(__file__).parent / "{builddir_hlp}" / "_install"
             ).resolve()
 
-            pgc = path / '{bindir}' / 'pg_config'
+            pgc = path / "{bindir}" / "pg_config"
 
             proc = subprocess.run(
                 [pgc] + sys.argv[1:],
