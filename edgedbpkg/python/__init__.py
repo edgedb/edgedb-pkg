@@ -104,11 +104,7 @@ class Python(packages.BundledCPackage):
                 build.sh_append_flags(
                     configure_flags,
                     "CFLAGS",
-                    (
-                        "-fgraphite-identity",
-                        "-floop-nest-optimize",
-                        "-fno-semantic-interposition",
-                    ),
+                    ("-fno-semantic-interposition",),
                 )
 
         if "musl" in build.target.triple:
