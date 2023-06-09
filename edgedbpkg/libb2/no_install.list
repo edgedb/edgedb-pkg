@@ -1,0 +1,4 @@
+{libdir}/pkgconfig
+{libdir}/pkgconfig/**
+{libdir}/*.a
+{libdir}/*.la

@@ -10,6 +10,7 @@ from poetry.core.semver import version as poetry_version
 from metapkg import packages
 from metapkg import targets
 
+from edgedbpkg import libb2
 from edgedbpkg import libffi
 from edgedbpkg import libuuid
 from edgedbpkg import openssl
@@ -31,11 +32,13 @@ class Python(packages.BundledCPackage):
 
     artifact_requirements = [
         "openssl (>=1.1.1)",
+        "libb2 (>=0.98.1)",
         "uuid",
         "zlib",
     ]
 
     artifact_build_requirements = [
+        "libb2-dev (>=0.98.1)",
         "libffi-dev (>=3.0.13)",
         "openssl-dev (>=1.1.1)",
         "uuid-dev",
@@ -44,6 +47,7 @@ class Python(packages.BundledCPackage):
 
     bundle_deps = [
         openssl.OpenSSL("3.0.8"),
+        libb2.LibB2("0.98.1"),
         libffi.LibFFI("3.4.4"),
         libuuid.LibUUID("2.38"),
         zlib.Zlib("1.2.13"),
@@ -151,6 +155,7 @@ class Python(packages.BundledCPackage):
 
         self.configure_dependency(build, configure_flags, "uuid", "LIBUUID")
         self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
+        self.configure_dependency(build, configure_flags, "libb2", "LIBB2")
 
         return build.sh_configure(configure, configure_flags)
 
@@ -158,10 +163,11 @@ class Python(packages.BundledCPackage):
         env = super().get_make_env(build, wd)
         openssl_pkg = build.get_package("openssl")
         libffi_pkg = build.get_package("libffi")
+        libb2_pkg = build.get_package("libb2")
         uuid_pkg = build.get_package("uuid")
         zlib_pkg = build.get_package("zlib")
         ld_env = build.get_ld_env(
-            [openssl_pkg, libffi_pkg, uuid_pkg, zlib_pkg], wd
+            [openssl_pkg, libffi_pkg, uuid_pkg, zlib_pkg, libb2_pkg], wd
         )
         return env + " ".join(ld_env)
 
