@@ -149,30 +149,12 @@ class PostgreSQL(packages.BundledCPackage):
     def get_build_script(self, build: targets.Build) -> str:
         make = build.sh_get_command("make")
 
-        wrapper_path = pathlib.Path("_install") / "pg_config_wrapper"
-        wrapper_cmd = build.sh_get_command(
-            "pg_config_wrapper", relative_to="pkgbuild"
-        )
-
-        bash = build.sh_get_command("bash")
-        make_pg_config_wrapper = textwrap.dedent(
-            f"""\
-            echo '#!{bash}' >> "{wrapper_path}"
-            echo 'set -ex' >> "{wrapper_path}"
-            echo 'pushd "$(dirname $0)/../" >/dev/null' >> "{wrapper_path}"
-            echo '{wrapper_cmd}' '"${{@}}"' >> "{wrapper_path}"
-            echo 'popd >/dev/null' >> "{wrapper_path}"
-            chmod +x "{wrapper_path}"
-        """
-        )
-
         return textwrap.dedent(
             f"""\
             {make}
             {make} -C contrib
             {make} DESTDIR=$(pwd)/_install install
             {make} -C contrib DESTDIR=$(pwd)/_install install
-            {make_pg_config_wrapper}
         """
         )
 
@@ -191,7 +173,6 @@ class PostgreSQL(packages.BundledCPackage):
         bindir = build.get_install_path("bin").relative_to("/")
         datadir = build.get_install_path("data")
         libdir = build.get_install_path("lib")
-        temp_install_path = build.get_build_dir(self) / "_install"
         builddir_hlp = build.get_build_dir(self, relative_to="helpers")
 
         # Since we are using a temporary Postgres installation,
@@ -228,6 +209,5 @@ class PostgreSQL(packages.BundledCPackage):
         )
 
         return {
-            "pg_config_wrapper": wrapper_cmd,
-            "pg_config": temp_install_path / "pg_config_wrapper",
+            "pg_config": wrapper_cmd,
         }
