@@ -28,3 +28,6 @@ class LibB2(packages.BundledCPackage):
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["b2"]
+
+    def get_private_libraries(self, build: targets.Build) -> list[str]:
+        return ["libb2.*"]
