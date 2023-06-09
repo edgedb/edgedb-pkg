@@ -18,5 +18,13 @@ class LibB2(packages.BundledCPackage):
         }
     ]
 
+    def get_configure_script(self, build: targets.Build) -> str:
+        sdir = build.get_source_dir(self, relative_to="pkgbuild")
+        configure = sdir / "configure"
+        configure_flags = {
+            "--disable-openmp": None,
+        }
+        return self.sh_configure(build, configure, configure_flags)
+
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["b2"]
