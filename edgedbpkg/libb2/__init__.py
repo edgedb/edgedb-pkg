@@ -23,6 +23,8 @@ class LibB2(packages.BundledCPackage):
         configure = sdir / "configure"
         configure_flags = {
             "--disable-openmp": None,
+            "--enable-fat": None,
+            "--disable-native": None,
         }
         return self.sh_configure(build, configure, configure_flags)
 
