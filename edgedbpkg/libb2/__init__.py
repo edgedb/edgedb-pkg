@@ -23,9 +23,12 @@ class LibB2(packages.BundledCPackage):
         configure = sdir / "configure"
         configure_flags = {
             "--disable-openmp": None,
-            "--enable-fat": None,
             "--disable-native": None,
         }
+        if build.target.machine_architecture == "x86_64":
+            configure_flags["--enable-fat"] = None
+        else:
+            configure_flags["--disable-fat"] = None
         return self.sh_configure(build, configure, configure_flags)
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
