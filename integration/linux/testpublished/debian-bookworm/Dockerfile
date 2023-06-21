@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:bullseye
+FROM debian:bookworm
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
 set -ex\n\
