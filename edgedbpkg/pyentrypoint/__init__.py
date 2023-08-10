@@ -20,4 +20,4 @@ class PyEntryPoint(packages.BundledRustPackage):
     def get_package_layout(
         self, build: targets.Build
     ) -> packages.PackageFileLayout:
-        return packages.PackageFileLayout.FLAT
+        return packages.PackageFileLayout.SINGLE_BINARY

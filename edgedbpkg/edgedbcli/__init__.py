@@ -26,7 +26,7 @@ class EdgeDBCLI(packages.BundledRustPackage):
     def get_package_layout(
         self, build: targets.Build
     ) -> packages.PackageFileLayout:
-        return packages.PackageFileLayout.FLAT
+        return packages.PackageFileLayout.SINGLE_BINARY
 
     def get_license_files_pattern(self) -> str:
         return ""
