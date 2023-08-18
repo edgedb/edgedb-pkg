@@ -18,7 +18,6 @@ set -ex
 cat <<EOF >"${HOME}/.ssh/config"
 Host ${PACKAGE_SERVER}
     User uploader
-    Port 2222
     StrictHostKeyChecking no
 EOF
 
