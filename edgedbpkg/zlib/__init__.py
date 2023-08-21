@@ -10,7 +10,7 @@ class Zlib(packages.BundledCPackage):
     name = "zlib"
     aliases = ["zlib-dev"]
 
-    _server = "https://zlib.net/"
+    _server = "https://zlib.net/fossils/"
 
     sources = [
         {
