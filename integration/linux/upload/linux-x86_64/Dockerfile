@@ -32,7 +32,6 @@ set -ex\n\
 cat <<EOF >"${HOME}/.ssh/config"\n\
 Host ${PACKAGE_SERVER}\n\
     User uploader\n\
-    Port 2222\n\
     StrictHostKeyChecking no\n\
 EOF\n\
 \n\
