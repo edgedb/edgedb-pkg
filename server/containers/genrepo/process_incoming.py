@@ -33,8 +33,6 @@ from mypy_boto3_s3 import service_resource as s3
 
 apt_pkg.init_system()
 
-
-BUCKET = "edgedb-packages"
 CACHE = "Cache-Control:public, no-transform, max-age=315360000"
 NO_CACHE = "Cache-Control:no-store, no-cache, private, max-age=0"
 ARCHIVE = pathlib.Path("archive")
@@ -500,11 +498,13 @@ def sync_to_s3(
 
 @click.command()
 @click.option("-c", "--config", default="/etc/genrepo.toml")
+@click.option("--bucket", default="edgedb-packages")
 @click.option("--incoming-dir")
 @click.option("--local-dir")
 @click.argument("upload_listing")  # a single file with a listing of many files
 def main(
     config: str,
+    bucket: str,
     incoming_dir: str,
     local_dir: str,
     upload_listing: str,
@@ -550,6 +550,7 @@ def main(
                         s3,
                         tf,
                         metadata,
+                        bucket,
                         pathlib.Path(temp_dir),
                         pathlib.Path(local_dir),
                     )
@@ -559,6 +560,7 @@ def main(
                         s3,
                         tf,
                         metadata,
+                        bucket,
                         pathlib.Path(temp_dir),
                         pathlib.Path(local_dir),
                     )
@@ -568,6 +570,7 @@ def main(
                         s3,
                         tf,
                         metadata,
+                        bucket,
                         pathlib.Path(temp_dir),
                         pathlib.Path(local_dir),
                     )
@@ -585,10 +588,11 @@ def process_generic(
     s3session: s3.S3ServiceResource,
     tf: tarfile.TarFile,
     metadata: dict[str, Any],
+    bucket_name: str,
     temp_dir: pathlib.Path,
     local_dir: pathlib.Path,
 ) -> None:
-    bucket = s3session.Bucket(BUCKET)
+    bucket = s3session.Bucket(bucket_name)
     pkg_directories = set()
     rrules = {}
     basename = metadata["name"]
@@ -677,7 +681,7 @@ def process_generic(
         #
         # NOTE: Amazon S3 has a limitation of 50 routing rules per
         #       website configuration.
-        website = s3session.BucketWebsite(BUCKET)
+        website = s3session.BucketWebsite(bucket_name)
         existing_rrules = list(website.routing_rules)
         for src, tgt in rrules.items():
             src_key = str(src)
@@ -765,10 +769,11 @@ def process_apt(
     s3session: s3.S3ServiceResource,
     tf: tarfile.TarFile,
     metadata: dict[str, Any],
+    bucket_name: str,
     temp_dir: pathlib.Path,
     local_dir: pathlib.Path,
 ) -> None:
-    bucket = s3session.Bucket(BUCKET)
+    bucket = s3session.Bucket(bucket_name)
     changes = None
     incoming_dir = temp_dir / "incoming"
     incoming_dir.mkdir()
@@ -1054,10 +1059,11 @@ def process_rpm(
     s3session: s3.S3ServiceResource,
     tf: tarfile.TarFile,
     metadata: dict[str, Any],
+    bucket_name,
     temp_dir: pathlib.Path,
     local_dir: pathlib.Path,
 ) -> None:
-    bucket = s3session.Bucket(BUCKET)
+    bucket = s3session.Bucket(bucket_name)
     incoming_dir = temp_dir / "incoming"
     incoming_dir.mkdir()
     local_rpm_dir = local_dir / "rpm"
