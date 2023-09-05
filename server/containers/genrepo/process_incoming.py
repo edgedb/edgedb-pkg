@@ -454,7 +454,7 @@ def sync_to_local(
     delete: bool = True,
     exact_timestamps: bool = False,
 ) -> None:
-    cmd = ["aws", "s3", "sync"]
+    cmd = ["aws", "s3", "sync", "--no-progress"]
     if delete:
         cmd.append("--delete")
     if exact_timestamps:
@@ -477,7 +477,7 @@ def sync_to_s3(
     delete: bool = True,
     cache_control: str = "",
 ) -> None:
-    cmd = ["aws", "s3", "sync"]
+    cmd = ["aws", "s3", "sync", "--no-progress"]
     if delete:
         cmd.append("--delete")
     if cache_control:
