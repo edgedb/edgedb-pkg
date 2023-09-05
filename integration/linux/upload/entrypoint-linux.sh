@@ -3,7 +3,7 @@
 set -e
 
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)
-: ${PACKAGE_SERVER:=upload-packages.edgedb.com}
+: ${PACKAGE_SERVER:="sftp://uploader@upload-packages.edgedb.com:2222/"}
 
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then
@@ -14,12 +14,6 @@ fi
 chmod 400 "${HOME}/.ssh/id_ed25519"
 
 set -ex
-
-cat <<EOF >"${HOME}/.ssh/config"
-Host ${PACKAGE_SERVER}
-    User uploader
-    StrictHostKeyChecking no
-EOF
 
 if [ "$1" == "bash" ]; then
     exec /bin/bash
@@ -47,6 +41,6 @@ put -r * incoming/
 put -p ${list} incoming/triggers/
 EOF
 
-sftp -b "${batch}" uploader@"$PACKAGE_SERVER"
+sftp -o StrictHostKeyChecking=no -b "$batch" "$PACKAGE_SERVER"
 
-rm "${list}" "${batch}"
+rm "$list" "$batch"

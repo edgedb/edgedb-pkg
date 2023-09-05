@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM debian:buster
+FROM debian:bookworm
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y \
@@ -17,7 +17,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -e\n\
 \n\
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)\n\
-: ${PACKAGE_SERVER:=upload-packages.edgedb.com}\n\
+: ${PACKAGE_SERVER:="sftp://uploader@upload-packages.edgedb.com:2222/"}\n\
 \n\
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"\n\
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then\n\
@@ -28,12 +28,6 @@ fi\n\
 chmod 400 "${HOME}/.ssh/id_ed25519"\n\
 \n\
 set -ex\n\
-\n\
-cat <<EOF >"${HOME}/.ssh/config"\n\
-Host ${PACKAGE_SERVER}\n\
-    User uploader\n\
-    StrictHostKeyChecking no\n\
-EOF\n\
 \n\
 if [ "$1" == "bash" ]; then\n\
     exec /bin/bash\n\
@@ -61,9 +55,9 @@ put -r * incoming/\n\
 put -p ${list} incoming/triggers/\n\
 EOF\n\
 \n\
-sftp -b "${batch}" uploader@"$PACKAGE_SERVER"\n\
+sftp -o StrictHostKeyChecking=no -b "$batch" "$PACKAGE_SERVER"\n\
 \n\
-rm "${list}" "${batch}"\n\' >/entrypoint.sh
+rm "$list" "$batch"\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
