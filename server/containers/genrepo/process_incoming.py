@@ -432,7 +432,6 @@ def put(
             Body=body,
             CacheControl=CACHE if cache else NO_CACHE,
             ContentType=content_type,
-            ACL="public-read",
         )
     print(result)
     return result
