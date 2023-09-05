@@ -18,9 +18,10 @@ RUN apt-get update \
 		bison \
 		flex \
 		patchelf \
+		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON_VERSION 3.9.16
+ENV PYTHON_VERSION 3.9.18
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -138,7 +139,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 23.1.2
+ENV PYTHON_PIP_VERSION 23.2.1
 
 RUN set -ex; \
 	\
