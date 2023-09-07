@@ -3,7 +3,7 @@
 set -e
 
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)
-: ${PACKAGE_SERVER:="sftp://uploader@upload-packages.edgedb.com:2222/"}
+: ${PACKAGE_SERVER:="sftp://uploader@package-upload.edgedb.net/"}
 
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then

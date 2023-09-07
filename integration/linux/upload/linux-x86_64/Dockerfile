@@ -17,7 +17,7 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -e\n\
 \n\
 HOME=$(getent passwd "$(whoami)" | cut -d: -f6)\n\
-: ${PACKAGE_SERVER:="sftp://uploader@upload-packages.edgedb.com:2222/"}\n\
+: ${PACKAGE_SERVER:="sftp://uploader@package-upload.edgedb.net/"}\n\
 \n\
 mkdir -p "${HOME}/.ssh" && chmod 700 "${HOME}/.ssh"\n\
 if [ -f "${PACKAGE_UPLOAD_SSH_KEY_FILE}" ]; then\n\
