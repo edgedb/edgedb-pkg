@@ -17,9 +17,8 @@ if TYPE_CHECKING:
 
 
 class PostgreSQLBundle(packages.BundledPackage):
-
     title = "PostgreSQL"
-    name = "postgresql-bundle"
+    name = packages.canonicalize_name("postgresql-bundle")
     group = "Applications/Databases"
 
     sources = [
@@ -27,6 +26,8 @@ class PostgreSQLBundle(packages.BundledPackage):
             "url": f"file://{pathlib.Path(__file__).parent.resolve() / 'bundle'}",
         },
     ]
+
+    bundle_deps: list[packages.BundledPackage]
 
     @classmethod
     def resolve(

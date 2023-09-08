@@ -6,7 +6,7 @@ from metapkg import targets
 
 class Zlib(packages.BundledCPackage):
     title = "zlib"
-    name = "zlib"
+    name = packages.canonicalize_name("zlib")
     aliases = ["zlib-dev"]
 
     _server = "https://zlib.net/fossils/"

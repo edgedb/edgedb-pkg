@@ -9,7 +9,7 @@ source = pathlib.Path(__file__).parent.resolve() / "rust"
 
 class PyEntryPoint(packages.BundledRustPackage):
     title = "pyentrypoint"
-    name = "pyentrypoint"
+    name = packages.canonicalize_name("pyentrypoint")
     sources = [
         {
             "url": f"file://{source}",

@@ -4,7 +4,6 @@ from typing import *
 import platform
 import re
 import shlex
-import textwrap
 
 from metapkg import packages
 from metapkg import targets
@@ -12,7 +11,7 @@ from metapkg import targets
 
 class OpenSSL(packages.BundledCPackage):
     title = "OpenSSL"
-    name = "openssl"
+    name = packages.canonicalize_name("openssl")
     aliases = ["openssl-dev"]
 
     _server = "https://www.openssl.org/source/"
