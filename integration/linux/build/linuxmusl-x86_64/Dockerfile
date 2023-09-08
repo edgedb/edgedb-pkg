@@ -8,7 +8,7 @@ ARG DOCKER_ARCH=
 FROM ${DOCKER_ARCH}alpine:3.16.2
 
 ENV LANG C.UTF-8
-ENV RUST_VERSION 1.67.1
+ENV RUST_VERSION 1.71.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
