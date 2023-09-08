@@ -18,9 +18,8 @@ if TYPE_CHECKING:
 
 
 class PgVector(packages.BundledCPackage):
-
     title = "pgvector extension"
-    name = "pgext-pgvector"
+    name = packages.canonicalize_name("pgext-pgvector")
     description = "Open-source vector similarity search for Postgres"
     license_id = "PostgreSQL"
     group = "Applications/Databases"
