@@ -14,17 +14,17 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV LANG C
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.16
+ENV PYTHON_VERSION 3.9.18
 ENV GIT_VERSION 2.33.1
 ENV PATCHELF_VERSION 0.13
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV GO_VERSION 1.20
-ENV RUST_VERSION 1.67.1
+ENV GO_VERSION 1.21
+ENV RUST_VERSION 1.71.1
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
-ENV GCC_VERSION 10
+ENV GCC_VERSION 11
 
 
 RUN yum install -y centos-release-scl epel-release \
@@ -218,7 +218,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 23.0
+ENV PYTHON_PIP_VERSION 23.2.1
 
 RUN set -ex; \
 	\
