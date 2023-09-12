@@ -1,4 +1,0 @@
-Name: default
-IncomingDir: %%REPREPRO_SPOOL_DIR%%/incoming
-TempDir: %%REPREPRO_INCOMING_TMP_DIR%%
-Allow: stretch buster bullseye xenial bionic focal

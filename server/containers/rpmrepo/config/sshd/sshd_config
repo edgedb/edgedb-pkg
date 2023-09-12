@@ -1,6 +1,0 @@
-StrictModes no
-PasswordAuthentication no
-Subsystem sftp internal-sftp -u 0002
-AcceptEnv LANG LC_*
-PrintMotd no
-UsePAM yes

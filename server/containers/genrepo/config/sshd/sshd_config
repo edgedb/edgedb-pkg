@@ -1,6 +1,0 @@
-StrictModes no
-PasswordAuthentication no
-Subsystem sftp /usr/lib/openssh/sftp-server
-AcceptEnv LANG LC_*
-PrintMotd no
-UsePAM yes
