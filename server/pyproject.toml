@@ -12,6 +12,7 @@ dependencies = [
     'typing-extensions',
     'tomli',
     'semver',
+    'filelock',
 ]
 
 [project.urls]

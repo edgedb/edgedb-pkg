@@ -24,6 +24,7 @@ import textwrap
 
 import boto3
 import click
+import filelock
 import semver
 import tomli
 
@@ -543,36 +544,42 @@ def main(
                 metadata = json.loads(metadata_file.read())
                 repository = metadata.get("repository")
 
-                if repository == "generic":
-                    process_generic(
-                        cfg,
-                        s3,
-                        tf,
-                        metadata,
-                        bucket,
-                        pathlib.Path(temp_dir),
-                        pathlib.Path(local_dir),
-                    )
-                elif repository == "apt":
-                    process_apt(
-                        cfg,
-                        s3,
-                        tf,
-                        metadata,
-                        bucket,
-                        pathlib.Path(temp_dir),
-                        pathlib.Path(local_dir),
-                    )
-                elif repository == "rpm":
-                    process_rpm(
-                        cfg,
-                        s3,
-                        tf,
-                        metadata,
-                        bucket,
-                        pathlib.Path(temp_dir),
-                        pathlib.Path(local_dir),
-                    )
+                local_dir_path = pathlib.Path(local_dir)
+                temp_dir_path = pathlib.Path(temp_dir)
+                lock_path = local_dir_path / f"{repository}.lock"
+
+                print(f"Obtaining {lock_path}")
+                with filelock.FileLock(lock_path, timeout=3600):
+                    if repository == "generic":
+                        process_generic(
+                            cfg,
+                            s3,
+                            tf,
+                            metadata,
+                            bucket,
+                            temp_dir_path,
+                            local_dir_path,
+                        )
+                    elif repository == "apt":
+                        process_apt(
+                            cfg,
+                            s3,
+                            tf,
+                            metadata,
+                            bucket,
+                            temp_dir_path,
+                            local_dir_path,
+                        )
+                    elif repository == "rpm":
+                        process_rpm(
+                            cfg,
+                            s3,
+                            tf,
+                            metadata,
+                            bucket,
+                            temp_dir_path,
+                            local_dir_path,
+                        )
 
             print("Successfully processed", path)
         finally:
