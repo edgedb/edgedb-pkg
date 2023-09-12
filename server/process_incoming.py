@@ -9,12 +9,14 @@ import fnmatch
 import io
 import json
 import os
+import logging
 import mimetypes
 import pathlib
 import pprint
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import textwrap
@@ -33,6 +35,10 @@ CACHE = "Cache-Control:public, no-transform, max-age=315360000"
 NO_CACHE = "Cache-Control:no-store, no-cache, private, max-age=0"
 ARCHIVE = pathlib.Path("archive")
 DIST = pathlib.Path("dist")
+
+logging.basicConfig(format="%(message)s")
+logger = logging.getLogger("process_incoming")
+logger.setLevel(logging.INFO)
 
 
 class CommonConfig(TypedDict):
@@ -104,6 +110,15 @@ version_regexp = re.compile(
     $""",
     re.X | re.A,
 )
+
+
+def subprocess_run(
+    *args: Any, **kwargs: Any
+) -> subprocess.CompletedProcess[str]:
+    kw = dict(kwargs)
+    if kw.get("stdout") is None and not kw.get("capture_output"):
+        kw["stdout"] = sys.stderr
+    return subprocess.run(*args, **kw)
 
 
 def parse_version(ver: str) -> Version:
@@ -186,8 +201,8 @@ class Packages(TypedDict):
 
 
 def gpg_detach_sign(path: pathlib.Path) -> pathlib.Path:
-    print("gpg_detach_sign", path)
-    proc = subprocess.run(
+    logger.info("gpg_detach_sign: %s", path)
+    proc = subprocess_run(
         ["gpg", "--yes", "--batch", "--detach-sign", "--armor", str(path)]
     )
     proc.check_returncode()
@@ -197,7 +212,7 @@ def gpg_detach_sign(path: pathlib.Path) -> pathlib.Path:
 
 
 def sha256(path: pathlib.Path) -> pathlib.Path:
-    print("sha256", path)
+    logger.info("sha256: %s", path)
     with open(path, "rb") as bf:
         _hash = hashlib.sha256(bf.read())
     out_path = path.with_suffix(path.suffix + ".sha256")
@@ -208,7 +223,7 @@ def sha256(path: pathlib.Path) -> pathlib.Path:
 
 
 def blake2b(path: pathlib.Path) -> pathlib.Path:
-    print("blake2b", path)
+    logger.info("blake2b: %s", path)
     with open(path, "rb") as bf:
         _hash = hashlib.blake2b(bf.read())
     out_path = path.with_suffix(path.suffix + ".blake2b")
@@ -246,7 +261,7 @@ def remove_old(
     keep: int,
     channel: str | None = None,
 ) -> None:
-    print("remove_old", bucket, prefix, keep, channel)
+    logger.info("remove_old: %s %s %s %s", bucket, prefix, keep, channel)
     index: dict[str, dict[str, list[str]]] = {}
     prefix_str = str(prefix) + "/"
     for obj in bucket.objects.filter(Prefix=prefix_str):
@@ -287,7 +302,7 @@ def remove_old(
         sorted_versions = sorted(versions, reverse=True)
         for ver in sorted_versions[keep:]:
             for obj_key in versions[ver]:
-                print("Deleting outdated", obj_key)
+                logger.info("Deleting outdated: %s", obj_key)
                 bucket.objects.filter(Prefix=obj_key).delete()
 
 
@@ -324,7 +339,7 @@ def is_metadata_object(key: str) -> bool:
 
 
 def get_metadata(bucket: s3.Bucket, key: str) -> dict[str, Any]:
-    print("read", f"{key}.metadata.json")
+    logger.info("read: %s", f"{key}.metadata.json")
     data = read(bucket, f"{key}.metadata.json")
     return json.loads(data.decode("utf-8"))  # type: ignore
 
@@ -373,18 +388,18 @@ def make_generic_index(
     prefix: pathlib.Path,
     pkg_dir: str,
 ) -> None:
-    print("make_index", bucket, prefix, pkg_dir)
+    logger.info("make_index: %s %s %s", bucket, prefix, pkg_dir)
     packages: dict[tuple[str, str, str], Package] = {}
     for obj in bucket.objects.filter(Prefix=str(prefix / pkg_dir)):
         path = pathlib.Path(obj.key)
         leaf = path.name
 
         if path.parent.name != pkg_dir:
-            print(leaf, "wrong dist")
+            logger.warning(f"{leaf}: wrong dist")
             continue
 
         if is_metadata_object(obj.key):
-            print(leaf, "is metadata")
+            logger.info(f"{leaf} is metadata")
             continue
 
         metadata = get_metadata(bucket, obj.key)
@@ -421,7 +436,7 @@ def put(
         ct, _ = mimetypes.guess_type(name)
         if ct is not None and "/" in ct:
             content_type = ct
-    print("put", name, bucket, target)
+    logger.info("put %s::%s/%s", bucket, name, target)
     with ctx as body:
         result = bucket.put_object(
             Key=str(target / name),
@@ -429,7 +444,7 @@ def put(
             CacheControl=CACHE if cache else NO_CACHE,
             ContentType=content_type,
         )
-    print(result)
+    logger.info(result)
     return result
 
 
@@ -460,7 +475,7 @@ def sync_to_local(
         src_path = f"/{src_path}"
     cmd.append(f"s3://{bucket.name}{src_path}")
     cmd.append(str(target))
-    subprocess.run(cmd, check=True)
+    subprocess_run(cmd, check=True)
 
 
 def sync_to_s3(
@@ -487,8 +502,8 @@ def sync_to_s3(
         tgt_path = f"/{tgt_path}"
     cmd.append(str(source))
     cmd.append(f"s3://{bucket.name}{tgt_path}")
-    print(" ".join(cmd))
-    subprocess.run(cmd, check=True)
+    logger.info(" ".join(cmd))
+    subprocess_run(cmd, check=True)
 
 
 @click.command()
@@ -519,20 +534,21 @@ def main(
     for path_str in uploads:
         path = pathlib.Path(path_str)
         if not path.is_file():
-            print("File not found:", path)
+            logger.info("File not found: %s", path)
             continue
         if path.suffix != ".tar":
-            print("File is not a .tar archive:", path)
+            logger.info("File is not a .tar archive: %s", path)
             continue
 
-        print("Looking at", path)
+        logger.info("Looking at: %s", path)
         tmp_mgr = tempfile.TemporaryDirectory(prefix="genrepo", dir=local_dir)
         try:
             with tarfile.open(path, "r:") as tf, tmp_mgr as temp_dir:
                 metadata_file = tf.extractfile("build-metadata.json")
                 if metadata_file is None:
-                    print(
-                        "Tarball does not contain 'build-metadata.json':", path
+                    logger.info(
+                        "Tarball does not contain 'build-metadata.json': %s",
+                        path,
                     )
                     continue
 
@@ -543,7 +559,7 @@ def main(
                 temp_dir_path = pathlib.Path(temp_dir)
                 lock_path = local_dir_path / f"{repository}.lock"
 
-                print(f"Obtaining {lock_path}")
+                logger.info(f"Obtaining {lock_path}")
                 with filelock.FileLock(lock_path, timeout=3600):
                     if repository == "generic":
                         process_generic(
@@ -576,7 +592,7 @@ def main(
                             local_dir_path,
                         )
 
-            print("Successfully processed", path)
+            logger.info("Successfully processed: %s", path)
         finally:
             try:
                 os.unlink(path)
@@ -626,11 +642,11 @@ def process_generic(
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
 
-        print(f"metadata={metadata}")
-        print(f"target={target} leaf={leaf}")
-        print(f"basename={basename} slot={slot}")
-        print(f"channel={channel} pkg_dir={pkg_dir}")
-        print(f"ext={ext}")
+        logger.info(f"metadata={metadata}")
+        logger.info(f"target={target} leaf={leaf}")
+        logger.info(f"basename={basename} slot={slot}")
+        logger.info(f"channel={channel} pkg_dir={pkg_dir}")
+        logger.info(f"ext={ext}")
 
         # Store the fully-qualified artifact to archive/
         archive_dir = ARCHIVE / pkg_dir
@@ -737,8 +753,8 @@ def process_generic(
                 website.redirect_all_requests_to,
             )
 
-        print("updating bucket website config:")
-        pprint.pprint(website_config)
+        logger.info("updating bucket website config:")
+        pprint.pprint(website_config, stream=sys.stderr)
         website.put(WebsiteConfiguration=website_config)
 
 
@@ -814,7 +830,7 @@ def process_apt(
         fn = pathlib.Path(member.name)
         if fn.suffix == ".changes":
             if changes is not None:
-                print("Multiple .changes files in apt tarball")
+                logger.error("Multiple .changes files in apt tarball")
                 return
             changes = fn
 
@@ -832,7 +848,7 @@ def process_apt(
         local_apt_dir / "pool",
     )
 
-    subprocess.run(
+    subprocess_run(
         [
             "reprepro",
             "-V",
@@ -848,7 +864,7 @@ def process_apt(
         check=True,
     )
 
-    result = subprocess.run(
+    result = subprocess_run(
         [
             "reprepro",
             f"--confdir={str(reprepro_conf)}",
@@ -889,7 +905,7 @@ def process_apt(
     packages: dict[str, dict[tuple[str, str, str], Package]] = {}
 
     for dist in repo_dists:
-        result = subprocess.run(
+        result = subprocess_run(
             [
                 "reprepro",
                 f"--confdir={str(reprepro_conf)}",
@@ -956,7 +972,7 @@ def process_apt(
 
             m = slot_regexp.match(pkgname)
             if not m:
-                print("cannot parse package name: {}".format(pkgname))
+                logger.error("cannot parse package name: %s", pkgname)
                 basename = pkgname
                 slot = None
             else:
@@ -991,16 +1007,18 @@ def process_apt(
                     "catalog_version"
                 ):
                     if not pathlib.Path(pkgfile).exists():
-                        print(f"package file does not exist: {pkgfile}")
+                        logger.error(f"package file does not exist: {pkgfile}")
                     else:
                         catver = extract_catver_from_deb(pkgfile)
                         if catver is None:
-                            print(
+                            logger.error(
                                 f"cannot extract catalog version from {pkgfile}"
                             )
                         else:
                             ver_metadata["catalog_version"] = str(catver)
-                            print(f"extracted catver {catver} from {pkgfile}")
+                            logger.info(
+                                f"extracted catver {catver} from {pkgfile}"
+                            )
 
                 installref = InstallRef(
                     ref="{}={}-{}".format(pkgname, relver, revver),
@@ -1041,7 +1059,7 @@ def extract_catver_from_deb(path: str) -> int | None:
 
     with tempfile.TemporaryDirectory() as _td:
         td = pathlib.Path(_td)
-        subprocess.run(["ar", "x", path, "data.tar.xz"], cwd=_td)
+        subprocess_run(["ar", "x", path, "data.tar.xz"], cwd=_td)
         with tarfile.open(td / "data.tar.xz", "r:xz") as tarf:
             for member in tarf.getmembers():
                 if fnmatch.fnmatch(member.path, defines_pattern):
@@ -1109,7 +1127,7 @@ def process_rpm(
 
     repomd = local_dist_dir / "repodata" / "repomd.xml"
     if not repomd.exists():
-        subprocess.run(
+        subprocess_run(
             [
                 "createrepo_c",
                 "--database",
@@ -1120,8 +1138,8 @@ def process_rpm(
         )
 
     for rpm in rpms:
-        print(f"process_rpm: running `rpm --resign {rpm}`")
-        subprocess.run(
+        logger.info(f"process_rpm: running `rpm --resign {rpm}`")
+        subprocess_run(
             [
                 "rpm",
                 "--resign",
@@ -1134,8 +1152,8 @@ def process_rpm(
 
         shutil.copy(incoming_dir / rpm, local_dist_dir / rpm)
 
-    print(f"process_rpm: running `createrepo_c --update`")
-    subprocess.run(
+    logger.info(f"process_rpm: running `createrepo_c --update`")
+    subprocess_run(
         [
             "createrepo_c",
             "--update",
@@ -1144,10 +1162,10 @@ def process_rpm(
         check=True,
     )
 
-    print("process_rpm: signing repomd.xml")
+    logger.info("process_rpm: signing repomd.xml")
     gpg_detach_sign(repomd)
 
-    print("process_rpm: loading index")
+    logger.info("process_rpm: loading index")
     existing: dict[tuple[str, str, str], Package] = {}
     packages: dict[tuple[str, str, str], Package] = {}
     idxfile = index_dir / f"{idx}.json"
@@ -1163,8 +1181,8 @@ def process_rpm(
                     )
                     existing[index_key] = Package(**pkg)
 
-    print("process_rpm: fetching changelogs")
-    changelogs = subprocess.run(
+    logger.info("process_rpm: fetching changelogs")
+    changelogs = subprocess_run(
         [
             "dnf",
             f"--repofrompath={dist},{local_dist_dir}",
@@ -1209,7 +1227,7 @@ def process_rpm(
 
     slot_index: dict[str, list[tuple[str, str, str, str]]] = {}
 
-    result = subprocess.run(
+    result = subprocess_run(
         [
             "dnf",
             f"--repofrompath={dist},{local_dist_dir}",
@@ -1225,7 +1243,7 @@ def process_rpm(
         check=True,
     )
 
-    print("process_rpm: updating index")
+    logger.info("process_rpm: updating index")
     for line in result.stdout.splitlines():
         if not line.strip():
             continue
@@ -1238,7 +1256,7 @@ def process_rpm(
 
         m = slot_regexp.match(pkgname)
         if not m:
-            print("cannot parse package name: {}".format(pkgname))
+            logger.info("cannot parse package name: {}".format(pkgname))
             basename = pkgname
             slot = None
         else:
@@ -1301,7 +1319,7 @@ def process_rpm(
 
     need_db_update = False
     if channel == "nightly":
-        print("process_rpm: collecting garbage")
+        logger.info("process_rpm: collecting garbage")
         for slot_name, versions in slot_index.items():
             sorted_versions = list(
                 sorted(
@@ -1312,7 +1330,7 @@ def process_rpm(
             )
 
             for ver_key, name, ver_nevra, arch in sorted_versions[3:]:
-                print(f"process_rpm: deleting outdated {ver_nevra}")
+                logger.info(f"process_rpm: deleting outdated {ver_nevra}")
                 packages.pop((name, ver_key, arch))
                 outdated = local_dist_dir / f"{ver_nevra}.rpm"
                 if outdated.exists():
@@ -1320,8 +1338,8 @@ def process_rpm(
                 need_db_update = True
 
     if need_db_update:
-        print(f"process_rpm: running `createrepo_c --update` (again)")
-        subprocess.run(
+        logger.info(f"process_rpm: running `createrepo_c --update` (again)")
+        subprocess_run(
             [
                 "createrepo_c",
                 "--update",
