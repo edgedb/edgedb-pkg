@@ -62,7 +62,7 @@ rustVersion="1.71.1"
 # Do not bump NodeJS to newer, binary releases incompatible with older glibc
 nodeVersion="16.16.0"
 yarnVersion="1.22.19"
-goVersion="1.21"
+goVersion="1.21.1"
 
 generated_warning() {
 	cat <<-EOH
