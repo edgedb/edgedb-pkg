@@ -1,7 +1,0 @@
-Match Group uploaders
-        ChrootDirectory /var/spool/repo/
-        ForceCommand internal-sftp -u 0002
-        AllowTcpForwarding no
-        PermitTunnel no
-        X11Forwarding no
-        AuthorizedKeysFile /etc/ssh/authorized_keys/uploaders

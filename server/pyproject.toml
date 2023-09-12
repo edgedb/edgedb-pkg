@@ -1,0 +1,28 @@
+[project]
+name = "process_incoming"
+description = "Universal package processor"
+authors = [{ name = "EdgeDB Inc", email = "hello@magic.io" }]
+requires-python = '>=3.8.0'
+readme = "README.rst"
+version = "1.0.0"
+dependencies = [
+    'boto3',
+    'mypy-boto3-s3',
+    'click',
+    'typing-extensions',
+    'tomli',
+    'semver',
+]
+
+[project.urls]
+github = "https://github.com/edgedb/edgedb-pkg/"
+
+[project.scripts]
+process_incoming = "process_incoming:main"
+
+[build-system]
+requires = ["setuptools>=59", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["process_incoming"]
