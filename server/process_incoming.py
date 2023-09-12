@@ -3,12 +3,9 @@ from __future__ import annotations
 from typing import Any, ContextManager, cast, List, Optional
 from typing_extensions import TypedDict
 
-import apt_pkg
-
 import contextlib
 import hashlib
 import fnmatch
-import functools
 import io
 import json
 import os
@@ -31,8 +28,6 @@ import tomli
 from mypy_boto3_s3 import type_defs as s3types
 from mypy_boto3_s3 import service_resource as s3
 
-
-apt_pkg.init_system()
 
 CACHE = "Cache-Control:public, no-transform, max-age=315360000"
 NO_CACHE = "Cache-Control:no-store, no-cache, private, max-age=0"
@@ -85,7 +80,7 @@ class Version(TypedDict):
 
 slot_regexp = re.compile(
     r"^(\w+(?:-[a-zA-Z]*)*?)"
-    r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
+    + r"(?:-(\d+(?:-(?:alpha|beta|rc)\d+)?(?:-dev\d+)?))?$",
     re.A,
 )
 
@@ -1263,24 +1258,33 @@ def process_rpm(
         elif is_metapackage:
             pkgmetadata["name"] = basename
 
-        version_key = format_version_key(
-            pkgmetadata["version_details"], pkgmetadata["revision"]
-        )
+        ver_details = pkgmetadata["version_details"]
 
         slot_name = pkgmetadata["name"]
         if pkgmetadata.get("version_slot"):
             slot_name += f".{pkgmetadata['version_slot']}"
         slot_name += f".{pkgmetadata['architecture']}"
+
+        version_sort_key = semver.VersionInfo(
+            ver_details["major"],
+            ver_details["minor"] or 0,
+            ver_details["patch"] or 0,
+            ".".join(
+                f"{p['phase']}.{p['number']}"
+                for p in ver_details["prerelease"]
+            ),
+        )
+
         slot_index.setdefault(slot_name, []).append(
             (
-                version_key,
+                version_sort_key,
                 pkgmetadata["name"],
                 nevra,
                 pkgmetadata["architecture"],
             )
         )
 
-        index_key = (pkgmetadata["name"], version_key, arch)
+        index_key = (pkgmetadata["name"], version_sort_key, arch)
 
         if index_key in existing:
             packages[index_key] = existing[index_key]
@@ -1298,12 +1302,11 @@ def process_rpm(
     need_db_update = False
     if channel == "nightly":
         print("process_rpm: collecting garbage")
-        comp = functools.cmp_to_key(apt_pkg.version_compare)
         for slot_name, versions in slot_index.items():
             sorted_versions = list(
                 sorted(
                     versions,
-                    key=lambda v: comp(v[0]),
+                    key=lambda v: v[0],
                     reverse=True,
                 )
             )
