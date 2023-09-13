@@ -6,6 +6,7 @@ from typing_extensions import TypedDict
 import contextlib
 import hashlib
 import fnmatch
+import functools
 import io
 import json
 import os
@@ -26,6 +27,8 @@ import click
 import filelock
 import semver
 import tomli
+
+from debian import debian_support
 
 from mypy_boto3_s3 import type_defs as s3types
 from mypy_boto3_s3 import service_resource as s3
@@ -198,6 +201,9 @@ class Package(TypedDict):
 
 class Packages(TypedDict):
     packages: list[Package]
+
+
+PackageIndex = dict[tuple[str, str, str], Package]
 
 
 def gpg_detach_sign(path: pathlib.Path) -> pathlib.Path:
@@ -380,7 +386,25 @@ def append_artifact(
             installrefs=[installref],
         )
 
+        logger.info("adding %s (%s, %s) to JSON index", *index_key)
         packages[index_key] = pkg
+
+
+def load_index(idxfile: pathlib.Path) -> PackageIndex:
+    index: PackageIndex = {}
+    if idxfile.exists():
+        with open(idxfile, "r") as f:
+            data = json.load(f)
+            if isinstance(data, dict) and (pkglist := data.get("packages")):
+                for pkg in pkglist:
+                    index_key = (
+                        pkg["basename"],
+                        pkg["version_key"],
+                        pkg["architecture"],
+                    )
+                    index[index_key] = Package(**pkg)  # type: ignore
+
+    return index
 
 
 def make_generic_index(
@@ -943,21 +967,7 @@ def process_apt(
             prev_dist_packages = existing.get(index_dist)
             if prev_dist_packages is None:
                 idxfile = index_dir / f"{index_dist}.json"
-                prev_dist_packages = {}
-                if idxfile.exists():
-                    with open(idxfile, "r") as f:
-                        data = json.load(f)
-                        if isinstance(data, dict) and (
-                            pkglist := data.get("packages")
-                        ):
-                            for pkg in pkglist:
-                                index_key = (
-                                    pkg["basename"],
-                                    pkg["version_key"],
-                                    pkg["architecture"],
-                                )
-                                prev_dist_packages[index_key] = Package(**pkg)
-                existing[index_dist] = prev_dist_packages
+                existing[index_dist] = prev_dist_packages = load_index(idxfile)
 
             dist_packages = packages.get(index_dist)
             if dist_packages is None:
@@ -1078,7 +1088,7 @@ def process_rpm(
     s3session: s3.S3ServiceResource,
     tf: tarfile.TarFile,
     metadata: dict[str, Any],
-    bucket_name,
+    bucket_name: str,
     temp_dir: pathlib.Path,
     local_dir: pathlib.Path,
 ) -> None:
@@ -1101,13 +1111,12 @@ def process_rpm(
 
     dist = metadata["dist"]
     channel = metadata["channel"]
-    arch = metadata["architecture"]
 
     idx = dist
     if channel != "stable":
         idx += f".{channel}"
 
-    dist_dir = pathlib.Path(dist) / channel / arch
+    dist_dir = pathlib.Path(dist) / channel / metadata["architecture"]
     local_dist_dir = local_rpm_dir / dist_dir
     local_dist_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1166,20 +1175,8 @@ def process_rpm(
     gpg_detach_sign(repomd)
 
     logger.info("process_rpm: loading index")
-    existing: dict[tuple[str, str, str], Package] = {}
-    packages: dict[tuple[str, str, str], Package] = {}
     idxfile = index_dir / f"{idx}.json"
-    if idxfile.exists():
-        with open(idxfile, "r") as f:
-            data = json.load(f)
-            if isinstance(data, dict) and (pkglist := data.get("packages")):
-                for pkg in pkglist:
-                    index_key = (
-                        pkg["basename"],
-                        pkg["version_key"],
-                        pkg["architecture"],
-                    )
-                    existing[index_key] = Package(**pkg)
+    packages = load_index(idxfile)
 
     logger.info("process_rpm: fetching changelogs")
     changelogs = subprocess_run(
@@ -1276,62 +1273,48 @@ def process_rpm(
         elif is_metapackage:
             pkgmetadata["name"] = basename
 
-        ver_details = pkgmetadata["version_details"]
+        version_key = format_version_key(
+            pkgmetadata["version_details"], pkgmetadata["revision"]
+        )
 
         slot_name = pkgmetadata["name"]
         if pkgmetadata.get("version_slot"):
             slot_name += f".{pkgmetadata['version_slot']}"
         slot_name += f".{pkgmetadata['architecture']}"
-
-        version_sort_key = semver.VersionInfo(
-            ver_details["major"],
-            ver_details["minor"] or 0,
-            ver_details["patch"] or 0,
-            ".".join(
-                f"{p['phase']}.{p['number']}"
-                for p in ver_details["prerelease"]
-            ),
-        )
-
         slot_index.setdefault(slot_name, []).append(
             (
-                version_sort_key,
+                version_key,
                 pkgmetadata["name"],
                 nevra,
                 pkgmetadata["architecture"],
             )
         )
 
-        index_key = (pkgmetadata["name"], version_sort_key, arch)
+        installref = InstallRef(
+            ref=nevra,
+            type=None,
+            encoding=None,
+            verification={},
+        )
 
-        if index_key in existing:
-            packages[index_key] = existing[index_key]
-            packages[index_key]["architecture"] = arch
-        else:
-            installref = InstallRef(
-                ref=nevra,
-                type=None,
-                encoding=None,
-                verification={},
-            )
-
-            append_artifact(packages, pkgmetadata, installref)
+        append_artifact(packages, pkgmetadata, installref)
 
     need_db_update = False
     if channel == "nightly":
         logger.info("process_rpm: collecting garbage")
+        comp = functools.cmp_to_key(debian_support.version_compare)
         for slot_name, versions in slot_index.items():
             sorted_versions = list(
                 sorted(
                     versions,
-                    key=lambda v: v[0],
+                    key=lambda v: comp(v[0]),
                     reverse=True,
                 )
             )
 
             for ver_key, name, ver_nevra, arch in sorted_versions[3:]:
                 logger.info(f"process_rpm: deleting outdated {ver_nevra}")
-                packages.pop((name, ver_key, arch))
+                packages.pop((name, ver_key, arch), None)
                 outdated = local_dist_dir / f"{ver_nevra}.rpm"
                 if outdated.exists():
                     os.unlink(outdated)
