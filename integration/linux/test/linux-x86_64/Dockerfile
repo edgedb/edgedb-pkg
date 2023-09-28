@@ -95,6 +95,20 @@ RUN repoquery -l "glibc" "glibc-common" \
         --files-from=/tmp/contents \
         --file=/tmp/glibc.tar >/dev/null 2>&1 \
         || true
+RUN repoquery -l "libgcc" \
+	| grep -v --fixed-strings -- '/.build-id' \
+	| grep -v --fixed-strings -- '/usr/share/doc' \
+	| grep -v --fixed-strings -- '/usr/share/man' \
+	| sed 's#^/##g' > "/tmp/contents" \
+    && tar \
+        --directory=/ \
+        --create \
+        --no-recursion \
+        --sparse \
+        --no-seek \
+        --files-from=/tmp/contents \
+        --file=/tmp/libgcc.tar >/dev/null 2>&1 \
+        || true
 
 FROM scratch
 COPY --from=builder /build/busybox /bin/busybox
@@ -103,9 +117,11 @@ COPY --from=builder /build/curl /bin/curl
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=golang /bin/gosu /bin/gosu
 COPY --from=glibc /tmp/glibc.tar /tmp/glibc.tar
+COPY --from=glibc /tmp/libgcc.tar /tmp/libgcc.tar
 
 RUN ["/bin/busybox", "--install", "-s", "/bin/"]
 RUN ["/bin/tar", "xvf", "/tmp/glibc.tar", "-C", "/"]
+RUN ["/bin/tar", "xvf", "/tmp/libgcc.tar", "-C", "/"]
 RUN ["/bin/rm", "/tmp/glibc.tar"]
 RUN /bin/echo -e '#!/bin/sh\n\
 \n\
