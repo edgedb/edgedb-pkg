@@ -45,11 +45,11 @@ class Python(packages.BundledCPackage):
     ]
 
     bundle_deps = [
-        openssl.OpenSSL("3.0.8"),
+        openssl.OpenSSL("3.0.11"),
         libb2.LibB2("0.98.1"),
         libffi.LibFFI("3.4.4"),
-        libuuid.LibUUID("2.38"),
-        zlib.Zlib("1.2.13"),
+        libuuid.LibUUID("2.39.2"),
+        zlib.Zlib("1.3"),
     ]
 
     @classmethod

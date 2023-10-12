@@ -44,10 +44,10 @@ class PostgreSQL(packages.BundledCPackage):
     ]
 
     bundle_deps = [
-        icu.ICU("72.1"),
-        libuuid.LibUUID("2.38"),
-        openssl.OpenSSL("3.0.8"),
-        zlib.Zlib("1.2.13"),
+        icu.ICU("73.2"),
+        libuuid.LibUUID("2.39.2"),
+        openssl.OpenSSL("3.0.11"),
+        zlib.Zlib("1.3"),
     ]
 
     @classmethod

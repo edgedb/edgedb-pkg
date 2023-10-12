@@ -13,7 +13,7 @@ class LibUUID(packages.BundledCPackage):
 
     sources = [
         {
-            "url": _server + "v{version}/util-linux-{version}.tar.gz",
+            "url": _server + "v{major_minor_v}/util-linux-{version}.tar.gz",
         }
     ]
 

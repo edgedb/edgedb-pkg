@@ -58,7 +58,7 @@ cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
 version="3.9"
 pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.71.1"
+rustVersion="1.72.0"
 # Do not bump NodeJS to newer, binary releases incompatible with older glibc
 nodeVersion="16.16.0"
 yarnVersion="1.22.19"

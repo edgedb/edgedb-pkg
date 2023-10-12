@@ -70,6 +70,11 @@ class EdgeDB(packages.BundledPythonPackage):
             "python-edgedb (~= 3.11.0)",
             "pgext-pgvector",
         ],
+        ">=5.0.dev1": [
+            "postgresql-edgedb (~= 15.0)",
+            "python-edgedb (~= 3.11.0)",
+            "pgext-pgvector",
+        ],
     }
 
     artifact_build_requirements = [
@@ -77,8 +82,8 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     bundle_deps = [
-        postgresql.PostgreSQL(version="14.8"),
-        postgresql.PostgreSQL(version="15.3"),
+        postgresql.PostgreSQL(version="14.9"),
+        postgresql.PostgreSQL(version="15.4"),
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.3"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
