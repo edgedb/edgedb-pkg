@@ -175,6 +175,7 @@ RUN set -ex; \
 	python get-pip.py \
 		--disable-pip-version-check \
 		"pip==$PYTHON_PIP_VERSION" \
+        "setuptools==68.2.2" \
 	; \
 	pip --version; \
 	\

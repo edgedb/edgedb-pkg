@@ -23,7 +23,7 @@ github = "https://github.com/edgedb/edgedb-pkg/"
 process_incoming = "process_incoming:main"
 
 [build-system]
-requires = ["setuptools>=59", "wheel"]
+requires = ["setuptools ~= 68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

@@ -24,7 +24,7 @@ ENV GO_VERSION 1.21.1
 ENV RUST_VERSION 1.72.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
-ENV GCC_VERSION 10
+ENV GCC_VERSION 11
 
 
 RUN yum install -y centos-release-scl epel-release \
@@ -218,7 +218,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 23.2.1
+ENV PYTHON_PIP_VERSION 23.3.1
 
 RUN set -ex; \
 	\
@@ -227,8 +227,10 @@ RUN set -ex; \
 	python get-pip.py \
 		--disable-pip-version-check \
 		"pip==$PYTHON_PIP_VERSION" \
+        "setuptools==65.7.0" \
 	; \
 	pip --version; \
+    python -c 'import setuptools; print(setuptools.__version__)' \
 	\
 	find /usr/local -depth \
 		\( \

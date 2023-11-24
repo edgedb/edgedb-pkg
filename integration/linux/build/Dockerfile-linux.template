@@ -208,8 +208,10 @@ RUN set -ex; \
 	python get-pip.py \
 		--disable-pip-version-check \
 		"pip==$PYTHON_PIP_VERSION" \
+        "setuptools==65.7.0" \
 	; \
 	pip --version; \
+    python -c 'import setuptools; print(setuptools.__version__)' \
 	\
 	find /usr/local -depth \
 		\( \
