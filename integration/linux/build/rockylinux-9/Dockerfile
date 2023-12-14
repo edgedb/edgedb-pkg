@@ -148,6 +148,10 @@ if [ -n "${PKG_SUBDIST}" ]; then\n\
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
 fi\n\
 \n\
+if [ -n "${PKG_TAGS}" ]; then\n\
+    extraopts+=" --pkg-tags=${PKG_TAGS}"\n\
+fi\n\
+\n\
 if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
     extraopts+=" --extra-optimizations"\n\
 fi\n\

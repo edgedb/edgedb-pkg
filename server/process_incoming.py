@@ -23,6 +23,7 @@ import tempfile
 import textwrap
 
 import boto3
+import boto3.session
 import click
 import filelock
 import semver
@@ -30,6 +31,7 @@ import tomli
 
 from debian import debian_support
 
+import mypy_boto3_s3
 from mypy_boto3_s3 import type_defs as s3types
 from mypy_boto3_s3 import service_resource as s3
 
@@ -46,6 +48,7 @@ logger.setLevel(logging.INFO)
 
 class CommonConfig(TypedDict):
     signing_key: str
+    buckets: dict[str, str]
 
 
 class GenericConfig(TypedDict):
@@ -268,7 +271,7 @@ def remove_old(
     channel: str | None = None,
 ) -> None:
     logger.info("remove_old: %s %s %s %s", bucket, prefix, keep, channel)
-    index: dict[str, dict[str, list[str]]] = {}
+    index: dict[str, dict[semver.VersionInfo, list[str]]] = {}
     prefix_str = str(prefix) + "/"
     for obj in bucket.objects.filter(Prefix=prefix_str):
         if is_metadata_object(obj.key):
@@ -532,19 +535,26 @@ def sync_to_s3(
 
 @click.command()
 @click.option("-c", "--config", default="/etc/genrepo.toml")
-@click.option("--bucket", default="edgedb-packages")
+@click.option("--bucket")
 @click.option("--incoming-dir")
 @click.option("--local-dir")
 @click.argument("upload_listing")  # a single file with a listing of many files
 def main(
     config: str,
-    bucket: str,
+    bucket: Optional[str],
     incoming_dir: str,
     local_dir: str,
     upload_listing: str,
 ) -> None:
     with open(config, "rb") as cf:
         cfg = cast(Config, tomli.load(cf))
+        if "common" not in cfg:
+            raise ValueError("missing required [common] section in config")
+        if not cfg["common"].get("buckets"):
+            cfg["common"]["buckets"] = {}
+
+    if bucket:
+        cfg["common"]["buckets"]["default"] = bucket
 
     os.chdir(incoming_dir)
     with open(upload_listing) as upload_listing_file:
@@ -553,7 +563,7 @@ def main(
 
     region = os.environ.get("AWS_REGION", "us-east-2")
     session = boto3.session.Session(region_name=region)
-    s3 = session.resource("s3")
+    s3: mypy_boto3_s3.S3ServiceResource = session.resource("s3")  # pyright: ignore
 
     for path_str in uploads:
         path = pathlib.Path(path_str)
@@ -578,6 +588,14 @@ def main(
 
                 metadata = json.loads(metadata_file.read())
                 repository = metadata.get("repository")
+                tags = metadata.get("tags") or {}
+                target_bucket = tags.get("bucket", "default")
+                bucket = cfg["common"]["buckets"].get(target_bucket)
+                if bucket is None:
+                    raise RuntimeError(
+                        f"invalid target bucket in metadata: {target_bucket!r}"
+                        f", configure it in genrepo.toml"
+                    )
 
                 local_dir_path = pathlib.Path(local_dir)
                 temp_dir_path = pathlib.Path(temp_dir)

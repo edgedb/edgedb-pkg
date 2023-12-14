@@ -218,7 +218,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 23.2.1
+ENV PYTHON_PIP_VERSION 23.3.1
 
 RUN set -ex; \
 	\
@@ -277,6 +277,10 @@ fi\n\
 \n\
 if [ -n "${PKG_SUBDIST}" ]; then\n\
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"\n\
+fi\n\
+\n\
+if [ -n "${PKG_TAGS}" ]; then\n\
+    extraopts+=" --pkg-tags=${PKG_TAGS}"\n\
 fi\n\
 \n\
 if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
