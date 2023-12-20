@@ -3,6 +3,8 @@
 set -Exeo pipefail
 shopt -s nullglob
 
+PYTHON=${PYTHON:-python3}
+
 extraopts=
 if [ -n "${SRC_REF}" ]; then
     extraopts+=" --source-ref=${SRC_REF}"
@@ -53,19 +55,19 @@ if [ -z "${PACKAGE}" ]; then
 fi
 
 if [ -z "${VIRTUAL_ENV}"]; then
-    python3 -m venv .venv
+    ${PYTHON} -m venv .venv
     source .venv/bin/activate
-    python3 -m pip install -U pip setuptools wheel
+    ${PYTHON} -m pip install -U pip setuptools wheel
 fi
 
-python3 -m pip install --upgrade --upgrade-strategy=eager \
+${PYTHON} -m pip install --upgrade --upgrade-strategy=eager \
     git+https://github.com/edgedb/edgedb-pkg
 
 for old in "${dest}"/*.tar; do
     rm -f "${old}"
 done
 
-echo python3 -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
-python3 -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"
+echo ${PYTHON} -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"
+${PYTHON} -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"
 
 ls -al "${dest}"
