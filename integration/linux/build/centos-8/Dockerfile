@@ -22,7 +22,10 @@ RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
     && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y) || true)
 
-RUN yum install -y \
+# rpm on centos 7 iterates over all fds up to the limit, which is
+# extremely slow. Force it to be small.
+RUN ulimit -n 1024 \
+    && yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
