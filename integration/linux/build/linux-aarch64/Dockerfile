@@ -26,8 +26,10 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV GCC_VERSION 10
 
-
-RUN yum install -y centos-release-scl epel-release \
+# rpm on centos 7 iterates over all fds up to the limit, which is
+# extremely slow. Force it to be small.
+RUN ulimit -n 1024 \
+        && yum install -y centos-release-scl epel-release \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
     wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
