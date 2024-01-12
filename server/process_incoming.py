@@ -463,7 +463,7 @@ def put(
         ct, _ = mimetypes.guess_type(name)
         if ct is not None and "/" in ct:
             content_type = ct
-    logger.info("put %s::%s/%s", bucket, name, target)
+    logger.info("put s3://%s/%s/%s", bucket.name, target, name)
     with ctx as body:
         result = bucket.put_object(
             Key=str(target / name),
