@@ -29,6 +29,15 @@ class PostgreSQLBundle(packages.BundledPackage):
 
     bundle_deps: list[packages.BundledPackage]
 
+    artifact_requirements = {
+        "<16.0": [
+            "pgext-pgvector (== 0.4.2)",
+        ],
+        ">=16.0": [
+            "pgext-pgvector (~= 0.6.0)",
+        ],
+    }
+
     @classmethod
     def resolve(
         cls,
@@ -55,20 +64,18 @@ class PostgreSQLBundle(packages.BundledPackage):
         bundle.bundle_deps = [
             postgres,
             pgvector.PgVector("v0.4.2"),
+            pgvector.PgVector("v0.6.0"),
         ]
 
         return bundle
 
     def get_requirements(self) -> list[poetry_dep.Dependency]:
-        req_spec = [
-            f"postgresql-edgedb (== {self.version})",
-            "pgext-pgvector",
-        ]
-
-        reqs = []
-        for item in req_spec:
-            reqs.append(poetry_dep.Dependency.create_from_pep_508(item))
-
+        reqs = super().get_requirements()
+        reqs.append(
+            poetry_dep.Dependency.create_from_pep_508(
+                f"postgresql-edgedb (== {self.version})"
+            ),
+        )
         return reqs
 
     def get_configure_script(self, build: targets.Build) -> str:
