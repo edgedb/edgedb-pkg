@@ -563,7 +563,9 @@ def main(
 
     region = os.environ.get("AWS_REGION", "us-east-2")
     session = boto3.session.Session(region_name=region)
-    s3: mypy_boto3_s3.S3ServiceResource = session.resource("s3")  # pyright: ignore
+    s3: mypy_boto3_s3.S3ServiceResource = session.resource(
+        "s3"
+    )  # pyright: ignore
 
     for path_str in uploads:
         path = pathlib.Path(path_str)

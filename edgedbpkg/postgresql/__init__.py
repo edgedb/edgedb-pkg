@@ -172,6 +172,7 @@ class PostgreSQL(packages.BundledCPackage):
         bindir = build.get_install_path("bin").relative_to("/")
         datadir = build.get_install_path("data")
         libdir = build.get_install_path("lib")
+        includedir = build.get_install_path("include")
         builddir_hlp = build.get_build_dir(self, relative_to="helpers")
 
         # Since we are using a temporary Postgres installation,
@@ -207,6 +208,38 @@ class PostgreSQL(packages.BundledCPackage):
             "pg_config_wrapper.py", wrapper, relative_to="sourceroot"
         )
 
+        # Same, but for install-time, so includes more paths
+        wrapper = textwrap.dedent(
+            f"""\
+            import pathlib
+            import subprocess
+            import sys
+
+            path = (
+                pathlib.Path(__file__).parent / "{builddir_hlp}" / "_install"
+            ).resolve()
+
+            pgc = path / "{bindir}" / "pg_config"
+
+            proc = subprocess.run(
+                [pgc] + sys.argv[1:],
+                check=True, stdout=subprocess.PIPE,
+                universal_newlines=True)
+
+            for line in proc.stdout.split('\\n'):
+                if ('{datadir}' in line or
+                        '{includedir}' in line or
+                        ('{libdir}' in line and 'pgxs' not in line)):
+                    line = line.replace(str(path), '')
+                print(line)
+        """
+        )
+
+        install_wrapper_cmd = build.write_helper(
+            "pg_config_install_wrapper.py", wrapper, relative_to="sourceroot"
+        )
+
         return {
             "pg_config": wrapper_cmd,
+            "pg_config_install": install_wrapper_cmd,
         }

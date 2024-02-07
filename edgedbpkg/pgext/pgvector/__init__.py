@@ -4,6 +4,7 @@ from typing import (
     Any,
 )
 
+import re
 import shlex
 
 from poetry.core.semver import version as poetry_version
@@ -104,3 +105,31 @@ class PgVector(packages.BundledCPackage):
             linebreaks=False,
             force_args_eq=True,
         )
+
+    def get_make_install_env(self, build: targets.Build, wd: str) -> str:
+        return build.sh_format_args(
+            {
+                "PG_CONFIG": build.sh_get_command("pg_config_install"),
+                "USE_PGXS": "1",
+            },
+            linebreaks=False,
+            force_args_eq=True,
+        )
+
+    def get_patches(self) -> dict[str, list[tuple[str, str]]]:
+        v = f"{self.version.major}{self.version.minor}"
+
+        patches = dict(super().get_patches())
+        for pkg, pkg_patches in patches.items():
+            if pkg == self.name:
+                filtered = []
+                for i, (pn, pfile) in enumerate(list(pkg_patches)):
+                    m = re.match(r"^.*-(\d+)$", pn)
+                    if m and m.group(1) != v:
+                        pass
+                    else:
+                        filtered.append((pn, pfile))
+                patches[pkg] = filtered
+                break
+
+        return patches

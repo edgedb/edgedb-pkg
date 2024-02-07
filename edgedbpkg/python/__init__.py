@@ -117,9 +117,9 @@ class Python(packages.BundledCPackage):
             )
 
         if platform.system() == "Darwin":
-            configure_flags[
-                "--enable-universalsdk"
-            ] = "!$(xcrun --show-sdk-path)"
+            configure_flags["--enable-universalsdk"] = (
+                "!$(xcrun --show-sdk-path)"
+            )
             arch = build.target.machine_architecture
             if arch == "x86_64":
                 configure_flags["--with-universal-archs"] = "intel-64"
@@ -144,9 +144,9 @@ class Python(packages.BundledCPackage):
             )
             openssl_path /= build.get_full_install_prefix().relative_to("/")
             configure_flags["--with-openssl"] = openssl_path
-            configure_flags[
-                "--with-openssl-rpath"
-            ] = openssl_pkg.get_shlib_paths(build)[0]
+            configure_flags["--with-openssl-rpath"] = (
+                openssl_pkg.get_shlib_paths(build)[0]
+            )
 
         self.configure_dependency(build, configure_flags, "uuid", "LIBUUID")
         self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
