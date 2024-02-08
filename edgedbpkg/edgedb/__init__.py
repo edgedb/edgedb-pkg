@@ -7,6 +7,7 @@ import base64
 import os
 import pathlib
 import platform
+import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
@@ -523,6 +524,29 @@ class EdgeDB(packages.BundledPythonPackage):
 
 
 class Cryptography(packages.PythonPackage):
+    def sh_get_build_wheel_env(
+        self, build: targets.Build, *, site_packages_var: str
+    ) -> dict[str, str]:
+        env = dict(
+            super().sh_get_build_wheel_env(
+                build, site_packages_var=site_packages_var
+            )
+        )
+        env["OPENSSL_STATIC"] = "0"
+
+        openssl_pkg = build.get_package("openssl")
+        if build.is_bundled(openssl_pkg):
+            openssl_path = build.get_install_dir(
+                openssl_pkg, relative_to="pkgbuild"
+            )
+            openssl_path /= build.get_full_install_prefix().relative_to("/")
+            quoted = shlex.quote(str(openssl_path))
+            pwd = "$(pwd -P)"
+            env["OPENSSL_LIB_DIR"] = f"!{pwd}/{quoted}/lib"
+            env["OPENSSL_INCLUDE_DIR"] = f"!{pwd}/{quoted}/include"
+
+        return env
+
     def get_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
