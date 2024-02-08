@@ -15,7 +15,7 @@ RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
     && yum update -y) || true)
 
 RUN yum install --enablerepo=devel -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
+    wget gcc gcc-c++ make patch zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
