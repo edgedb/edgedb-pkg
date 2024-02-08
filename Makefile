@@ -5,7 +5,7 @@ SUPPORTED_TARGETS = \
 	debian-buster \
 	debian-bullseye \
 	debian-bookworm \
-	ubuntu-xenial \
+	ubuntu-bionic \
 	ubuntu-focal \
 	ubuntu-hirsute \
 	ubuntu-jammy \
