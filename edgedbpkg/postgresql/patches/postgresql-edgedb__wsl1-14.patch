@@ -1,4 +1,4 @@
-From 4c98f416c71bef09553978553c2d3226da8347bc Mon Sep 17 00:00:00 2001
+From 275146bc9cf298c9cceae7fa49914cdabbbbd663 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Jul 2022 16:44:07 -0700
 Subject: [PATCH 1/5] Add a workaround for WSL1 signal mishandling
@@ -23,10 +23,10 @@ See https://github.com/microsoft/WSL/issues/8619
  10 files changed, 52 insertions(+), 1 deletion(-)
 
 diff --git a/configure b/configure
-index 3dced63f31..513c1133e7 100755
+index df63738bee..f80b4f5c6e 100755
 --- a/configure
 +++ b/configure
-@@ -13793,7 +13793,7 @@ $as_echo "#define HAVE_STDBOOL_H 1" >>confdefs.h
+@@ -13795,7 +13795,7 @@ $as_echo "#define HAVE_STDBOOL_H 1" >>confdefs.h
  fi
  
  
@@ -36,7 +36,7 @@ index 3dced63f31..513c1133e7 100755
    as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
  ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
 diff --git a/configure.ac b/configure.ac
-index c2dd93a291..c8b788b1b5 100644
+index 44b630c5e1..70e16d7041 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1439,6 +1439,7 @@ AC_CHECK_HEADERS(m4_normalize([
@@ -48,7 +48,7 @@ index c2dd93a291..c8b788b1b5 100644
  	ucred.h
  	wctype.h
 diff --git a/src/backend/postmaster/postmaster.c b/src/backend/postmaster/postmaster.c
-index fb4cda7e72..39f84f46ba 100644
+index 0a4533251b..8acba929e6 100644
 --- a/src/backend/postmaster/postmaster.c
 +++ b/src/backend/postmaster/postmaster.c
 @@ -81,6 +81,10 @@
@@ -62,7 +62,7 @@ index fb4cda7e72..39f84f46ba 100644
  #ifdef USE_BONJOUR
  #include <dns_sd.h>
  #endif
-@@ -1128,6 +1132,11 @@ PostmasterMain(int argc, char *argv[])
+@@ -1139,6 +1143,11 @@ PostmasterMain(int argc, char *argv[])
  	ereport(LOG,
  			(errmsg("starting %s", PG_VERSION_STR)));
  
@@ -73,8 +73,8 @@ index fb4cda7e72..39f84f46ba 100644
 +
  	/*
  	 * Establish input sockets.
- 	 *
-@@ -2678,6 +2687,31 @@ InitProcessGlobals(void)
+ 	 */
+@@ -2681,6 +2690,31 @@ InitProcessGlobals(void)
  }
  
  
@@ -138,7 +138,7 @@ index 381d9e548d..7940701a95 100644
  
  int			DateStyle = USE_ISO_DATES;
 diff --git a/src/backend/utils/init/miscinit.c b/src/backend/utils/init/miscinit.c
-index 922f553512..054b499149 100644
+index 1f0b3175ae..bf4b231b5a 100644
 --- a/src/backend/utils/init/miscinit.c
 +++ b/src/backend/utils/init/miscinit.c
 @@ -120,6 +120,7 @@ InitPostmasterChild(void)
@@ -162,10 +162,10 @@ index 3f155ce4f8..12ce81ab3c 100644
  extern PGDLLIMPORT bool ExitOnAnyError;
  
 diff --git a/src/include/pg_config.h.in b/src/include/pg_config.h.in
-index 40d513c128..ffedf453f5 100644
+index 51fa911fb6..0f773b2e76 100644
 --- a/src/include/pg_config.h.in
 +++ b/src/include/pg_config.h.in
-@@ -667,6 +667,9 @@
+@@ -664,6 +664,9 @@
  /* Define to 1 if you have the <sys/un.h> header file. */
  #undef HAVE_SYS_UN_H
  
@@ -188,10 +188,10 @@ index 0efdd7c232..1d087da9c1 100644
  extern int	MaxLivePostmasterChildren(void);
  
 diff --git a/src/tools/msvc/Solution.pm b/src/tools/msvc/Solution.pm
-index 577b5afea7..dc658916e5 100644
+index 53d60dbd25..6c556ec4af 100644
 --- a/src/tools/msvc/Solution.pm
 +++ b/src/tools/msvc/Solution.pm
-@@ -415,6 +415,7 @@ sub GenerateFiles
+@@ -414,6 +414,7 @@ sub GenerateFiles
  		HAVE_SYS_UCRED_H                         => undef,
  		HAVE_SYS_UIO_H                           => undef,
  		HAVE_SYS_UN_H                            => undef,
@@ -200,5 +200,5 @@ index 577b5afea7..dc658916e5 100644
  		HAVE_TYPEOF                              => undef,
  		HAVE_UCRED_H                             => undef,
 -- 
-2.39.3
+2.43.0
 

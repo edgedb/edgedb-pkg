@@ -1,4 +1,4 @@
-From da56725992f530ecf3b466bd9620da119167e369 Mon Sep 17 00:00:00 2001
+From af2576302f4463be7c4d16d3e6acf98fe25e49ce Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Mon, 17 Oct 2022 16:32:14 -0700
 Subject: [PATCH 4/5] Make sure installation directories are predictable
@@ -11,7 +11,7 @@ or `pgsql`.
  1 file changed, 6 insertions(+), 32 deletions(-)
 
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 1891d957fa..26e0d63b28 100644
+index 0df9f13f4a..ddd444c5f9 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -82,8 +82,7 @@ vpathsearch = `for f in $(addsuffix /$(1),$(subst :, ,. $(VPATH))); do test -r $
@@ -77,5 +77,5 @@ index 1891d957fa..26e0d63b28 100644
  htmldir := @htmldir@
  
 -- 
-2.39.3
+2.43.0
 

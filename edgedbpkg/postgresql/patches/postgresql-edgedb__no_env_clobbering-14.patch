@@ -1,4 +1,4 @@
-From bb1115b2926b3eb24ed8700ce62999e248dcdcc9 Mon Sep 17 00:00:00 2001
+From 1109e1c6beb04011bfba44b6951b1f330076d876 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Tue, 16 Aug 2022 22:00:31 -0700
 Subject: [PATCH 3/5] Add an envvar escape hatch to disable argv clobbering
@@ -83,5 +83,5 @@ index bad8afb1b2..9455f292eb 100644
  	/* If ps_buffer is a pointer, it might still be null */
  	if (!ps_buffer)
 -- 
-2.39.3
+2.43.0
 

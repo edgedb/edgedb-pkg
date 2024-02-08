@@ -1,4 +1,4 @@
-From 587f5abbaafe0d22844f4b3267abc5d47bee86ab Mon Sep 17 00:00:00 2001
+From b2cebfdb8e170d3c4e3fb3e392c4fd52dcf90918 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Sat, 30 May 2020 18:53:22 -0700
 Subject: [PATCH 2/5] Add a version of popen() that respects the SHELL
@@ -41,7 +41,7 @@ index 429844fdd3..c52a080e2a 100644
  		pg_log_error("could not execute command \"%s\": %m", command);
  	return cmdfd;
 diff --git a/src/bin/pg_ctl/pg_ctl.c b/src/bin/pg_ctl/pg_ctl.c
-index dd78e5bc66..36bf0b6720 100644
+index f58320b806..12c6f4311d 100644
 --- a/src/bin/pg_ctl/pg_ctl.c
 +++ b/src/bin/pg_ctl/pg_ctl.c
 @@ -29,6 +29,7 @@
@@ -380,5 +380,5 @@ index 0000000000..423aff536b
 +
 +#endif
 -- 
-2.39.3
+2.43.0
 

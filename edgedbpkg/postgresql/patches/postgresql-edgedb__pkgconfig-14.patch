@@ -1,4 +1,4 @@
-From 0f85fcc4d607a78ff4513da70a68a5bfb24d7277 Mon Sep 17 00:00:00 2001
+From 7f2bec0b331a82092a18ec7649752b9dd7fc7e0c Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
 Subject: [PATCH 5/5] Use pkg-config for libuuid, openssl and zlib
@@ -19,7 +19,7 @@ Subject: [PATCH 5/5] Use pkg-config for libuuid, openssl and zlib
  12 files changed, 755 insertions(+), 35 deletions(-)
 
 diff --git a/configure b/configure
-index 513c1133e7..9d4f77c00a 100755
+index f80b4f5c6e..da70b68200 100755
 --- a/configure
 +++ b/configure
 @@ -651,9 +651,14 @@ CFLAGS_SSE42
@@ -65,7 +65,7 @@ index 513c1133e7..9d4f77c00a 100755
    MSGFMT      msgfmt program for NLS
    TCLSH       Tcl interpreter program (tclsh)
  
-@@ -12638,7 +12657,74 @@ Use --without-readline to disable readline support." "$LINENO" 5
+@@ -12640,7 +12659,74 @@ Use --without-readline to disable readline support." "$LINENO" 5
  fi
  
  if test "$with_zlib" = yes; then
@@ -141,7 +141,7 @@ index 513c1133e7..9d4f77c00a 100755
  $as_echo_n "checking for inflate in -lz... " >&6; }
  if ${ac_cv_lib_z_inflate+:} false; then :
    $as_echo_n "(cached) " >&6
-@@ -12675,19 +12761,105 @@ fi
+@@ -12677,19 +12763,105 @@ fi
  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_z_inflate" >&5
  $as_echo "$ac_cv_lib_z_inflate" >&6; }
  if test "x$ac_cv_lib_z_inflate" = xyes; then :
@@ -252,7 +252,7 @@ index 513c1133e7..9d4f77c00a 100755
  fi
  
  if test "$enable_spinlocks" = yes; then
-@@ -12835,10 +13007,108 @@ if test "$with_openssl" = yes ; then
+@@ -12837,10 +13009,108 @@ if test "$with_openssl" = yes ; then
  fi
  
  if test "$with_ssl" = openssl ; then
@@ -362,7 +362,7 @@ index 513c1133e7..9d4f77c00a 100755
    if test "$PORTNAME" != "win32"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
-@@ -13110,6 +13380,10 @@ done
+@@ -13112,6 +13382,10 @@ done
  
  $as_echo "#define USE_OPENSSL 1" >>confdefs.h
  
@@ -373,7 +373,7 @@ index 513c1133e7..9d4f77c00a 100755
  elif test "$with_ssl" != no ; then
    as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
  fi
-@@ -13558,14 +13832,85 @@ else
+@@ -13560,14 +13834,85 @@ else
  fi
  
  elif test "$with_uuid" = e2fs ; then
@@ -466,7 +466,7 @@ index 513c1133e7..9d4f77c00a 100755
    $as_echo_n "(cached) " >&6
  else
    ac_check_lib_save_LIBS=$LIBS
-@@ -13579,34 +13924,279 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -13581,34 +13926,279 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  #ifdef __cplusplus
  extern "C"
  #endif
@@ -755,7 +755,7 @@ index 513c1133e7..9d4f77c00a 100755
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
-@@ -14016,6 +14606,8 @@ done
+@@ -14018,6 +14608,8 @@ done
  fi
  
  if test "$with_zlib" = yes; then
@@ -764,7 +764,7 @@ index 513c1133e7..9d4f77c00a 100755
    ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
  if test "x$ac_cv_header_zlib_h" = xyes; then :
  
-@@ -14027,6 +14619,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
+@@ -14029,6 +14621,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
  fi
  
  
@@ -772,7 +772,7 @@ index 513c1133e7..9d4f77c00a 100755
  fi
  
  if test "$with_lz4" = yes; then
-@@ -14077,6 +14670,8 @@ done
+@@ -14079,6 +14672,8 @@ done
  fi
  
  if test "$with_ssl" = openssl ; then
@@ -781,7 +781,7 @@ index 513c1133e7..9d4f77c00a 100755
    ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
  if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
  
-@@ -14093,6 +14688,7 @@ else
+@@ -14095,6 +14690,7 @@ else
  fi
  
  
@@ -789,7 +789,7 @@ index 513c1133e7..9d4f77c00a 100755
  fi
  
  if test "$with_pam" = yes ; then
-@@ -14258,6 +14854,9 @@ fi
+@@ -14260,6 +14856,9 @@ fi
  
  fi
  
@@ -799,7 +799,7 @@ index 513c1133e7..9d4f77c00a 100755
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    for ac_header in uuid.h
-@@ -14392,6 +14991,8 @@ done
+@@ -14394,6 +14993,8 @@ done
  
  fi
  
@@ -808,7 +808,7 @@ index 513c1133e7..9d4f77c00a 100755
  if test "$PORTNAME" = "win32" ; then
     for ac_header in crtdefs.h
  do :
-@@ -15286,6 +15887,8 @@ if test "$with_zlib" = yes; then
+@@ -15288,6 +15889,8 @@ if test "$with_zlib" = yes; then
    # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
    # did not).  While we could work around the lack of z_streamp, it
    # seems unwise to encourage people to use such old zlib versions...
@@ -817,7 +817,7 @@ index 513c1133e7..9d4f77c00a 100755
    ac_fn_c_check_type "$LINENO" "z_streamp" "ac_cv_type_z_streamp" "#include <zlib.h>
  "
  if test "x$ac_cv_type_z_streamp" = xyes; then :
-@@ -15295,6 +15898,7 @@ else
+@@ -15297,6 +15900,7 @@ else
  Use --without-zlib to disable zlib support." "$LINENO" 5
  fi
  
@@ -826,7 +826,7 @@ index 513c1133e7..9d4f77c00a 100755
  
  case $host_cpu in
 diff --git a/configure.ac b/configure.ac
-index c8b788b1b5..02d8da499e 100644
+index 70e16d7041..9fa9ffa020 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1248,11 +1248,39 @@ Use --without-readline to disable readline support.])
@@ -1043,7 +1043,7 @@ index dd1ff83b16..20a4615287 100644
 +
  SHLIB_LINK += $(filter -lssl -lcrypto -lssleay32 -leay32, $(LIBS))
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 26e0d63b28..eb634a27a6 100644
+index ddd444c5f9..de1e92c7fb 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -190,6 +190,13 @@ krb_srvtab = @krb_srvtab@
@@ -1138,10 +1138,10 @@ index 60c3018fa7..885e745494 100644
  OBJS_COMMON += \
  	cryptohash.o \
 diff --git a/src/include/pg_config.h.in b/src/include/pg_config.h.in
-index ffedf453f5..50a462cb61 100644
+index 0f773b2e76..e58ae96377 100644
 --- a/src/include/pg_config.h.in
 +++ b/src/include/pg_config.h.in
-@@ -357,7 +357,7 @@
+@@ -354,7 +354,7 @@
  /* Define to 1 if you have the `xslt' library (-lxslt). */
  #undef HAVE_LIBXSLT
  
@@ -1163,5 +1163,5 @@ index 43682574b2..555858c617 100644
  
  ifeq ($(with_gssapi),yes)
 -- 
-2.39.3
+2.43.0
 
