@@ -537,7 +537,7 @@ class Cryptography(packages.PythonPackage):
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
             openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to="pkgbuild"
+                openssl_pkg, relative_to="pkgsource"
             )
             openssl_path /= build.get_full_install_prefix().relative_to("/")
             quoted = shlex.quote(str(openssl_path))
@@ -549,12 +549,12 @@ class Cryptography(packages.PythonPackage):
 
     def get_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
+        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1.100"))
         return reqs
 
     def get_build_requirements(self) -> list[poetry_dep.Dependency]:
         reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1"))
+        reqs.append(poetry_dep.Dependency("openssl-dev", ">=1.1.1.100"))
         return reqs
 
 
