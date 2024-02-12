@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 python.set_python_runtime_dependency(
     poetry_dep.Dependency(
         name="python-edgedb",
-        constraint=">=3.10.0,<3.12.0",
+        constraint=">=3.10.0,<3.13.0",
         allows_prereleases=True,
     )
 )
@@ -73,7 +73,7 @@ class EdgeDB(packages.BundledPythonPackage):
         ],
         ">=5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
-            "python-edgedb (~= 3.11.0)",
+            "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
         ],
     }
@@ -87,6 +87,7 @@ class EdgeDB(packages.BundledPythonPackage):
         postgresql.PostgreSQL(version="15.6"),
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.8"),
+        python_bundle.Python(version="3.12.2"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
         pgvector.PgVector("v0.4.2"),
         pgvector.PgVector("v0.6.0"),
