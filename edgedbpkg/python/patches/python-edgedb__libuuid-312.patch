@@ -1,0 +1,240 @@
+From 4d35a188aaa4de6e7cc99c9ef9d25f0114f0e8df Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 8 Jun 2023 00:22:04 -0700
+Subject: [PATCH] Improve detection of libuuid
+
+---
+ configure    | 102 +++++++++++++++++++++------------------------------
+ configure.ac |  51 ++++++++++++++------------
+ 2 files changed, 70 insertions(+), 83 deletions(-)
+
+diff --git a/configure b/configure
+index 259cbafb83..6d1d84e505 100755
+--- a/configure
++++ b/configure
+@@ -13260,22 +13260,42 @@ fi
+ 	echo "$LIBUUID_PKG_ERRORS" >&5
+ 
+ 
+-      save_CFLAGS=$CFLAGS
++    have_uuid=missing
++
++elif test $pkg_failed = untried; then
++        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
++printf "%s\n" "no" >&6; }
++
++    have_uuid=missing
++
++else
++	LIBUUID_CFLAGS=$pkg_cv_LIBUUID_CFLAGS
++	LIBUUID_LIBS=$pkg_cv_LIBUUID_LIBS
++        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++printf "%s\n" "yes" >&6; }
++
++    possibly_have_uuid=yes
++
++fi
++
++fi
++
++save_CFLAGS=$CFLAGS
+ save_CPPFLAGS=$CPPFLAGS
+ save_LDFLAGS=$LDFLAGS
+ save_LIBS=$LIBS
+ 
+ 
+-        CPPFLAGS="$CPPFLAGS $LIBUUID_CFLAGS"
+-        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
+-               for ac_header in uuid/uuid.h
++  CPPFLAGS="$CFLAGS $LIBUUID_CFLAGS"
++  LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
++         for ac_header in uuid/uuid.h
+ do :
+   ac_fn_c_check_header_compile "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
+ if test "x$ac_cv_header_uuid_uuid_h" = xyes
+ then :
+   printf "%s\n" "#define HAVE_UUID_UUID_H 1" >>confdefs.h
+ 
+-          py_check_lib_save_LIBS=$LIBS
++    py_check_lib_save_LIBS=$LIBS
+ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
+ printf %s "checking for uuid_generate_time in -luuid... " >&6; }
+ if test ${ac_cv_lib_uuid_uuid_generate_time+y}
+@@ -13357,51 +13377,23 @@ printf "%s\n" "$ac_cv_lib_uuid_uuid_generate_time_safe" >&6; }
+ if test "x$ac_cv_lib_uuid_uuid_generate_time_safe" = xyes
+ then :
+   have_uuid=yes
+-            printf "%s\n" "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
++      printf "%s\n" "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
+ 
+ fi
+ 
+ LIBS=$py_check_lib_save_LIBS
+ 
+-fi
+-
+-done
+-        if test "x$have_uuid" = xyes
+-then :
+-
+-          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
+-          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
+-
+-fi
+-
+-CFLAGS=$save_CFLAGS
+-CPPFLAGS=$save_CPPFLAGS
+-LDFLAGS=$save_LDFLAGS
+-LIBS=$save_LIBS
+-
+-
+-
+-
+-elif test $pkg_failed = untried; then
+-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+-printf "%s\n" "no" >&6; }
+-
+-      save_CFLAGS=$CFLAGS
+-save_CPPFLAGS=$CPPFLAGS
+-save_LDFLAGS=$LDFLAGS
+-save_LIBS=$LIBS
+ 
++else $as_nop
+ 
+-        CPPFLAGS="$CPPFLAGS $LIBUUID_CFLAGS"
+-        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
+-               for ac_header in uuid/uuid.h
++           for ac_header in uuid.h
+ do :
+-  ac_fn_c_check_header_compile "$LINENO" "uuid/uuid.h" "ac_cv_header_uuid_uuid_h" "$ac_includes_default"
+-if test "x$ac_cv_header_uuid_uuid_h" = xyes
++  ac_fn_c_check_header_compile "$LINENO" "uuid.h" "ac_cv_header_uuid_h" "$ac_includes_default"
++if test "x$ac_cv_header_uuid_h" = xyes
+ then :
+-  printf "%s\n" "#define HAVE_UUID_UUID_H 1" >>confdefs.h
++  printf "%s\n" "#define HAVE_UUID_H 1" >>confdefs.h
+ 
+-          py_check_lib_save_LIBS=$LIBS
++      py_check_lib_save_LIBS=$LIBS
+ { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for uuid_generate_time in -luuid" >&5
+ printf %s "checking for uuid_generate_time in -luuid... " >&6; }
+ if test ${ac_cv_lib_uuid_uuid_generate_time+y}
+@@ -13483,20 +13475,26 @@ printf "%s\n" "$ac_cv_lib_uuid_uuid_generate_time_safe" >&6; }
+ if test "x$ac_cv_lib_uuid_uuid_generate_time_safe" = xyes
+ then :
+   have_uuid=yes
+-            printf "%s\n" "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
++        printf "%s\n" "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
+ 
+ fi
+ 
+ LIBS=$py_check_lib_save_LIBS
+ 
++
++fi
++
++done
++
+ fi
+ 
+ done
+-        if test "x$have_uuid" = xyes
++
++  if test "x$have_uuid" = xyes
+ then :
+ 
+-          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
+-          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
++    LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++    LIBUUID_LIBS=${LIBUUID_LIBS-""}
+ 
+ fi
+ 
+@@ -13507,22 +13505,6 @@ LIBS=$save_LIBS
+ 
+ 
+ 
+-
+-else
+-	LIBUUID_CFLAGS=$pkg_cv_LIBUUID_CFLAGS
+-	LIBUUID_LIBS=$pkg_cv_LIBUUID_LIBS
+-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+-printf "%s\n" "yes" >&6; }
+-	            have_uuid=yes
+-      printf "%s\n" "#define HAVE_UUID_H 1" >>confdefs.h
+-
+-      printf "%s\n" "#define HAVE_UUID_GENERATE_TIME_SAFE 1" >>confdefs.h
+-
+-
+-fi
+-
+-fi
+-
+ if test "x$have_uuid" = xmissing
+ then :
+ 
+diff --git a/configure.ac b/configure.ac
+index bdd739961f..076f43b694 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -3596,29 +3596,34 @@ AC_CHECK_HEADERS([uuid.h],
+ ])
+ 
+ AS_VAR_IF([have_uuid], [missing], [
+-  PKG_CHECK_MODULES(
+-    [LIBUUID], [uuid >= 2.20],
+-      [dnl linux-util's libuuid has uuid_generate_time_safe() since v2.20 (2011)
+-      dnl and provides <uuid.h>.
+-      have_uuid=yes
+-      AC_DEFINE([HAVE_UUID_H], [1])
+-      AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1])
+-    ], [
+-      WITH_SAVE_ENV([
+-        CPPFLAGS="$CPPFLAGS $LIBUUID_CFLAGS"
+-        LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
+-        AC_CHECK_HEADERS([uuid/uuid.h], [
+-          PY_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
+-          PY_CHECK_LIB([uuid], [uuid_generate_time_safe],
+-            [have_uuid=yes
+-            AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1]) ]) ])
+-        AS_VAR_IF([have_uuid], [yes], [
+-          LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
+-          LIBUUID_LIBS=${LIBUUID_LIBS-"-luuid"}
+-        ])
+-      ])
+-    ]
+-  )
++  PKG_CHECK_MODULES([LIBUUID], [uuid >= 2.20], [
++    possibly_have_uuid=yes
++  ], [
++    have_uuid=missing
++  ])
++])
++
++WITH_SAVE_ENV([
++  CPPFLAGS="$CFLAGS $LIBUUID_CFLAGS"
++  LDFLAGS="$LDFLAGS $LIBUUID_LIBS"
++  AC_CHECK_HEADERS([uuid/uuid.h], [
++    PY_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++    PY_CHECK_LIB([uuid], [uuid_generate_time_safe],
++      [have_uuid=yes
++      AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1]) ])
++  ], [
++    AC_CHECK_HEADERS([uuid.h], [
++      PY_CHECK_LIB([uuid], [uuid_generate_time], [have_uuid=yes])
++      PY_CHECK_LIB([uuid], [uuid_generate_time_safe],
++        [have_uuid=yes
++        AC_DEFINE([HAVE_UUID_GENERATE_TIME_SAFE], [1]) ])
++    ])
++  ])
++
++  AS_VAR_IF([have_uuid], [yes], [
++    LIBUUID_CFLAGS=${LIBUUID_CFLAGS-""}
++    LIBUUID_LIBS=${LIBUUID_LIBS-""}
++  ])
+ ])
+ 
+ dnl macOS has uuid/uuid.h but uuid_generate_time is in libc
+-- 
+2.43.0
+
