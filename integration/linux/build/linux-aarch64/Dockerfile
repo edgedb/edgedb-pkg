@@ -20,11 +20,11 @@ ENV PATCHELF_VERSION 0.13
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV GO_VERSION 1.21.1
-ENV RUST_VERSION 1.72.0
+ENV GO_VERSION 1.21.6
+ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
-ENV GCC_VERSION 10
+ENV GCC_VERSION 11
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small.
