@@ -1,0 +1,204 @@
+From 71f8c17c2ebbe2dc2a4ccc8058bdfa4a0bccefb4 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Fri, 15 Jul 2022 16:44:07 -0700
+Subject: [PATCH 1/5] Add a workaround for WSL1 signal mishandling
+
+WSL1 appears to mishandle `signal(..., SIG_IGN)` followed by
+`sigprocmask`, which leads to `SetLatch` being completely broken because
+`SIGURG` ends up being ignored instead of blocked and forwarded via
+`signalfd`.
+
+See https://github.com/microsoft/WSL/issues/8619
+---
+ configure                           |  2 +-
+ configure.ac                        |  1 +
+ src/backend/postmaster/postmaster.c | 34 +++++++++++++++++++++++++++++
+ src/backend/storage/ipc/latch.c     |  4 ++++
+ src/backend/utils/init/globals.c    |  5 +++++
+ src/backend/utils/init/miscinit.c   |  1 +
+ src/include/miscadmin.h             |  1 +
+ src/include/pg_config.h.in          |  3 +++
+ src/include/postmaster/postmaster.h |  1 +
+ src/tools/msvc/Solution.pm          |  1 +
+ 10 files changed, 52 insertions(+), 1 deletion(-)
+
+diff --git a/configure b/configure
+index cbc1ebfc61..7279c98da0 100755
+--- a/configure
++++ b/configure
+@@ -13756,7 +13756,7 @@ $as_echo "#define HAVE_STDBOOL_H 1" >>confdefs.h
+ fi
+ 
+ 
+-for ac_header in atomic.h copyfile.h execinfo.h getopt.h ifaddrs.h langinfo.h mbarrier.h sys/epoll.h sys/event.h sys/personality.h sys/prctl.h sys/procctl.h sys/signalfd.h sys/ucred.h termios.h ucred.h
++for ac_header in atomic.h copyfile.h execinfo.h getopt.h ifaddrs.h langinfo.h mbarrier.h sys/epoll.h sys/event.h sys/personality.h sys/prctl.h sys/procctl.h sys/signalfd.h sys/ucred.h sys/utsname.h termios.h ucred.h
+ do :
+   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+diff --git a/configure.ac b/configure.ac
+index 69b2bbb576..e50ef69f82 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1507,6 +1507,7 @@ AC_CHECK_HEADERS(m4_normalize([
+ 	sys/procctl.h
+ 	sys/signalfd.h
+ 	sys/ucred.h
++	sys/utsname.h
+ 	termios.h
+ 	ucred.h
+ ]))
+diff --git a/src/backend/postmaster/postmaster.c b/src/backend/postmaster/postmaster.c
+index b42aae41fc..5cf77ff0f4 100644
+--- a/src/backend/postmaster/postmaster.c
++++ b/src/backend/postmaster/postmaster.c
+@@ -77,6 +77,10 @@
+ #include <netdb.h>
+ #include <limits.h>
+ 
++#ifdef HAVE_SYS_UTSNAME_H
++#include <sys/utsname.h>
++#endif
++
+ #ifdef USE_BONJOUR
+ #include <dns_sd.h>
+ #endif
+@@ -1186,6 +1190,11 @@ PostmasterMain(int argc, char *argv[])
+ 	ereport(LOG,
+ 			(errmsg("starting %s", PG_VERSION_STR)));
+ 
++	IsUnderWSL1 = DetectWSL1();
++	if (IsUnderWSL1)
++		ereport(LOG,
++				(errmsg("detected WSL1, applying workarounds")));
++
+ 	/*
+ 	 * Establish input sockets.
+ 	 */
+@@ -2684,6 +2693,31 @@ InitProcessGlobals(void)
+ }
+ 
+ /*
++ * DetectWSL1 -- detect if we are running under WSL1
++ */
++bool
++DetectWSL1(void)
++{
++#ifdef HAVE_SYS_UTSNAME_H
++	int rc;
++	struct utsname buf;
++
++	memset(&buf, 0, sizeof buf);
++	rc = uname(&buf);
++	if (rc != 0) {
++		ereport(WARNING,
++				(errmsg("could not determine current kernel release version")));
++		return false;
++	} else {
++		return pg_str_endswith(buf.release, "-Microsoft");
++	}
++#else
++	return false;
++#endif
++}
++
++/*
++ * reset_shared -- reset shared memory and semaphores
+  * Child processes use SIGUSR1 to notify us of 'pmsignals'.  pg_ctl uses
+  * SIGUSR1 to ask postmaster to check for logrotate and promote files.
+  */
+diff --git a/src/backend/storage/ipc/latch.c b/src/backend/storage/ipc/latch.c
+index cdb95c1931..afc69de8a3 100644
+--- a/src/backend/storage/ipc/latch.c
++++ b/src/backend/storage/ipc/latch.c
+@@ -309,6 +309,10 @@ InitializeLatchSupport(void)
+ 	if (signal_fd < 0)
+ 		elog(FATAL, "signalfd() failed");
+ 	ReserveExternalFD();
++
++	if (IsUnderWSL1)
++		/* Workaround https://github.com/microsoft/WSL/issues/8619 */
++		pqsignal(SIGURG, SIG_DFL);
+ #endif
+ 
+ #ifdef WAIT_USE_KQUEUE
+diff --git a/src/backend/utils/init/globals.c b/src/backend/utils/init/globals.c
+index 011ec18015..505f89ab7b 100644
+--- a/src/backend/utils/init/globals.c
++++ b/src/backend/utils/init/globals.c
+@@ -114,6 +114,11 @@ bool		IsUnderPostmaster = false;
+ bool		IsBinaryUpgrade = false;
+ bool		IsBackgroundWorker = false;
+ 
++/*
++ * Whether we are running under WSL1, for various workarounds.
++ */
++bool		IsUnderWSL1 = false;
++
+ bool		ExitOnAnyError = false;
+ 
+ int			DateStyle = USE_ISO_DATES;
+diff --git a/src/backend/utils/init/miscinit.c b/src/backend/utils/init/miscinit.c
+index b0ca61a8d6..e2e1710466 100644
+--- a/src/backend/utils/init/miscinit.c
++++ b/src/backend/utils/init/miscinit.c
+@@ -130,6 +130,7 @@ InitPostmasterChild(void)
+ 	/* In EXEC_BACKEND case we will not have inherited BlockSig etc values */
+ #ifdef EXEC_BACKEND
+ 	pqinitmask();
++	IsUnderWSL1 = DetectWSL1();
+ #endif
+ 
+ 	/* Initialize process-local latch support */
+diff --git a/src/include/miscadmin.h b/src/include/miscadmin.h
+index 14bd574fc2..8bf5413b3b 100644
+--- a/src/include/miscadmin.h
++++ b/src/include/miscadmin.h
+@@ -166,6 +166,7 @@ extern PGDLLIMPORT bool IsPostmasterEnvironment;
+ extern PGDLLIMPORT bool IsUnderPostmaster;
+ extern PGDLLIMPORT bool IsBackgroundWorker;
+ extern PGDLLIMPORT bool IsBinaryUpgrade;
++extern PGDLLIMPORT bool IsUnderWSL1;
+ 
+ extern PGDLLIMPORT bool ExitOnAnyError;
+ 
+diff --git a/src/include/pg_config.h.in b/src/include/pg_config.h.in
+index 174544630e..c2e27b5416 100644
+--- a/src/include/pg_config.h.in
++++ b/src/include/pg_config.h.in
+@@ -478,6 +478,9 @@
+ /* Define to 1 if you have the <sys/ucred.h> header file. */
+ #undef HAVE_SYS_UCRED_H
+ 
++/* Define to 1 if you have the <sys/utsname.h> header file. */
++#undef HAVE_SYS_UTSNAME_H
++
+ /* Define to 1 if you have the <termios.h> header file. */
+ #undef HAVE_TERMIOS_H
+ 
+diff --git a/src/include/postmaster/postmaster.h b/src/include/postmaster/postmaster.h
+index 3b3889c58c..428777a41b 100644
+--- a/src/include/postmaster/postmaster.h
++++ b/src/include/postmaster/postmaster.h
+@@ -53,6 +53,7 @@ extern PGDLLIMPORT const char *progname;
+ extern void PostmasterMain(int argc, char *argv[]) pg_attribute_noreturn();
+ extern void ClosePostmasterPorts(bool am_syslogger);
+ extern void InitProcessGlobals(void);
++extern bool DetectWSL1(void);
+ 
+ extern int	MaxLivePostmasterChildren(void);
+ 
+diff --git a/src/tools/msvc/Solution.pm b/src/tools/msvc/Solution.pm
+index 711fae853f..9e67013288 100644
+--- a/src/tools/msvc/Solution.pm
++++ b/src/tools/msvc/Solution.pm
+@@ -355,6 +355,7 @@ sub GenerateFiles
+ 		HAVE_SYS_STAT_H => 1,
+ 		HAVE_SYS_TYPES_H => 1,
+ 		HAVE_SYS_UCRED_H => undef,
++		HAVE_SYS_UTSNAME_H => undef,
+ 		HAVE_TERMIOS_H => undef,
+ 		HAVE_TYPEOF => undef,
+ 		HAVE_UCRED_H => undef,
+-- 
+2.43.0
+

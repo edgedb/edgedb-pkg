@@ -1,0 +1,387 @@
+From dbdf4bc9f2d94920c3e8f9dea4edc8c4a85cffcf Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Sat, 30 May 2020 18:53:22 -0700
+Subject: [PATCH 2/5] Add a version of popen() that respects the SHELL
+ environment variable
+
+The main motivation here is to workaround SIP on macOS, where all
+binaries in `/bin` will not inherit `DYLD_LIBRARY_PATH`, including
+`/bin/sh`, which is spawned by `popen()`.  This prevents running
+Postgres from a temp installation dir.
+---
+ src/bin/initdb/initdb.c  |   3 +-
+ src/bin/pg_ctl/pg_ctl.c  |   3 +-
+ src/common/Makefile      |   1 +
+ src/common/exec.c        |   6 +-
+ src/common/popen.c       | 224 +++++++++++++++++++++++++++++++++++++++
+ src/include/port/popen.h |  42 ++++++++
+ 6 files changed, 275 insertions(+), 4 deletions(-)
+ create mode 100644 src/common/popen.c
+ create mode 100644 src/include/port/popen.h
+
+diff --git a/src/bin/initdb/initdb.c b/src/bin/initdb/initdb.c
+index 3afe14cb4b..d30497ea28 100644
+--- a/src/bin/initdb/initdb.c
++++ b/src/bin/initdb/initdb.c
+@@ -80,6 +80,7 @@
+ #include "getopt_long.h"
+ #include "mb/pg_wchar.h"
+ #include "miscadmin.h"
++#include "port/popen.h"
+ 
+ 
+ /* Ideally this would be in a .h file, but it hardly seems worth the trouble */
+@@ -681,7 +682,7 @@ popen_check(const char *command, const char *mode)
+ 
+ 	fflush(NULL);
+ 	errno = 0;
+-	cmdfd = popen(command, mode);
++	cmdfd = pg_popen(command, mode);
+ 	if (cmdfd == NULL)
+ 		pg_log_error("could not execute command \"%s\": %m", command);
+ 	return cmdfd;
+diff --git a/src/bin/pg_ctl/pg_ctl.c b/src/bin/pg_ctl/pg_ctl.c
+index fc160b0594..a638829ebf 100644
+--- a/src/bin/pg_ctl/pg_ctl.c
++++ b/src/bin/pg_ctl/pg_ctl.c
+@@ -27,6 +27,7 @@
+ #include "common/logging.h"
+ #include "common/string.h"
+ #include "getopt_long.h"
++#include "port/popen.h"
+ #include "utils/pidfile.h"
+ 
+ #ifdef WIN32					/* on Unix, we don't need libpq */
+@@ -913,7 +914,7 @@ do_init(void)
+ 					   exec_path, pgdata_opt, post_opts, DEVNULL);
+ 
+ 	fflush(NULL);
+-	if (system(cmd) != 0)
++	if (pg_system(cmd) != 0)
+ 	{
+ 		write_stderr(_("%s: database system initialization failed\n"), progname);
+ 		exit(1);
+diff --git a/src/common/Makefile b/src/common/Makefile
+index 113029bf7b..372f8e4d7c 100644
+--- a/src/common/Makefile
++++ b/src/common/Makefile
+@@ -70,6 +70,7 @@ OBJS_COMMON = \
+ 	pg_lzcompress.o \
+ 	pg_prng.o \
+ 	pgfnames.o \
++	popen.o \
+ 	psprintf.o \
+ 	relpath.o \
+ 	rmtree.o \
+diff --git a/src/common/exec.c b/src/common/exec.c
+index f209b934df..b1c6bc88e5 100644
+--- a/src/common/exec.c
++++ b/src/common/exec.c
+@@ -42,6 +42,8 @@
+ #endif
+ #endif
+ 
++#include "port/popen.h"
++
+ /* Inhibit mingw CRT's auto-globbing of command line arguments */
+ #if defined(WIN32) && !defined(_MSC_VER)
+ extern int	_CRT_glob = 0;		/* 0 turns off globbing; 1 turns it on */
+@@ -367,7 +369,7 @@ pipe_read_line(char *cmd, char *line, int maxsize)
+ 	fflush(NULL);
+ 
+ 	errno = 0;
+-	if ((pgver = popen(cmd, "r")) == NULL)
++	if ((pgver = pg_popen(cmd, "r")) == NULL)
+ 	{
+ 		perror("popen failure");
+ 		return NULL;
+@@ -400,7 +402,7 @@ pclose_check(FILE *stream)
+ 	int			exitstatus;
+ 	char	   *reason;
+ 
+-	exitstatus = pclose(stream);
++	exitstatus = pg_pclose(stream);
+ 
+ 	if (exitstatus == 0)
+ 		return 0;				/* all is well */
+diff --git a/src/common/popen.c b/src/common/popen.c
+new file mode 100644
+index 0000000000..6e5393d33d
+--- /dev/null
++++ b/src/common/popen.c
+@@ -0,0 +1,224 @@
++/*	$OpenBSD: popen.c,v 1.17 2005/08/08 08:05:34 espie Exp $ */
++/*
++ * Copyright (c) 1988, 1993
++ *	The Regents of the University of California.  All rights reserved.
++ *
++ * This code is derived from software written by Ken Arnold and
++ * published in UNIX Review, Vol. 6, No. 8.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. Neither the name of the University nor the names of its contributors
++ *    may be used to endorse or promote products derived from this software
++ *    without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include "postgres.h"
++
++#include <sys/param.h>
++#include <sys/wait.h>
++
++#include <signal.h>
++#include <errno.h>
++#include <unistd.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <paths.h>
++
++#include "port/popen.h"
++#include "libpq/pqsignal.h"
++
++static struct pid {
++	struct pid *next;
++	FILE *fp;
++	pid_t pid;
++} *pidlist;
++
++FILE *
++pg_popen(const char *program, const char *type)
++{
++	if (getenv("PGOVERRIDESTDSHELL") == NULL)
++		return popen(program, type);
++
++	struct pid * volatile cur;
++	FILE *iop;
++	int pdes[2];
++	pid_t pid;
++	char *shell = getenv("SHELL");
++	if (shell == NULL)
++		shell = _PATH_BSHELL;
++	char *argp[] = {shell, "-c", NULL, NULL};
++	char *dyld_library_path = getenv("DYLD_LIBRARY_PATH");
++
++	if (dyld_library_path == NULL)
++		dyld_library_path = "<none>";
++
++	if ((*type != 'r' && *type != 'w') || type[1] != '\0') {
++		errno = EINVAL;
++		return (NULL);
++	}
++
++	if ((cur = malloc(sizeof(struct pid))) == NULL)
++		return (NULL);
++
++	if (pipe(pdes) < 0) {
++		free(cur);
++		return (NULL);
++	}
++
++	switch (pid = fork()) {
++	case -1:			/* Error. */
++		(void)close(pdes[0]);
++		(void)close(pdes[1]);
++		free(cur);
++		return (NULL);
++		/* NOTREACHED */
++	case 0:				/* Child. */
++		{
++		struct pid *pcur;
++		/*
++		 * We fork()'d, we got our own copy of the list, no
++		 * contention.
++		 */
++		for (pcur = pidlist; pcur; pcur = pcur->next)
++			close(fileno(pcur->fp));
++
++		if (*type == 'r') {
++			(void) close(pdes[0]);
++			if (pdes[1] != STDOUT_FILENO) {
++				(void)dup2(pdes[1], STDOUT_FILENO);
++				(void)close(pdes[1]);
++			}
++		} else {
++			(void)close(pdes[1]);
++			if (pdes[0] != STDIN_FILENO) {
++				(void)dup2(pdes[0], STDIN_FILENO);
++				(void)close(pdes[0]);
++			}
++		}
++		argp[2] = (char *)program;
++		execv(shell, argp);
++		_exit(127);
++		/* NOTREACHED */
++		}
++	}
++
++	/* Parent; assume fdopen can't fail. */
++	if (*type == 'r') {
++		iop = fdopen(pdes[0], type);
++		(void)close(pdes[1]);
++	} else {
++		iop = fdopen(pdes[1], type);
++		(void)close(pdes[0]);
++	}
++
++	/* Link into list of file descriptors. */
++	cur->fp = iop;
++	cur->pid =  pid;
++	cur->next = pidlist;
++	pidlist = cur;
++
++	return (iop);
++}
++
++/*
++ * shell_pclose --
++ *	Pclose returns -1 if stream is not associated with a `popened' command,
++ *	if already `pclosed', or waitpid returns an error.
++ */
++int
++pg_pclose(FILE *iop)
++{
++	if (getenv("PGOVERRIDESTDSHELL") == NULL)
++		return pclose(iop);
++
++	struct pid *cur, *last;
++	int pstat;
++	pid_t pid;
++
++	/* Find the appropriate file pointer. */
++	for (last = NULL, cur = pidlist; cur; last = cur, cur = cur->next)
++		if (cur->fp == iop)
++			break;
++
++	if (cur == NULL)
++		return (-1);
++
++	(void)fclose(iop);
++
++	do {
++		pid = waitpid(cur->pid, &pstat, 0);
++	} while (pid == -1 && errno == EINTR);
++
++	/* Remove the entry from the linked list. */
++	if (last == NULL)
++		pidlist = cur->next;
++	else
++		last->next = cur->next;
++	free(cur);
++
++	return (pid == -1 ? -1 : pstat);
++}
++
++
++int
++pg_system(const char *command)
++{
++	if (getenv("PGOVERRIDESTDSHELL") == NULL)
++		return system(command);
++
++	char *shell = getenv("SHELL");
++	if (shell == NULL)
++		shell = _PATH_BSHELL;
++
++	pid_t pid;
++	sig_t intsave, quitsave;
++	sigset_t mask, omask;
++	int pstat;
++	char *argp[] = {shell, "-c", NULL, NULL};
++
++	if (!command)		/* just checking... */
++		return(1);
++
++	argp[2] = (char *)command;
++
++	sigemptyset(&mask);
++	sigaddset(&mask, SIGCHLD);
++	sigprocmask(SIG_BLOCK, &mask, &omask);
++	switch (pid = vfork()) {
++	case -1:			/* error */
++		sigprocmask(SIG_SETMASK, &omask, NULL);
++		return(-1);
++	case 0:				/* child */
++		sigprocmask(SIG_SETMASK, &omask, NULL);
++		execv(shell, argp);
++		_exit(127);
++	}
++
++	intsave = (sig_t)  pqsignal(SIGINT, SIG_IGN);
++	quitsave = (sig_t) pqsignal(SIGQUIT, SIG_IGN);
++	pid = waitpid(pid, (int *)&pstat, 0);
++	sigprocmask(SIG_SETMASK, &omask, NULL);
++	(void)pqsignal(SIGINT, intsave);
++	(void)pqsignal(SIGQUIT, quitsave);
++	return (pid == -1 ? -1 : pstat);
++}
+diff --git a/src/include/port/popen.h b/src/include/port/popen.h
+new file mode 100644
+index 0000000000..423aff536b
+--- /dev/null
++++ b/src/include/port/popen.h
+@@ -0,0 +1,42 @@
++/*
++ * Copyright (c) 1988, 1993
++ *	The Regents of the University of California.  All rights reserved.
++ *
++ * This code is derived from software written by Ken Arnold and
++ * published in UNIX Review, Vol. 6, No. 8.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. Neither the name of the University nor the names of its contributors
++ *    may be used to endorse or promote products derived from this software
++ *    without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#ifndef PG_POPEN_H
++#define PG_POPEN_H
++
++#include <stdio.h>
++
++extern FILE *pg_popen(const char *program, const char *type);
++extern int pg_pclose(FILE *iop);
++extern int pg_system(const char *command);
++
++#endif
+-- 
+2.43.0
+

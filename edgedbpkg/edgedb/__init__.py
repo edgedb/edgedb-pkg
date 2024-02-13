@@ -72,7 +72,7 @@ class EdgeDB(packages.BundledPythonPackage):
             "pgext-pgvector",
         ],
         ">=5.0.dev1": [
-            "postgresql-edgedb (~= 15.0)",
+            "postgresql-edgedb (~= 16.0)",
             "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
         ],
@@ -85,6 +85,7 @@ class EdgeDB(packages.BundledPythonPackage):
     bundle_deps = [
         postgresql.PostgreSQL(version="14.11"),
         postgresql.PostgreSQL(version="15.6"),
+        postgresql.PostgreSQL(version="16.2"),
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.8"),
         python_bundle.Python(version="3.12.2"),
