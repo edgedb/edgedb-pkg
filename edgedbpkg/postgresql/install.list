@@ -8,6 +8,7 @@
 {bindir}/psql
 {bindir}/postgres
 {libdir}/postgresql/*.so
+{libdir}/postgresql/*.dylib
 {libdir}/libpq*
 {datadir}/postgresql/extension/*
 {datadir}/postgresql/timezone/**
