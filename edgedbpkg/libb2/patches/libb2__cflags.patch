@@ -1,0 +1,82 @@
+From 9c69da0216dbc8c431c00ffde631653173cd0a87 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Tue, 13 Feb 2024 16:50:37 -0800
+Subject: [PATCH] Fix cross-compilation of fat binaries
+
+Don't lose configure-time `CFLAGS` when building SSE-subvariants.
+---
+ src/Makefile.am | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 7603f39..9673cc0 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -54,52 +54,52 @@ libb2_la_LIBADD += libblake2b_ref.la \
+ 
+ libblake2b_ref_la_SOURCES = blake2b-ref.c
+ libblake2b_ref_la_CPPFLAGS = -DSUFFIX=_ref
+-libblake2b_ref_la_CFLAGS = 
++libblake2b_ref_la_CFLAGS = $(CFLAGS)
+ 
+ libblake2b_sse2_la_SOURCES = blake2b.c
+ libblake2b_sse2_la_CPPFLAGS = -DSUFFIX=_sse2 
+-libblake2b_sse2_la_CFLAGS = -msse2
++libblake2b_sse2_la_CFLAGS = $(CFLAGS) -msse2
+ 
+ libblake2b_ssse3_la_SOURCES = blake2b.c
+ libblake2b_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
+-libblake2b_ssse3_la_CFLAGS = -msse2 -mssse3
++libblake2b_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
+ 
+ libblake2b_sse41_la_SOURCES = blake2b.c
+ libblake2b_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
+-libblake2b_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
++libblake2b_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
+ 
+ libblake2b_avx_la_SOURCES = blake2b.c
+ libblake2b_avx_la_CPPFLAGS = -DSUFFIX=_avx
+-libblake2b_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
++libblake2b_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
+ 
+ libblake2b_xop_la_SOURCES = blake2b.c
+ libblake2b_xop_la_CPPFLAGS = -DSUFFIX=_xop 
+-libblake2b_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
++libblake2b_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
+ 
+ 
+ libblake2s_ref_la_SOURCES = blake2s-ref.c
+ libblake2s_ref_la_CPPFLAGS = -DSUFFIX=_ref
+-libblake2s_ref_la_CFLAGS = 
++libblake2s_ref_la_CFLAGS = $(CFLAGS)
+ 
+ libblake2s_sse2_la_SOURCES = blake2s.c
+ libblake2s_sse2_la_CPPFLAGS = -DSUFFIX=_sse2
+-libblake2s_sse2_la_CFLAGS = -msse2
++libblake2s_sse2_la_CFLAGS = $(CFLAGS) -msse2
+ 
+ libblake2s_ssse3_la_SOURCES = blake2s.c
+ libblake2s_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
+-libblake2s_ssse3_la_CFLAGS = -msse2 -mssse3
++libblake2s_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
+ 
+ libblake2s_sse41_la_SOURCES = blake2s.c
+ libblake2s_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
+-libblake2s_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
++libblake2s_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
+ 
+ libblake2s_avx_la_SOURCES = blake2s.c
+ libblake2s_avx_la_CPPFLAGS = -DSUFFIX=_avx
+-libblake2s_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
++libblake2s_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
+ 
+ libblake2s_xop_la_SOURCES = blake2s.c
+ libblake2s_xop_la_CPPFLAGS = -DSUFFIX=_xop 
+-libblake2s_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
++libblake2s_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
+ 
+ else
+ 
+-- 
+2.43.0
+
