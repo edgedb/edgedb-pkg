@@ -1,7 +1,7 @@
-From f32032bbb2bc2726a0061dd898afd327a9e1bea4 Mon Sep 17 00:00:00 2001
+From d26e800bc3b6fdcfc14502864cff7b3f59ea3fa1 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Tue, 16 Aug 2022 22:00:31 -0700
-Subject: [PATCH 3/5] Add an envvar escape hatch to disable argv clobbering
+Subject: [PATCH] Add an envvar escape hatch to disable argv clobbering
 
 The `set_ps_display` business clobbers the environment block on Linux,
 thus butchering all prior `getenv` calls, which includes
@@ -13,7 +13,7 @@ setting `PG_DISABLE_PS_DISPLAY=1` is the fix.
  1 file changed, 21 insertions(+)
 
 diff --git a/src/backend/utils/misc/ps_status.c b/src/backend/utils/misc/ps_status.c
-index 104c01d966..a471a95792 100644
+index 104c01d966..7ad575f221 100644
 --- a/src/backend/utils/misc/ps_status.c
 +++ b/src/backend/utils/misc/ps_status.c
 @@ -14,6 +14,7 @@
@@ -64,7 +64,7 @@ index 104c01d966..a471a95792 100644
  update_ps_display_precheck(void)
  {
 +	if (disable_ps_display)
-+		return;
++		return false;
 +
  	/* update_process_title=off disables updates */
  	if (!update_process_title)
