@@ -1,140 +1,72 @@
-From 623bc8e48d7912487f78315782288cacdd66dc71 Mon Sep 17 00:00:00 2001
+From ad9b8780269ca19c2ab679f7d93511eccdebad0b Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
-Date: Tue, 13 Feb 2024 17:20:07 -0800
-Subject: [PATCH] Fix cross-compilation of fat binaries
+Date: Tue, 13 Feb 2024 21:23:08 -0800
+Subject: [PATCH] Preserve user-supplied CFLAGS
 
-Don't lose configure-time `CFLAGS` when building SSE-subvariants.
+Fixes cross-compilation among other things.
 ---
- src/Makefile.am | 24 ++++++++++++------------
- src/Makefile.in | 24 ++++++++++++------------
- 2 files changed, 24 insertions(+), 24 deletions(-)
+ configure    | 35 -----------------------------------
+ configure.ac |  1 -
+ 2 files changed, 36 deletions(-)
 
-diff --git a/src/Makefile.am b/src/Makefile.am
-index 215a434..ef812fd 100644
---- a/src/Makefile.am
-+++ b/src/Makefile.am
-@@ -54,52 +54,52 @@ libb2_la_LIBADD += libblake2b_ref.la \
- 
- libblake2b_ref_la_SOURCES = blake2b-ref.c
- libblake2b_ref_la_CPPFLAGS = -DSUFFIX=_ref
--libblake2b_ref_la_CFLAGS = 
-+libblake2b_ref_la_CFLAGS = $(CFLAGS)
- 
- libblake2b_sse2_la_SOURCES = blake2b.c
- libblake2b_sse2_la_CPPFLAGS = -DSUFFIX=_sse2 
--libblake2b_sse2_la_CFLAGS = -msse2
-+libblake2b_sse2_la_CFLAGS = $(CFLAGS) -msse2
- 
- libblake2b_ssse3_la_SOURCES = blake2b.c
- libblake2b_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
--libblake2b_ssse3_la_CFLAGS = -msse2 -mssse3
-+libblake2b_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
- 
- libblake2b_sse41_la_SOURCES = blake2b.c
- libblake2b_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
--libblake2b_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
-+libblake2b_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
- 
- libblake2b_avx_la_SOURCES = blake2b.c
- libblake2b_avx_la_CPPFLAGS = -DSUFFIX=_avx
--libblake2b_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
-+libblake2b_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
- 
- libblake2b_xop_la_SOURCES = blake2b.c
- libblake2b_xop_la_CPPFLAGS = -DSUFFIX=_xop 
--libblake2b_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
-+libblake2b_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
+diff --git a/configure b/configure
+index 502bd37..5c0d1c7 100755
+--- a/configure
++++ b/configure
+@@ -12724,41 +12724,6 @@ else
+ fi
  
  
- libblake2s_ref_la_SOURCES = blake2s-ref.c
- libblake2s_ref_la_CPPFLAGS = -DSUFFIX=_ref
--libblake2s_ref_la_CFLAGS = 
-+libblake2s_ref_la_CFLAGS = $(CFLAGS)
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -O3" >&5
+-$as_echo_n "checking whether C compiler accepts -O3... " >&6; }
+-if ${ax_cv_check_cflags___O3+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-
+-  ax_check_save_flags=$CFLAGS
+-  CFLAGS="$CFLAGS  -O3"
+-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-#include <stdio.h>
+-int
+-main ()
+-{
+-char x[42U], fodder = 0;if (fodder > -1000 && fgets(x,1000,stdin)) puts(x)
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_c_try_compile "$LINENO"; then :
+-  ax_cv_check_cflags___O3=yes
+-else
+-  ax_cv_check_cflags___O3=no
+-fi
+-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+-  CFLAGS=$ax_check_save_flags
+-fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cflags___O3" >&5
+-$as_echo "$ax_cv_check_cflags___O3" >&6; }
+-if test x"$ax_cv_check_cflags___O3" = xyes; then :
+-  CFLAGS=-O3
+-else
+-  :
+-fi
+-
+ if test $enable_native == "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler accepts -march=native" >&5
+ $as_echo_n "checking whether C compiler accepts -march=native... " >&6; }
+diff --git a/configure.ac b/configure.ac
+index c441da9..2f754de 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -60,7 +60,6 @@ AC_HELP_STRING([--enable-native],
+                [enable_native=yes]
+ )
  
- libblake2s_sse2_la_SOURCES = blake2s.c
- libblake2s_sse2_la_CPPFLAGS = -DSUFFIX=_sse2
--libblake2s_sse2_la_CFLAGS = -msse2
-+libblake2s_sse2_la_CFLAGS = $(CFLAGS) -msse2
- 
- libblake2s_ssse3_la_SOURCES = blake2s.c
- libblake2s_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
--libblake2s_ssse3_la_CFLAGS = -msse2 -mssse3
-+libblake2s_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
- 
- libblake2s_sse41_la_SOURCES = blake2s.c
- libblake2s_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
--libblake2s_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
-+libblake2s_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
- 
- libblake2s_avx_la_SOURCES = blake2s.c
- libblake2s_avx_la_CPPFLAGS = -DSUFFIX=_avx
--libblake2s_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
-+libblake2s_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
- 
- libblake2s_xop_la_SOURCES = blake2s.c
- libblake2s_xop_la_CPPFLAGS = -DSUFFIX=_xop 
--libblake2s_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
-+libblake2s_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
- 
- else
- 
-diff --git a/src/Makefile.in b/src/Makefile.in
-index 433b8f9..6dd0fc0 100644
---- a/src/Makefile.in
-+++ b/src/Makefile.in
-@@ -766,40 +766,40 @@ include_HEADERS = blake2.h
- @USE_FAT_TRUE@libb2_la_SOURCES = blake2-dispatch.c blake2sp.c blake2bp.c
- @USE_FAT_TRUE@libblake2b_ref_la_SOURCES = blake2b-ref.c
- @USE_FAT_TRUE@libblake2b_ref_la_CPPFLAGS = -DSUFFIX=_ref
--@USE_FAT_TRUE@libblake2b_ref_la_CFLAGS = 
-+@USE_FAT_TRUE@libblake2b_ref_la_CFLAGS = $(CFLAGS)
- @USE_FAT_TRUE@libblake2b_sse2_la_SOURCES = blake2b.c
- @USE_FAT_TRUE@libblake2b_sse2_la_CPPFLAGS = -DSUFFIX=_sse2 
--@USE_FAT_TRUE@libblake2b_sse2_la_CFLAGS = -msse2
-+@USE_FAT_TRUE@libblake2b_sse2_la_CFLAGS = $(CFLAGS) -msse2
- @USE_FAT_TRUE@libblake2b_ssse3_la_SOURCES = blake2b.c
- @USE_FAT_TRUE@libblake2b_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
--@USE_FAT_TRUE@libblake2b_ssse3_la_CFLAGS = -msse2 -mssse3
-+@USE_FAT_TRUE@libblake2b_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
- @USE_FAT_TRUE@libblake2b_sse41_la_SOURCES = blake2b.c
- @USE_FAT_TRUE@libblake2b_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
--@USE_FAT_TRUE@libblake2b_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
-+@USE_FAT_TRUE@libblake2b_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
- @USE_FAT_TRUE@libblake2b_avx_la_SOURCES = blake2b.c
- @USE_FAT_TRUE@libblake2b_avx_la_CPPFLAGS = -DSUFFIX=_avx
--@USE_FAT_TRUE@libblake2b_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
-+@USE_FAT_TRUE@libblake2b_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
- @USE_FAT_TRUE@libblake2b_xop_la_SOURCES = blake2b.c
- @USE_FAT_TRUE@libblake2b_xop_la_CPPFLAGS = -DSUFFIX=_xop 
--@USE_FAT_TRUE@libblake2b_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
-+@USE_FAT_TRUE@libblake2b_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
- @USE_FAT_TRUE@libblake2s_ref_la_SOURCES = blake2s-ref.c
- @USE_FAT_TRUE@libblake2s_ref_la_CPPFLAGS = -DSUFFIX=_ref
--@USE_FAT_TRUE@libblake2s_ref_la_CFLAGS = 
-+@USE_FAT_TRUE@libblake2s_ref_la_CFLAGS = $(CFLAGS)
- @USE_FAT_TRUE@libblake2s_sse2_la_SOURCES = blake2s.c
- @USE_FAT_TRUE@libblake2s_sse2_la_CPPFLAGS = -DSUFFIX=_sse2
--@USE_FAT_TRUE@libblake2s_sse2_la_CFLAGS = -msse2
-+@USE_FAT_TRUE@libblake2s_sse2_la_CFLAGS = $(CFLAGS) -msse2
- @USE_FAT_TRUE@libblake2s_ssse3_la_SOURCES = blake2s.c
- @USE_FAT_TRUE@libblake2s_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
--@USE_FAT_TRUE@libblake2s_ssse3_la_CFLAGS = -msse2 -mssse3
-+@USE_FAT_TRUE@libblake2s_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
- @USE_FAT_TRUE@libblake2s_sse41_la_SOURCES = blake2s.c
- @USE_FAT_TRUE@libblake2s_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
--@USE_FAT_TRUE@libblake2s_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
-+@USE_FAT_TRUE@libblake2s_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
- @USE_FAT_TRUE@libblake2s_avx_la_SOURCES = blake2s.c
- @USE_FAT_TRUE@libblake2s_avx_la_CPPFLAGS = -DSUFFIX=_avx
--@USE_FAT_TRUE@libblake2s_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
-+@USE_FAT_TRUE@libblake2s_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
- @USE_FAT_TRUE@libblake2s_xop_la_SOURCES = blake2s.c
- @USE_FAT_TRUE@libblake2s_xop_la_CPPFLAGS = -DSUFFIX=_xop 
--@USE_FAT_TRUE@libblake2s_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
-+@USE_FAT_TRUE@libblake2s_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
- TESTS_TARGETS = blake2s-test \
-                 blake2b-test \
-                 blake2sp-test \
+-AX_CHECK_COMPILE_FLAG([-O3], [CFLAGS=-O3])
+ dnl Not all architectures support -march=native
+ if test $enable_native == "yes"; then
+   AX_CHECK_COMPILE_FLAG([-march=native], [], [enable_native=no])
 -- 
 2.43.0
 
