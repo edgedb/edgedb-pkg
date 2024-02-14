@@ -40,9 +40,7 @@ class LibB2(packages.BundledCPackage):
         build.sh_append_flags(
             configure_flags,
             "CFLAGS",
-            (
-                "-O3",
-            ),
+            ("-O3",),
         )
 
         return script + self.sh_configure(build, configure, configure_flags)
