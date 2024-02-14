@@ -1,2 +1,3 @@
 {libdir}/postgresql/*.so
+{libdir}/postgresql/*.dylib
 {datadir}/postgresql/extension/*
