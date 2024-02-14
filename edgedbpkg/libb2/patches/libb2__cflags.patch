@@ -1,15 +1,16 @@
-From 9c69da0216dbc8c431c00ffde631653173cd0a87 Mon Sep 17 00:00:00 2001
+From 623bc8e48d7912487f78315782288cacdd66dc71 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
-Date: Tue, 13 Feb 2024 16:50:37 -0800
+Date: Tue, 13 Feb 2024 17:20:07 -0800
 Subject: [PATCH] Fix cross-compilation of fat binaries
 
 Don't lose configure-time `CFLAGS` when building SSE-subvariants.
 ---
  src/Makefile.am | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
+ src/Makefile.in | 24 ++++++++++++------------
+ 2 files changed, 24 insertions(+), 24 deletions(-)
 
 diff --git a/src/Makefile.am b/src/Makefile.am
-index 7603f39..9673cc0 100644
+index 215a434..ef812fd 100644
 --- a/src/Makefile.am
 +++ b/src/Makefile.am
 @@ -54,52 +54,52 @@ libb2_la_LIBADD += libblake2b_ref.la \
@@ -77,6 +78,63 @@ index 7603f39..9673cc0 100644
  
  else
  
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 433b8f9..6dd0fc0 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -766,40 +766,40 @@ include_HEADERS = blake2.h
+ @USE_FAT_TRUE@libb2_la_SOURCES = blake2-dispatch.c blake2sp.c blake2bp.c
+ @USE_FAT_TRUE@libblake2b_ref_la_SOURCES = blake2b-ref.c
+ @USE_FAT_TRUE@libblake2b_ref_la_CPPFLAGS = -DSUFFIX=_ref
+-@USE_FAT_TRUE@libblake2b_ref_la_CFLAGS = 
++@USE_FAT_TRUE@libblake2b_ref_la_CFLAGS = $(CFLAGS)
+ @USE_FAT_TRUE@libblake2b_sse2_la_SOURCES = blake2b.c
+ @USE_FAT_TRUE@libblake2b_sse2_la_CPPFLAGS = -DSUFFIX=_sse2 
+-@USE_FAT_TRUE@libblake2b_sse2_la_CFLAGS = -msse2
++@USE_FAT_TRUE@libblake2b_sse2_la_CFLAGS = $(CFLAGS) -msse2
+ @USE_FAT_TRUE@libblake2b_ssse3_la_SOURCES = blake2b.c
+ @USE_FAT_TRUE@libblake2b_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
+-@USE_FAT_TRUE@libblake2b_ssse3_la_CFLAGS = -msse2 -mssse3
++@USE_FAT_TRUE@libblake2b_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
+ @USE_FAT_TRUE@libblake2b_sse41_la_SOURCES = blake2b.c
+ @USE_FAT_TRUE@libblake2b_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
+-@USE_FAT_TRUE@libblake2b_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
++@USE_FAT_TRUE@libblake2b_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
+ @USE_FAT_TRUE@libblake2b_avx_la_SOURCES = blake2b.c
+ @USE_FAT_TRUE@libblake2b_avx_la_CPPFLAGS = -DSUFFIX=_avx
+-@USE_FAT_TRUE@libblake2b_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
++@USE_FAT_TRUE@libblake2b_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
+ @USE_FAT_TRUE@libblake2b_xop_la_SOURCES = blake2b.c
+ @USE_FAT_TRUE@libblake2b_xop_la_CPPFLAGS = -DSUFFIX=_xop 
+-@USE_FAT_TRUE@libblake2b_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
++@USE_FAT_TRUE@libblake2b_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
+ @USE_FAT_TRUE@libblake2s_ref_la_SOURCES = blake2s-ref.c
+ @USE_FAT_TRUE@libblake2s_ref_la_CPPFLAGS = -DSUFFIX=_ref
+-@USE_FAT_TRUE@libblake2s_ref_la_CFLAGS = 
++@USE_FAT_TRUE@libblake2s_ref_la_CFLAGS = $(CFLAGS)
+ @USE_FAT_TRUE@libblake2s_sse2_la_SOURCES = blake2s.c
+ @USE_FAT_TRUE@libblake2s_sse2_la_CPPFLAGS = -DSUFFIX=_sse2
+-@USE_FAT_TRUE@libblake2s_sse2_la_CFLAGS = -msse2
++@USE_FAT_TRUE@libblake2s_sse2_la_CFLAGS = $(CFLAGS) -msse2
+ @USE_FAT_TRUE@libblake2s_ssse3_la_SOURCES = blake2s.c
+ @USE_FAT_TRUE@libblake2s_ssse3_la_CPPFLAGS = -DSUFFIX=_ssse3
+-@USE_FAT_TRUE@libblake2s_ssse3_la_CFLAGS = -msse2 -mssse3
++@USE_FAT_TRUE@libblake2s_ssse3_la_CFLAGS = $(CFLAGS) -msse2 -mssse3
+ @USE_FAT_TRUE@libblake2s_sse41_la_SOURCES = blake2s.c
+ @USE_FAT_TRUE@libblake2s_sse41_la_CPPFLAGS = -DSUFFIX=_sse41 
+-@USE_FAT_TRUE@libblake2s_sse41_la_CFLAGS = -msse2 -mssse3 -msse4.1
++@USE_FAT_TRUE@libblake2s_sse41_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1
+ @USE_FAT_TRUE@libblake2s_avx_la_SOURCES = blake2s.c
+ @USE_FAT_TRUE@libblake2s_avx_la_CPPFLAGS = -DSUFFIX=_avx
+-@USE_FAT_TRUE@libblake2s_avx_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx
++@USE_FAT_TRUE@libblake2s_avx_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx
+ @USE_FAT_TRUE@libblake2s_xop_la_SOURCES = blake2s.c
+ @USE_FAT_TRUE@libblake2s_xop_la_CPPFLAGS = -DSUFFIX=_xop 
+-@USE_FAT_TRUE@libblake2s_xop_la_CFLAGS = -msse2 -mssse3 -msse4.1 -mavx -mxop
++@USE_FAT_TRUE@libblake2s_xop_la_CFLAGS = $(CFLAGS) -msse2 -mssse3 -msse4.1 -mavx -mxop
+ TESTS_TARGETS = blake2s-test \
+                 blake2b-test \
+                 blake2sp-test \
 -- 
 2.43.0
 
