@@ -1,4 +1,7 @@
 from __future__ import annotations
+from typing import (
+    Mapping,
+)
 
 import pathlib
 import platform
@@ -245,6 +248,14 @@ class Python(packages.BundledCPackage):
     def get_make_install_env(self, build: targets.Build, wd: str) -> str:
         env = super().get_make_install_env(build, wd)
         return f"{env} ENSUREPIP=no"
+
+    def get_make_install_args(
+        self,
+        build: targets.Build,
+    ) -> Mapping[str, str | pathlib.Path | None]:
+        args = dict(super().get_make_args(build))
+        args["-j"] = "1"
+        return args
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
