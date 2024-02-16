@@ -18,7 +18,7 @@ RUN yum install --enablerepo=devel -y \
     wget gcc gcc-c++ make patch zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
-    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
+    perl-Getopt-Long perl-File-Copy perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
 	perl-File-Compare python3-pip python3-devel \
 	systemd-rpm-macros sudo ca-certificates git tar xz
 
