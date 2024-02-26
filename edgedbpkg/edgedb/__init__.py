@@ -122,6 +122,7 @@ class EdgeDB(packages.BundledPythonPackage):
             prev = None
 
         os.environ["EDGEDB_BUILD_IS_RELEASE"] = "1" if is_release else ""
+        os.environ["BUILD_EXT_MODE"] = "skip"
 
         try:
             return super().resolve(
@@ -136,6 +137,8 @@ class EdgeDB(packages.BundledPythonPackage):
                 os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
             else:
                 os.environ["EDGEDB_BUILD_IS_RELEASE"] = prev
+
+            os.environ.pop("BUILD_EXT_MODE", None)
 
     @classmethod
     def canonicalize_version(
