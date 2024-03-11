@@ -63,12 +63,12 @@ class EdgeDB(packages.BundledPythonPackage):
         ">=3.0rc1,<4.0.dev1": [
             "postgresql-edgedb (~= 14.0)",
             "python-edgedb (~= 3.11.0)",
-            "pgext-pgvector (~= 0.5.0)",
+            "pgext-pgvector (~= 0.4.0)",
         ],
         ">=4.0.dev1,<5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
             "python-edgedb (~= 3.11.0)",
-            "pgext-pgvector (~= 0.5.0)",
+            "pgext-pgvector (~= 0.4.0)",
         ],
         ">=5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
