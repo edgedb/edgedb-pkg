@@ -55,8 +55,10 @@ fi
 
 export PATH="${workdir}/bin/:${PATH}"
 
+# ${PKG_TEST_FILES} is specificaly used outside the quote so that it
+# can contain a glob.
 "${workdir}/bin/python3" \
     -m edb.tools --no-devmode test \
-    "${workdir}/data/tests" \
+    "${workdir}/data/tests/"${PKG_TEST_FILES} \
     -e cqa_ -e tools_ \
     --verbose ${dash_j}
