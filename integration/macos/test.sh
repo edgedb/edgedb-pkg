@@ -66,6 +66,6 @@ fi
 
 "${workdir}/bin/python3" \
     -m edb.tools --no-devmode test \
-    "${file_arg}" \
+    ${file_arg} \
     -e cqa_ -e tools_ \
     --verbose ${dash_j}
