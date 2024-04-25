@@ -55,10 +55,17 @@ fi
 
 export PATH="${workdir}/bin/:${PATH}"
 
-# ${PKG_TEST_FILES} is specificaly used outside the quote so that it
-# can contain a glob.
+test_dir="${workdir}/data/tests"
+if [ -n "${PKG_TEST_FILES}" ]; then
+    # ${PKG_TEST_FILES} is specificaly used outside the quote so that it
+    # can contain a glob.
+    file_arg=$(realpath $(cd "$test_dir" && echo $PKG_TEST_FILES))
+else
+    file_arg="$test_dir"
+fi
+
 "${workdir}/bin/python3" \
     -m edb.tools --no-devmode test \
-    "${workdir}/data/tests/"${PKG_TEST_FILES} \
+    "${file_arg}" \
     -e cqa_ -e tools_ \
     --verbose ${dash_j}
