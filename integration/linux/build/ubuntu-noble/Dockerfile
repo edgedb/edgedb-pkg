@@ -4,7 +4,7 @@
 # PLEASE DO NOT EDIT IT DIRECTLY.
 #
 
-FROM buildpack-deps:bullseye
+FROM buildpack-deps:noble
 
 ENV PATH /usr/local/bin:$PATH
 ENV LANG C.UTF-8
