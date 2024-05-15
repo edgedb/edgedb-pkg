@@ -1,0 +1,4 @@
+{bindir}/edgedb
+{bindir}/edgedb.py
+{bindir}/edb
+{bindir}/edb.py
