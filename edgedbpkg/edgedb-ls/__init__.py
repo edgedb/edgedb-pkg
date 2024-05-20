@@ -16,8 +16,6 @@ from metapkg import packages
 from metapkg import targets
 from metapkg.packages import python
 
-from edgedbpkg import postgresql
-from edgedbpkg.pgext import pgvector
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
 
@@ -404,36 +402,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         return script
 
     def get_private_libraries(self, build: targets.Build) -> list[str]:
-        # Automatic dependency introspection points to libpq.so,
-        # since some Postgres' client binaries require it.  We _do_
-        # ship it, but don't declare it as a capability, hence the
-        # need to ignore it here.  Same applies to OpenSSL.
-        return ["libpq.*", "libcrypto.*", "libssl.*"]
-
-    def get_extra_system_requirements(
-        self, build: targets.Build
-    ) -> dict[str, list[str]]:
-        rc_deps = []
-        if build.target.has_capability("systemd"):
-            rc_deps.append("systemd")
-
-        return {"before-install": ["adduser"], "after-install": rc_deps}
-
-    def get_before_install_script(self, build: targets.Build) -> str:
-        dataroot = build.get_install_path("localstate") / "lib" / "edgedb"
-
-        action = build.target.get_action("adduser", build)
-        assert isinstance(action, targets.AddUserAction)
-        user_script = action.get_script(
-            name="edgedb",
-            group="edgedb",
-            homedir=str(dataroot),
-            shell=True,
-            system=True,
-            description="EdgeDB Server",
-        )
-
-        return user_script
+        return ["libcrypto.*", "libssl.*"]
 
     def get_exposed_commands(self, build: targets.Build) -> list[pathlib.Path]:
         bindir = build.get_install_path("bin")
