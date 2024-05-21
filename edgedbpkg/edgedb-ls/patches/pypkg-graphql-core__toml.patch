@@ -1,0 +1,22 @@
+From 0c0f180faea6703180ce5be7d9a429bfda841842 Mon Sep 17 00:00:00 2001
+From: Rui Chen <rui@chenrui.dev>
+Date: Wed, 7 Sep 2022 10:14:32 -0400
+Subject: [PATCH] Remove newline in description (#180)
+
+---
+ pyproject.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 0e351d2d..37ae2df8 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -2,7 +2,7 @@
+ name = "graphql-core"
+ version = "3.1.7"
+ description = """
+-GraphQL-core is a Python port of GraphQL.js,
++GraphQL-core is a Python port of GraphQL.js,\
+  the JavaScript reference implementation for GraphQL."""
+ license = "MIT"
+ authors = [

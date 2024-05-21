@@ -6,7 +6,6 @@ from typing import (
 import base64
 import os
 import pathlib
-import platform
 import shlex
 import textwrap
 
@@ -41,6 +40,8 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     group = "Applications/Databases"
     identifier = "com.edgedb.edgedb-ls"
     url = "https://edgedb.com/"
+
+    dist_name = "edgedb-ls"
 
     sources = [
         {
@@ -211,51 +212,16 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                 build, site_packages_var=site_packages_var
             )
         )
-        bindir = build.get_install_path("bin").relative_to("/")
         if build.target.is_portable():
             runstate = ""
         else:
             runstate = str(build.get_install_path("runstate") / "edgedb")
-        shared_dir = (build.get_install_path("data") / "data").relative_to("/")
-        temp_root = build.get_temp_root(relative_to="pkgsource")
-        src_python = build.sh_get_command(
-            "python", package=self, relative_to="pkgsource"
-        )
-        rel_bindir_script = ";".join(
-            (
-                "import os.path",
-                "rp = os.path.relpath",
-                f"sp = rp('{site_packages_var}', start='{temp_root}')",
-                f"print(rp('{bindir}', start=os.path.join(sp, 'edb')))",
-            )
-        )
-
-        pg_config = f'!"$("{src_python}" -c "{rel_bindir_script}")"/pg_config'
-
-        rel_datadir_script = ";".join(
-            (
-                "import os.path",
-                "rp = os.path.relpath",
-                f"sp = rp('{site_packages_var}', start='{temp_root}')",
-                f"print(rp('{shared_dir}', start=os.path.join(sp, 'edb')))",
-            )
-        )
-
-        data_dir = f'!"$("{src_python}" -c "{rel_datadir_script}")"'
 
         env["EDGEDB_BUILD_PACKAGE"] = "1"
-        env["EDGEDB_BUILD_PG_CONFIG"] = pg_config
         env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
-        env["EDGEDB_BUILD_SHARED_DIR"] = data_dir
-        env["_EDGEDB_BUILDMETA_SHARED_DATA_DIR"] = str(
-            build.get_build_dir(self, relative_to="pkgsource") / "share"
-        )
-
         return env
 
     def get_build_script(self, build: targets.Build) -> str:
-        # Run edgedb-server --bootstrap to produce stdlib cache
-        # for the benefit of faster bootstrap in the package.
         common_script = super().get_build_script(build)
 
         if build.channel == "stable" and not self.version.is_stable():
@@ -264,118 +230,11 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                 f"for the stable channel"
             )
 
-        openssl_pkg = build.get_package("openssl")
-        uuid_pkg = build.get_package("uuid")
-
-        build_python = build.sh_get_command("python")
-        temp_dir = build.get_temp_dir(self, relative_to="pkgbuild")
-        cachedir = temp_dir / "_datacache"
-
-        temp_install_dir = build.get_temp_root(
-            relative_to="pkgbuild"
-        ) / build.get_full_install_prefix().relative_to("/")
-        sitescript = (
-            f"import site; "
-            f'print(site.getsitepackages(["{temp_install_dir}"])[0])'
-        )
-        runstatescript = "import tempfile; " "print(tempfile.mkdtemp())"
-        abspath = (
-            "import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())"
-        )
-
-        ld_env = " ".join(
-            build.get_ld_env(
-                deps=[openssl_pkg, uuid_pkg],
-                wd="${_wd}",
-                extra=["${_ldlibpath}"],
-            )
-        )
-
-        if platform.system() == "Darwin":
-            # Workaround SIP madness on macOS and allow popen() calls
-            # in postgres to inherit DYLD_LIBRARY_PATH.
-            extraenv = "PGOVERRIDESTDSHELL=1"
-        else:
-            extraenv = ""
-
-        data_cache_script = textwrap.dedent(
-            f"""\
-            mkdir -p "{cachedir}"
-            _tempdir=$("{build_python}" -c '{runstatescript}')
-            if [ "$(whoami)" = "root" ]; then
-                chown nobody "{cachedir}"
-                chown nobody "${{_tempdir}}"
-                _sudo="sudo -u nobody"
-            else
-                _sudo=""
-            fi
-            _pythonpath=$("{build_python}" -c '{sitescript}')
-            _pythonpath=$("{build_python}" -c '{abspath}' "${{_pythonpath}}")
-            _cachedir=$("{build_python}" -c '{abspath}' "{cachedir}")
-            _build_python=$("{build_python}" -c '{abspath}' "{build_python}")
-            _wd=$("{build_python}" -c '{abspath}' "$(pwd)")
-
-            (
-                cd ../;
-                ${{_sudo}} env \\
-                    {ld_env} {extraenv} \\
-                    PYTHONPATH="${{_pythonpath}}" \\
-                    PG_DISABLE_PS_DISPLAY=1 \\
-                    _EDGEDB_BUILDMETA_PG_CONFIG_PATH="${{_pg_config}}" \\
-                    _EDGEDB_WRITE_DATA_CACHE_TO="${{_cachedir}}" \\
-                    "${{_build_python}}" \\
-                        -m edb.server.main \\
-                        --data-dir="${{_tempdir}}" \\
-                        --runstate-dir="${{_tempdir}}" \\
-                        --bootstrap-only
-                    rm -rf "${{_tempdir}}"
-            )
-
-            mkdir -p ./share/
-            cp "${{_cachedir}}"/* ./share/
-            pwd
-            ls -al ./share/
-        """
-        )
-
-        return f"{common_script}\n{data_cache_script}"
-
-    def get_extra_python_build_commands(
-        self,
-        build: targets.Build,
-    ) -> list[str]:
-        ver = (self.version.major, self.version.minor)
-        if ver < (2, 0) or ver >= (2, 2):
-            # 2.2+ builds the UI in `setup.py build`.
-            return []
-
-        src_python = build.sh_get_command(
-            "python", package=self, relative_to="pkgsource"
-        )
-        share_dir = (
-            build.get_build_dir(self, relative_to="pkgsource") / "share"
-        )
-        return [
-            f'mkdir -p "{share_dir}"',
-            f'env _EDGEDB_BUILDMETA_SHARED_DATA_DIR="{share_dir}" \\\n'
-            f'  "{src_python}" setup.py build_ui',
-        ]
+        return common_script
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        srcdir = build.get_source_dir(self, relative_to="pkgbuild")
         dest = build.get_install_dir(self, relative_to="pkgbuild")
-
-        datadir = build.get_install_path("data")
-        script += textwrap.dedent(
-            f"""\
-            mkdir -p "{dest}/{datadir}"
-            cp -a "{srcdir}/tests" "{dest}/{datadir}"
-            mkdir -p "{dest}/{datadir}/data/"
-            cp -a ./share/* "{dest}/{datadir}/data/"
-            chmod -R u+w,g+r,o+r "{dest}/{datadir}/data/"*
-            """
-        )
 
         bindir = build.get_install_path("bin").relative_to("/")
 

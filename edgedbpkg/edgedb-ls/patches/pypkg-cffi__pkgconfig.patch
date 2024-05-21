@@ -1,0 +1,22 @@
+# HG changeset patch
+# User Elvis Pranskevichus <el@prans.net>
+# Date 1628975143 25200
+#      Sat Aug 14 14:05:43 2021 -0700
+# Branch release-1.14
+# Node ID c05da61a029c4979464a48865c350bd8d0dd39f5
+# Parent  7a912c19190f62225217daf9e77b57f3eb225373
+Always use system's libffi on macOS
+
+diff -r 7a912c19190f -r c05da61a029c setup.py
+--- a/setup.py	Thu Jul 08 20:57:05 2021 -0700
++++ b/setup.py	Sat Aug 14 14:05:43 2021 -0700
+@@ -105,6 +105,9 @@
+     return config.try_compile('#ifndef _MSC_VER\n#error "not MSVC"\n#endif')
+ 
+ def use_pkg_config():
++    if 'darwin' in sys.platform:
++        return
++
+     if sys.platform == 'darwin' and os.path.exists('/usr/local/bin/brew'):
+         use_homebrew_for_libffi()
+ 
