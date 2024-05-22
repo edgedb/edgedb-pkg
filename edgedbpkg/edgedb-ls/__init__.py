@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import (
-    TYPE_CHECKING, Set,
+    TYPE_CHECKING,
+    Set,
 )
 
 import base64
@@ -106,13 +107,17 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         os.environ["BUILD_EXT_MODE"] = "skip"
 
         try:
-            return super().resolve(
-                io,
-                version=version,
-                revision=revision,
-                is_release=is_release,
-                target=target,
-            ).with_features(['language-server'])
+            return (
+                super()
+                .resolve(
+                    io,
+                    version=version,
+                    revision=revision,
+                    is_release=is_release,
+                    target=target,
+                )
+                .with_features(["language-server"])
+            )
         finally:
             if prev is None:
                 os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
