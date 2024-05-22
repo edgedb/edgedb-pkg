@@ -1,8 +1,5 @@
 from __future__ import annotations
-from typing import (
-    TYPE_CHECKING,
-    Set,
-)
+from typing import TYPE_CHECKING
 
 import base64
 import os
@@ -11,7 +8,6 @@ import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
-from poetry.core.packages import dependency_group as poetry_depgroup
 
 from metapkg import packages
 from metapkg import targets
@@ -126,7 +122,10 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
 
             os.environ.pop("BUILD_EXT_MODE", None)
 
-    def parse_version_metadata(self, local):
+    def parse_version_metadata(
+        self,
+        segments: tuple[str | int, ...],
+    ) -> dict[str, str]:
         return {}
 
     @classmethod
