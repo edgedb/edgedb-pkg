@@ -2,3 +2,13 @@
 {bindir}/edgedb.py
 {bindir}/edb
 {bindir}/edb.py
+{bindir}/edgedb-server
+{bindir}/edgedb-server.py
+
+{libdir}/**/edb/pgsql
+{libdir}/**/edb/graphql
+{libdir}/**/edb/graphql-rewrite
+{libdir}/**/edb/_graphql_rewrite.*.so
+{libdir}/**/edb/testbase
+{libdir}/**/edb/server
+{libdir}/**/edb/protocol

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import (
-    TYPE_CHECKING,
+    TYPE_CHECKING, Set,
 )
 
 import base64
@@ -10,6 +10,7 @@ import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
+from poetry.core.packages import dependency_group as poetry_depgroup
 
 from metapkg import packages
 from metapkg import targets
@@ -40,8 +41,6 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     group = "Applications/Databases"
     identifier = "com.edgedb.edgedb-ls"
     url = "https://edgedb.com/"
-
-    dist_name = "edgedb-ls"
 
     sources = [
         {
@@ -113,7 +112,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                 revision=revision,
                 is_release=is_release,
                 target=target,
-            )
+            ).with_features(['language-server'])
         finally:
             if prev is None:
                 os.environ.pop("EDGEDB_BUILD_IS_RELEASE", None)
