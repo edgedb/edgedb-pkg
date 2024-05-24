@@ -10,5 +10,4 @@
 {libdir}/**/edb/graphql-rewrite
 {libdir}/**/edb/_graphql_rewrite.*.so
 {libdir}/**/edb/testbase
-{libdir}/**/edb/server
 {libdir}/**/edb/protocol
