@@ -14,7 +14,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV LANG C
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.18
+ENV PYTHON_VERSION 3.9.19
 ENV GIT_VERSION 2.33.1
 ENV PATCHELF_VERSION 0.13
 ENV TAR_VERSION latest
@@ -24,7 +24,7 @@ ENV GO_VERSION 1.21.6
 ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
-ENV GCC_VERSION 10
+ENV GCC_VERSION 11
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small.
@@ -252,7 +252,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
-python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+python -m pip install -U git+https://github.com/edgedb/edgedb-pkg@language-server\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\
     p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\

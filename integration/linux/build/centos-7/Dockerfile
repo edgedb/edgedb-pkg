@@ -34,7 +34,7 @@ RUN ulimit -n 1024 \
 
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.18
+ENV PYTHON_VERSION 3.9.19
 ENV GIT_VERSION 2.20.1
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
@@ -220,7 +220,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
-python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+python -m pip install -U git+https://github.com/edgedb/edgedb-pkg@language-server\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\
     p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\

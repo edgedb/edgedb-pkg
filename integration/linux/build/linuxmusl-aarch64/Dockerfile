@@ -53,7 +53,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
-python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+python -m pip install -U git+https://github.com/edgedb/edgedb-pkg@language-server\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\
     p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
