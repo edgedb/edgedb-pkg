@@ -168,7 +168,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         cls, target: targets.Target, io: cleo_io.IO
     ) -> python.PyPiRepository:
         repo = super().get_package_repository(target, io)
-        repo.register_package_impl("cryptography", Cryptography)
+        repo.register_package_impl("cryptography", edgedb_server.Cryptography)
         repo.register_package_impl("cffi", edgedb_server.Cffi)
         repo.register_package_impl("jwcrypto", edgedb_server.JWCrypto)
         repo.register_package_impl("edgedb", edgedb_server.EdgeDBPython)
@@ -280,38 +280,3 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         root_version: str,
     ) -> list[str]:
         return ["edgedb-common"]
-
-
-class Cryptography(packages.PythonPackage):
-    def sh_get_build_wheel_env(
-        self, build: targets.Build, *, site_packages_var: str
-    ) -> dict[str, str]:
-        env = dict(
-            super().sh_get_build_wheel_env(
-                build, site_packages_var=site_packages_var
-            )
-        )
-        env["OPENSSL_STATIC"] = "0"
-
-        openssl_pkg = build.get_package("openssl")
-        if build.is_bundled(openssl_pkg):
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to="pkgsource"
-            )
-            openssl_path /= build.get_full_install_prefix().relative_to("/")
-            quoted = shlex.quote(str(openssl_path))
-            pwd = "$(pwd -P)"
-            env["OPENSSL_LIB_DIR"] = f"!{pwd}/{quoted}/lib"
-            env["OPENSSL_INCLUDE_DIR"] = f"!{pwd}/{quoted}/include"
-
-        return env
-
-    def get_requirements(self) -> list[poetry_dep.Dependency]:
-        reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("openssl", ">=1.1.1.100"))
-        return reqs
-
-    def get_build_requirements(self) -> list[poetry_dep.Dependency]:
-        reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("openssl-dev", ">=1.1.1.100"))
-        return reqs
