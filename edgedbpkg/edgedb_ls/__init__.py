@@ -15,6 +15,7 @@ from metapkg.packages import python
 
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
+from edgedbpkg import edgedb as edgedb_server
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
@@ -168,9 +169,9 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     ) -> python.PyPiRepository:
         repo = super().get_package_repository(target, io)
         repo.register_package_impl("cryptography", Cryptography)
-        repo.register_package_impl("cffi", Cffi)
-        repo.register_package_impl("jwcrypto", JWCrypto)
-        repo.register_package_impl("edgedb", EdgeDBPython)
+        repo.register_package_impl("cffi", edgedb_server.Cffi)
+        repo.register_package_impl("jwcrypto", edgedb_server.JWCrypto)
+        repo.register_package_impl("edgedb", edgedb_server.EdgeDBPython)
         return repo
 
     @property
@@ -314,30 +315,3 @@ class Cryptography(packages.PythonPackage):
         reqs = super().get_requirements()
         reqs.append(poetry_dep.Dependency("openssl-dev", ">=1.1.1.100"))
         return reqs
-
-
-class Cffi(packages.PythonPackage):
-    def get_requirements(self) -> list[poetry_dep.Dependency]:
-        reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("libffi", "*"))
-        return reqs
-
-    def get_build_requirements(self) -> list[poetry_dep.Dependency]:
-        reqs = super().get_requirements()
-        reqs.append(poetry_dep.Dependency("libffi", "*"))
-        return reqs
-
-
-class JWCrypto(packages.PythonPackage):
-    def get_file_no_install_entries(self, build: targets.Build) -> list[str]:
-        entries = super().get_file_no_install_entries(build)
-        entries.append("{prefix}/share/doc/jwcrypto")
-        entries.append("{prefix}/share/doc/jwcrypto/**")
-        return entries
-
-
-class EdgeDBPython(packages.PythonPackage):
-    def get_file_no_install_entries(self, build: targets.Build) -> list[str]:
-        entries = super().get_file_no_install_entries(build)
-        entries.append("{bindir}/*")
-        return entries
