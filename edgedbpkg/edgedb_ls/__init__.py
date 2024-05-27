@@ -220,13 +220,31 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                 build, site_packages_var=site_packages_var
             )
         )
-        if build.target.is_portable():
-            runstate = ""
-        else:
-            runstate = str(build.get_install_path("runstate") / "edgedb")
+        shared_dir = (build.get_install_path("data") / "data").relative_to("/")
+        temp_root = build.get_temp_root(relative_to="pkgsource")
+        src_python = build.sh_get_command(
+            "python", package=self, relative_to="pkgsource"
+        )
+
+        rel_datadir_script = ";".join(
+            (
+                "import os.path",
+                "rp = os.path.relpath",
+                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"print(rp('{shared_dir}', start=os.path.join(sp, 'edb')))",
+            )
+        )
+
+        data_dir = f'!"$("{src_python}" -c "{rel_datadir_script}")"'
 
         env["EDGEDB_BUILD_PACKAGE"] = "1"
-        env["EDGEDB_BUILD_RUNSTATEDIR"] = runstate
+        env["EDGEDB_BUILD_PG_CONFIG"] = ""
+        env["EDGEDB_BUILD_RUNSTATEDIR"] = ""
+        env["EDGEDB_BUILD_SHARED_DIR"] = data_dir
+        env["_EDGEDB_BUILDMETA_SHARED_DATA_DIR"] = str(
+            build.get_build_dir(self, relative_to="pkgsource") / "share"
+        )
+
         return env
 
     def get_build_script(self, build: targets.Build) -> str:
@@ -243,6 +261,14 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
         dest = build.get_install_dir(self, relative_to="pkgbuild")
+
+        datadir = build.get_install_path("data")
+        script += textwrap.dedent(
+            f"""\
+            mkdir -p "{dest}/{datadir}"
+            mkdir -p "{dest}/{datadir}/data/"
+            """
+        )
 
         bindir = build.get_install_path("bin").relative_to("/")
 
