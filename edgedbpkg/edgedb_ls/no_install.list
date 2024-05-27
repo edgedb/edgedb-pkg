@@ -4,7 +4,6 @@
 {bindir}/edb.py
 {bindir}/edgedb-server
 {bindir}/edgedb-server.py
-
 {libdir}/**/edb/pgsql
 {libdir}/**/edb/graphql
 {libdir}/**/edb/graphql-rewrite
