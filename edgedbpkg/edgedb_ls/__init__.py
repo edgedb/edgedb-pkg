@@ -48,10 +48,8 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                     # We obtain postgres from the fork repo directly,
                     # so there's no need to clone it as a submodule.
                     "postgres",
-
                     # TODO: make edgedb-server repo not build pgproto
                     # "edb/server/pgproto",
-
                     # TODO: make edgedb-server repo not build libpg_query
                     # "edb/pgsql/parser/libpg_query",
                 ],
