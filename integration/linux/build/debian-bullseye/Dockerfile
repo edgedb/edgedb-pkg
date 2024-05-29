@@ -21,7 +21,7 @@ RUN apt-get update \
 		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON_VERSION 3.9.18
+ENV PYTHON_VERSION 3.9.19
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
