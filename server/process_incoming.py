@@ -4,6 +4,7 @@ from typing import Any, ContextManager, cast, List, Optional
 from typing_extensions import TypedDict
 
 import contextlib
+import datetime
 import hashlib
 import fnmatch
 import functools
@@ -198,6 +199,7 @@ class Package(TypedDict):
     version_key: str  # 1.0.0~alpha.6~dev.5069.2020091300~nightly
     architecture: str  # x86_64
     revision: str  # 2020091300~nightly
+    build_date: str  # 2023-12-14T21:30:16+00:00
     installrefs: list[InstallRef]
     installref: str
 
@@ -271,7 +273,13 @@ def remove_old(
     channel: str | None = None,
 ) -> None:
     logger.info("remove_old: %s %s %s %s", bucket, prefix, keep, channel)
-    index: dict[str, dict[semver.VersionInfo, list[str]]] = {}
+    index: dict[
+        str,
+        dict[
+            tuple[semver.Version, datetime.datetime],
+            list[str],
+        ],
+    ] = {}
     prefix_str = str(prefix) + "/"
     for obj in bucket.objects.filter(Prefix=prefix_str):
         if is_metadata_object(obj.key):
@@ -305,7 +313,15 @@ def remove_old(
                 for p in ver_details["prerelease"]
             ),
         )
-        index.setdefault(key, {}).setdefault(version, []).append(obj.key)
+        build_date_str = metadata.get("build_date")
+        if build_date_str:
+            build_date = datetime.datetime.fromisoformat(build_date_str)
+        else:
+            build_date = datetime.datetime.fromtimestamp(
+                0, tz=datetime.timezone.utc
+            )
+        ver_key = (version, build_date)
+        index.setdefault(key, {}).setdefault(ver_key, []).append(obj.key)
 
     for _, versions in index.items():
         sorted_versions = sorted(versions, reverse=True)
@@ -384,6 +400,10 @@ def append_artifact(
             version_details=version_details,
             version_key=version_key,
             revision=metadata["revision"],
+            build_date=metadata.get(
+                "build_date",
+                "1970-01-01T00:00:00+00:00",
+            ),
             architecture=metadata["architecture"],
             installref=installref["ref"],
             installrefs=[installref],
