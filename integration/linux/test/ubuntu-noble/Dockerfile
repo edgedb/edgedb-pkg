@@ -1,0 +1,110 @@
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "mkdockerfile.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
+
+FROM ubuntu:noble
+RUN /bin/echo -e '#!/bin/bash\n\
+\n\
+set -ex\n\
+\n\
+dest="artifacts"\n\
+if [ -n "${PKG_PLATFORM}" ]; then\n\
+    dest+="/${PKG_PLATFORM}"\n\
+fi\n\
+if [ -n "${PKG_PLATFORM_VERSION}" ]; then\n\
+    dest+="-${PKG_PLATFORM_VERSION}"\n\
+fi\n\
+\n\
+dist="${PKG_PLATFORM_VERSION}"\n\
+\n\
+export DEBIAN_FRONTEND="noninteractive"\n\
+\n\
+apt-get update\n\
+apt-get install -y curl gnupg apt-transport-https jq\n\
+\n\
+mkdir -p /usr/local/share/keyrings\n\
+curl --proto '\''=https'\'' --tlsv1.2 -sSf \\\n\
+    -o /usr/local/share/keyrings/edgedb-keyring.gpg \\\n\
+    https://packages.edgedb.com/keys/edgedb-keyring.gpg\n\
+echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \\\n\
+    https://packages.edgedb.com/apt "${dist}" main \\\n\
+    > "/etc/apt/sources.list.d/edgedb.list"\n\
+if [ -n "${PKG_SUBDIST}" ]; then\n\
+    echo deb [signed-by=/usr/local/share/keyrings/edgedb-keyring.gpg] \\\n\
+        https://packages.edgedb.com/apt "${dist}" "${PKG_SUBDIST}" \\\n\
+        > "/etc/apt/sources.list.d/edgedb-${PKG_SUBDIST}.list"\n\
+fi\n\
+\n\
+try=1\n\
+while [ $try -le 30 ]; do\n\
+    apt-get update && apt-get install -y edgedb-cli && s=0 break || s=$?\n\
+    try=$(( $try + 1 ))\n\
+    echo "Retrying in 10 seconds (try #${try})" >&2\n\
+    sleep 10\n\
+done\n\
+\n\
+if [ $s -ne 0 ]; then\n\
+    echo "could not install edgedb-cli" >&2\n\
+    exit $s\n\
+fi\n\
+\n\
+slot=\n\
+deb=\n\
+for pack in ${dest}/*.tar; do\n\
+    if [ -e "${pack}" ]; then\n\
+        slot=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+               | jq -r ".version_slot")\n\
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+              | jq -r ".contents | keys[]" \\\n\
+              | grep "^edgedb-server.*\\.deb$")\n\
+        if [ -n "${deb}" ]; then\n\
+            break\n\
+        fi\n\
+    fi\n\
+done\n\
+\n\
+if [ -z "${deb}" ]; then\n\
+    echo "${dest} does not seem to contain an edgedb-server .deb" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+if [ -z "${slot}" ]; then\n\
+    echo "could not determine version slot from build metadata" >&2\n\
+    exit 1\n\
+fi\n\
+\n\
+machine=$(uname -m)\n\
+tmpdir=$(mktemp -d)\n\
+tar -x -C "${tmpdir}" -f "${pack}" "${deb}"\n\
+apt-get install -y "${tmpdir}/${deb}"\n\
+rm -rf "${tmpdir}"\n\
+\n\
+edgedb-server-${slot} --version\n\
+\n\
+if [ "$1" == "bash" ]; then\n\
+    echo su edgedb -c \\\n\
+        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+         -m edb.tools --no-devmode test \\\n\
+         /usr/share/edgedb-server-${slot}/tests \\\n\
+         -e cqa_ -e tools_ \\\n\
+         --verbose"\n\
+    exec "$@"\n\
+else\n\
+    if [ -n "${PKG_TEST_JOBS}" ]; then\n\
+        dash_j="-j${PKG_TEST_JOBS}"\n\
+    else\n\
+        dash_j=""\n\
+    fi\n\
+    su edgedb -c \\\n\
+        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+         -m edb.tools --no-devmode test \\\n\
+         /usr/share/edgedb-server-${slot}/tests \\\n\
+         -e cqa_ -e tools_ \\\n\
+         --verbose ${dash_j}"\n\
+    echo "Success!"\n\
+fi\n\' >/entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
