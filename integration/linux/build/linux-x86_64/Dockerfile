@@ -28,7 +28,7 @@ ENV GCC_VERSION 11
 
 RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
     && source /etc/os-release; \
-     [ "$VERSION" = "7" || "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+     [ "$VERSION" = "7" -o "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y) || true)
