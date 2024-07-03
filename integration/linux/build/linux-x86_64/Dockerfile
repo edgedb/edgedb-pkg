@@ -29,24 +29,27 @@ ENV GCC_VERSION 11
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
 #
-# We need to disable the mirrorlist both at the start *and* after
-# installing centos-release-scl, which adds new things. Ugh.
-RUN ulimit -n 1024 && echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf  && ( \
-    source /etc/os-release; \
-     [ "$VERSION_ID" = "7" -o "$VERSION_ID" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
-    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y) || true)
-
+# We need to disable the mirrorlist and explicitly set up a
+# baseurl. Switch to the archive.kernel.org mirror while we are at it.
 RUN ulimit -n 1024 \
-    && yum install -y centos-release-scl epel-release \
-    && ( \
-    source /etc/os-release; \
-     [ "$VERSION_ID" = "7" -o "$VERSION_ID" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y) || true) \
+    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y
+
+# We also need to disable mirrorlist and set a baseurl for the SCLo
+# repos we add here, and we need to do some extra work on arm to point
+# it at "altarch".
+RUN case "$HOSTTYPE" in \
+      aarch64) DIR=altarch ;; \
+      *) DIR=centos ;; \
+    esac; echo === $DIR; \
+    ulimit -n 1024 \
+    && yum install -y centos-release-scl epel-release \
     \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-SCLo* \
+    && sed -i "s|# \?baseurl=http://mirror.centos.org/centos|baseurl=https://archive.kernel.org/centos-vault/$DIR|g" /etc/yum.repos.d/CentOS-SCLo* \
+    \
+    && yum update -y \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
     wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
