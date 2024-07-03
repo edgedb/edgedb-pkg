@@ -26,6 +26,13 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV GCC_VERSION 11
 
+RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+    && source /etc/os-release; \
+     [ "$VERSION" = "7" || "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y) || true)
+
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small.
 RUN ulimit -n 1024 \
