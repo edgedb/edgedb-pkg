@@ -33,7 +33,7 @@ ENV GCC_VERSION 10
 # installing centos-release-scl, which adds new things. Ugh.
 RUN ulimit -n 1024 && echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf  && ( \
     source /etc/os-release; \
-     [ "$VERSION" = "7 (Core)" -o "$VERSION" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
+     [ "$VERSION_ID" = "7" -o "$VERSION_ID" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y) || true)
@@ -42,7 +42,7 @@ RUN ulimit -n 1024 \
     && yum install -y centos-release-scl epel-release \
     && ( \
     source /etc/os-release; \
-     [ "$VERSION" = "7 (Core)" -o "$VERSION" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
+     [ "$VERSION_ID" = "7" -o "$VERSION_ID" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y) || true) \
