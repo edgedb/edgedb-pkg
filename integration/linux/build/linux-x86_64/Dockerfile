@@ -26,17 +26,27 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV GCC_VERSION 11
 
-RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
-    && source /etc/os-release; \
-     [ "$VERSION" = "7" -o "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+# rpm on centos 7 iterates over all fds up to the limit, which is
+# extremely slow. Force it to be small with ulimit.
+#
+# We need to disable the mirrorlist both at the start *and* after
+# installing centos-release-scl, which adds new things. Ugh.
+RUN ulimit -n 1024 && echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf  && ( \
+    source /etc/os-release; \
+     [ "$VERSION" = "7 (Core)" -o "$VERSION" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y) || true)
 
-# rpm on centos 7 iterates over all fds up to the limit, which is
-# extremely slow. Force it to be small.
 RUN ulimit -n 1024 \
-        && yum install -y centos-release-scl epel-release \
+    && yum install -y centos-release-scl epel-release \
+    && ( \
+    source /etc/os-release; \
+     [ "$VERSION" = "7 (Core)" -o "$VERSION" = "8" ] && echo YES && (cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y) || true) \
+    \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
     wget zlib-devel openssl-devel sqlite-devel bzip2 bzip2-devel \
