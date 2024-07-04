@@ -2,3 +2,5 @@
 {bindir}/edgedb.py
 {bindir}/edb
 {bindir}/edb.py
+{bindir}/edgedb-ls
+{bindir}/edgedb-ls.py
