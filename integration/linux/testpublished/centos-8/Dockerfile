@@ -56,8 +56,12 @@ fi\n\' >/entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-RUN (source /etc/os-release; \
-     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
+# rpm on centos 7 iterates over all fds up to the limit, which is
+# extremely slow. Force it to be small with ulimit.
+#
+# We need to disable the mirrorlist and explicitly set up a
+# baseurl. Switch to the archive.kernel.org mirror while we are at it.
+RUN ulimit -n 1024 \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y) || true)
+    && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y
