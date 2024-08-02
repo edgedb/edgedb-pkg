@@ -13,6 +13,7 @@ RUN apt-get update \
 		flex \
 		patchelf \
 		zstd \
+		cmake \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV PYTHON_VERSION %%PLACEHOLDER%%

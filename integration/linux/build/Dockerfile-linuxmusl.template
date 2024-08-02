@@ -25,7 +25,8 @@ RUN apk add --no-cache \
 		sudo \
 		tar \
 		yarn \
-		zstd
+		zstd \
+		cmake
 
 RUN set -x; \
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
