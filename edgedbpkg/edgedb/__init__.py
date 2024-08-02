@@ -183,6 +183,7 @@ class EdgeDB(packages.BundledPythonPackage):
         repo.register_package_impl("cffi", Cffi)
         repo.register_package_impl("jwcrypto", JWCrypto)
         repo.register_package_impl("edgedb", EdgeDBPython)
+        repo.register_package_impl("sentencepiece", SentencePiece)
         return repo
 
     @property
@@ -588,3 +589,10 @@ class EdgeDBPython(packages.PythonPackage):
         entries = super().get_file_no_install_entries(build)
         entries.append("{bindir}/*")
         return entries
+
+
+class SentencePiece(packages.PythonPackage):
+    def get_build_requirements(self) -> list[poetry_dep.Dependency]:
+        reqs = super().get_requirements()
+        reqs.append(poetry_dep.Dependency("cmake", "*"))
+        return reqs
