@@ -7,7 +7,7 @@ from typing import (
 import re
 import shlex
 
-from poetry.core.semver import version as poetry_version
+from poetry.core.constraints import version as poetry_version
 
 from metapkg import packages
 from metapkg import targets

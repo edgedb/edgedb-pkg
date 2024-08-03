@@ -8,7 +8,7 @@ import platform
 import re
 import textwrap
 
-from poetry.core.semver import version as poetry_version
+from poetry.core.constraints import version as poetry_version
 
 from metapkg import packages
 from metapkg import targets
