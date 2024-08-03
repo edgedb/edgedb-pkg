@@ -18,7 +18,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 RUN yum install -y \
     wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext glibc-langpack-en
+	curl-devel xz-devel libffi-devel gettext glibc-langpack-en cmake
 
 ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION 3.9.19
@@ -90,7 +90,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 24.0
+ENV PYTHON_PIP_VERSION 24.2
 
 RUN set -ex; \
 	\

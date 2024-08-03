@@ -19,6 +19,7 @@ RUN apt-get update \
 		flex \
 		patchelf \
 		zstd \
+		cmake \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV PYTHON_VERSION 3.9.19
@@ -139,7 +140,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 24.0
+ENV PYTHON_PIP_VERSION 24.2
 
 RUN set -ex; \
 	\
