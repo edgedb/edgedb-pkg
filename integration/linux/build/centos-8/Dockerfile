@@ -33,7 +33,7 @@ RUN ulimit -n 1024 \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates
+	sudo ca-certificates cmake
 
 
 ENV GPG_KEY %%PLACEHOLDER%%
@@ -191,7 +191,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 24.1.1
+ENV PYTHON_PIP_VERSION 24.2
 
 RUN set -ex; \
 	\

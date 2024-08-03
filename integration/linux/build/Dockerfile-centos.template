@@ -27,7 +27,7 @@ RUN ulimit -n 1024 \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates
+	sudo ca-certificates cmake
 
 
 ENV GPG_KEY %%PLACEHOLDER%%

@@ -24,7 +24,7 @@ ENV GO_VERSION 1.21.6
 ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
-ENV GCC_VERSION 10
+ENV GCC_VERSION 11
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
@@ -56,7 +56,7 @@ RUN case "$HOSTTYPE" in \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates zstd
+	sudo ca-certificates zstd cmake
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
@@ -240,7 +240,7 @@ RUN cd /usr/local/bin \
 	&& ln -s python3-config python-config
 
 # if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION 24.0
+ENV PYTHON_PIP_VERSION 24.2
 
 RUN set -ex; \
 	\
