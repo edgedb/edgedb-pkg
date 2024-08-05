@@ -80,6 +80,7 @@ class EdgeDB(packages.BundledPythonPackage):
 
     artifact_build_requirements = [
         "pyentrypoint (>=1.0.0)",
+        "pypkg-setuptools (<70.2.0)",
     ]
 
     bundle_deps = [
