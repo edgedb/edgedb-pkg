@@ -23,7 +23,7 @@ from edgedbpkg import pyentrypoint
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
-    from poetry.core.semver import version as poetry_version
+    from poetry.core.constraints import version as poetry_version
 
 
 python.set_python_runtime_dependency(
