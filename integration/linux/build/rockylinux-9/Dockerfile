@@ -184,22 +184,13 @@ RUN /bin/echo -e '#!/bin/bash\n\
 set -Exeo pipefail\n\
 \n\
 : "${CARGO_HOME:=$HOME/.cargo}"\n\
+: "${PYTHON:=python}"\n\
 \n\
 mkdir -p ~/.cache/cargo/{git,registry}\n\
 mkdir -p "$CARGO_HOME"\n\
 rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
-\n\
-python -m pip install meson\n\
-python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
-\n\
-if [ -n "${METAPKG_PATH}" ]; then\n\
-    p=$(python -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
-    rm -rf "${p}"\n\
-    ln -s "${METAPKG_PATH}" "${p}"\n\
-    ls -al "${p}"\n\
-fi\n\
 \n\
 extraopts=\n\
 if [ -n "${SRC_REF}" ]; then\n\
@@ -256,11 +247,27 @@ if [ -z "${PACKAGE}" ]; then\n\
     PACKAGE="edgedbpkg.edgedb:EdgeDB"\n\
 fi\n\
 \n\
+if [ -z "${VIRTUAL_ENV}"]; then\n\
+    mkdir -p "/var/lib/metapkg/venv"\n\
+    ${PYTHON} -m venv "/var/lib/metapkg/venv"\n\
+    ${PYTHON} -m pip install -U pip setuptools wheel\n\
+fi\n\
+\n\
+${PYTHON} -m pip install -U meson\n\
+${PYTHON} -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
+\n\
+if [ -n "${METAPKG_PATH}" ]; then\n\
+    p=$(${PYTHON} -c '\''import metapkg;print(metapkg.__path__[0])'\'')\n\
+    rm -rf "${p}"\n\
+    ln -s "${METAPKG_PATH}" "${p}"\n\
+    ls -al "${p}"\n\
+fi\n\
+\n\
 if [ "$1" == "bash" ] || [ "${GET_SHELL}" == "true" ]; then\n\
-    echo python -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
+    echo ${PYTHON} -m metapkg build --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     exec /bin/bash\n\
 else\n\
-    python -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
+    ${PYTHON} -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     ls -al "${dest}"\n\
 fi\n\' >/entrypoint.sh
 
