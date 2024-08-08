@@ -18,10 +18,14 @@ class PostgreSQL(packages.BundledCPackage):
     name = packages.canonicalize_name("postgresql-edgedb")
     group = "Applications/Databases"
 
+    _pftp = "https://ftp.postgresql.org/pub/source/v{version}/"
+
     sources = [
         {
-            "url": "git+https://github.com/postgres/postgres.git",
-        },
+            "url": _pftp + "postgresql-{version}.tar.bz2",
+            "csum_url": _pftp + "postgresql-{version}.tar.bz2.sha256",
+            "csum_algo": "sha256",
+        }
     ]
 
     artifact_requirements = [
