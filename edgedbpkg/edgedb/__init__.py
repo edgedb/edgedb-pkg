@@ -184,6 +184,9 @@ class EdgeDB(packages.BundledPythonPackage):
         repo.register_package_impl("cffi", Cffi)
         repo.register_package_impl("jwcrypto", JWCrypto)
         repo.register_package_impl("edgedb", EdgeDBPython)
+        repo.register_package_impl("maturin", Maturin)
+        repo.register_package_impl("pydantic-core", PyPackageNeedingMaturin)
+        repo.register_package_impl("rpds-py", PyPackageNeedingMaturin)
         return repo
 
     @property
@@ -589,3 +592,17 @@ class EdgeDBPython(packages.PythonPackage):
         entries = super().get_file_no_install_entries(build)
         entries.append("{bindir}/*")
         return entries
+
+
+class Maturin(packages.PythonPackage):
+    executable = "maturin"
+
+    def get_build_tools(self, build: targets.Build) -> dict[str, pathlib.Path]:
+        install_dir = build.get_install_dir(self, relative_to="sourceroot")
+        bin_dir = build.get_install_path("bin").relative_to("/")
+        return {self.executable: install_dir / bin_dir / "maturin"}
+
+
+class PyPackageNeedingMaturin(packages.PythonPackage):
+    def get_dep_commands(self) -> list[str]:
+        return [Maturin.executable]
