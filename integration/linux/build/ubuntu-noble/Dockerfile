@@ -130,7 +130,8 @@ RUN set -ex \
 	&& rustc --version \
 	&& node --version \
 	&& npm --version \
-	&& yarn --version
+	&& yarn --version \
+	&& cmake --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
