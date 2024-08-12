@@ -24,6 +24,7 @@ ENV GO_VERSION 1.21.6
 ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
+ENV CMAKE_VERSION 3.30.2
 ENV GCC_VERSION 11
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
@@ -56,7 +57,7 @@ RUN case "$HOSTTYPE" in \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates zstd cmake
+	sudo ca-certificates zstd
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
@@ -112,6 +113,12 @@ RUN set -ex \
       325F650C4C2B6AD58807327A3602B07F55D0C732 \
     ; do \
       gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
+    && for key in \
+      CBA23971357C2E6590D9EFD3EC8FEF3A7BFB4EDA \
+    ; do \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
@@ -179,26 +186,32 @@ RUN set -ex \
 		x86_64) \
 			NODE_ARCH='x64' \
 			GO_ARCH='amd64' \
+			CMAKE_ARCH='x86_64' \
 			;; \
 		ppc64el) \
 			NODE_ARCH='ppc64le' \
 			GO_ARCH='ppc64le' \
+			CMAKE_ARCH='' \
 			;; \
 		s390x) \
 			NODE_ARCH='s390x' \
 			GO_ARCH='s390x' \
+			CMAKE_ARCH='' \
 			;; \
 		arm64) \
 			NODE_ARCH='arm64' \
 			GO_ARCH='arm64' \
+			CMAKE_ARCH='' \
 			;; \
 		aarch64) \
 			NODE_ARCH='arm64' \
 			GO_ARCH='arm64' \
+			CMAKE_ARCH='aarch64' \
 			;; \
 		i386) \
 			NODE_ARCH='x86' \
 			GO_ARCH='386' \
+			CMAKE_ARCH='' \
 			;; \
 		*) echo "unsupported architecture"; exit 1 ;; \
 	esac \
@@ -221,6 +234,25 @@ RUN set -ex \
 		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
 	&& tar -C /usr/local -xzf /tmp/go.tgz \
 	&& rm /tmp/go.tgz \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
+	&& gpg --batch --verify cmake-$CMAKE_VERSION-SHA-256.txt.asc cmake-$CMAKE_VERSION-SHA-256.txt \
+	&& grep " cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz\$" cmake-$CMAKE_VERSION-SHA-256.txt | sha256sum -c - \
+	&& if [ -n "$CMAKE_ARCH" ]; then \
+		echo $CMAKE_ARCH; \
+		tar -xzf "cmake-$CMAKE_VERSION-linux-$CMAKE_ARCH.tar.gz" -C /usr/local --strip-components=1 --no-same-owner; \
+	else \
+		mkdir cmake-build; \
+		tar -xzf "cmake-$CMAKE_VERSION.tar.gz" -C cmake-build --strip-components=1; \
+		cd cmake-build; \
+		./bootstrap --parallel="$(nproc)"; \
+		make -j "$(nproc)"; \
+		make install; \
+		cd ..; \
+		rm -rf cmake-build; \
+	fi \
+	&& rm "cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" "cmake-$CMAKE_VERSION-SHA-256.txt" "cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
@@ -230,7 +262,8 @@ RUN set -ex \
 	&& npm --version \
 	&& yarn --version \
 	&& git --version \
-	&& tar --version
+	&& tar --version \
+	&& cmake --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \

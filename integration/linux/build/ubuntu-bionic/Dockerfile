@@ -19,7 +19,6 @@ RUN apt-get update \
 		flex \
 		patchelf \
 		zstd \
-		cmake \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV PYTHON_VERSION 3.9.19
@@ -29,6 +28,7 @@ ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
+ENV CMAKE_VERSION 3.30.2
 
 RUN set -ex \
 	\
@@ -62,6 +62,12 @@ RUN set -ex \
     done \
     && for key in \
       6A010C5166006599AA17F08146C2130DFD2497F5 \
+    ; do \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
+    && for key in \
+      CBA23971357C2E6590D9EFD3EC8FEF3A7BFB4EDA \
     ; do \
       gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
@@ -123,6 +129,30 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& case "${dpkgArch##*-}" in \
+		amd64) CMAKE_ARCH='x86_64';; \
+		arm64) CMAKE_ARCH='aarch64';; \
+		*) CMAKE_ARCH='' ;; \
+	esac \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
+	&& gpg --batch --verify cmake-$CMAKE_VERSION-SHA-256.txt.asc cmake-$CMAKE_VERSION-SHA-256.txt \
+	&& grep " cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz\$" cmake-$CMAKE_VERSION-SHA-256.txt | sha256sum -c - \
+	&& if [ -n "$CMAKE_ARCH" ]; then \
+		echo $CMAKE_ARCH; \
+		tar -xzf "cmake-$CMAKE_VERSION-linux-$CMAKE_ARCH.tar.gz" -C /usr/local --strip-components=1 --no-same-owner; \
+	else \
+		mkdir cmake-build; \
+		tar -xzf "cmake-$CMAKE_VERSION.tar.gz" -C cmake-build --strip-components=1; \
+		cd cmake-build; \
+		./bootstrap --parallel="$(nproc)"; \
+		make -j "$(nproc)"; \
+		make install; \
+		cd ..; \
+		rm -rf cmake-build; \
+	fi \
+	&& rm "cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" "cmake-$CMAKE_VERSION-SHA-256.txt" "cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
@@ -130,7 +160,8 @@ RUN set -ex \
 	&& rustc --version \
 	&& node --version \
 	&& npm --version \
-	&& yarn --version
+	&& yarn --version \
+	&& cmake --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \

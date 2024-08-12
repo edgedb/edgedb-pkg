@@ -63,6 +63,7 @@ rustVersion="1.76.0"
 nodeVersion="16.16.0"
 yarnVersion="1.22.19"
 goVersion="1.21.6"
+cmakeVersion="3.30.2"
 
 generated_warning() {
 	cat <<-EOH
@@ -148,10 +149,15 @@ fi
 template="${1}"
 target="${2}"
 variant="$(dirname ${target})"
+variant="${variant#*-}"
 
 { generated_warning; cat "${template}"; } > "${target}"
 
 $SED -ri \
+	-e '/%%IF VARIANT=.*'"${variant}"'.*%%/,/%%ENDIF%%/ { /%%IF VARIANT=/d; /%%ENDIF%%/d; }' \
+	-e '/%%IFNOT VARIANT=.*'"${variant}"'.*%%/,/%%ENDIF%%/d' \
+	-e '/%%IF VARIANT=.*%%/,/%%ENDIF%%/d' \
+	-e '/%%IFNOT VARIANT=.*%%/,/%%ENDIF%%/ { /%%IFNOT VARIANT=/d; /%%ENDIF%%/d; }' \
 	-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
 	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
 	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
@@ -159,8 +165,9 @@ $SED -ri \
 	-e 's/^(ENV NODE_VERSION) .*/\1 '"$nodeVersion"'/' \
 	-e 's/^(ENV YARN_VERSION) .*/\1 '"$yarnVersion"'/' \
 	-e 's/^(ENV GO_VERSION) .*/\1 '"$goVersion"'/' \
-	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!' \
-	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant#*-}"'!'\
+	-e 's/^(ENV CMAKE_VERSION) .*/\1 '"$cmakeVersion"'/' \
+	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant}"'!' \
+	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant}"'!'\
 	"${target}"
 
 # Add GPG keys
