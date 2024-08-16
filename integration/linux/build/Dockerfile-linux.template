@@ -19,7 +19,12 @@ ENV RUST_VERSION %%PLACEHOLDER%%
 ENV NODE_VERSION %%PLACEHOLDER%%
 ENV YARN_VERSION %%PLACEHOLDER%%
 ENV CMAKE_VERSION %%PLACEHOLDER%%
+%%IF VARIANT=aarch64%%
+ENV GCC_VERSION 10
+%%ENDIF%%
+%%IFNOT VARIANT=aarch64%%
 ENV GCC_VERSION 11
+%%ENDIF%%
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.

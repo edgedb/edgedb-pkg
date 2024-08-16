@@ -25,7 +25,7 @@ ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV CMAKE_VERSION 3.30.2
-ENV GCC_VERSION 11
+ENV GCC_VERSION 10
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
