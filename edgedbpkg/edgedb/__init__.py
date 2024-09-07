@@ -288,9 +288,15 @@ class EdgeDB(packages.BundledPythonPackage):
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to="buildroot"
-            )
+            try:
+                openssl_path = build.get_install_dir(
+                    openssl_pkg, relative_to="buildroot"
+                )
+            except ValueError:
+                # deb/build.py doesn't have buildroot
+                openssl_path = build.get_install_dir(
+                    openssl_pkg, relative_to="pkgsource"
+                )
             openssl_path /= build.get_full_install_prefix().relative_to("/")
             quoted = shlex.quote(str(openssl_path))
             pwd = "$(pwd -P)"
