@@ -501,7 +501,6 @@ class EdgeDB(packages.BundledPythonPackage):
 
         return [
             bindir / "edgedb-server",
-            bindir / "edgedb-load-ext",
         ]
 
     def get_meta_packages(
