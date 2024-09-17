@@ -3,3 +3,4 @@
 {datadir}/data/**
 {datadir}/tests/**
 {bindir}/edgedb-server.py
+{bindir}/edgedb-load-ext.py
