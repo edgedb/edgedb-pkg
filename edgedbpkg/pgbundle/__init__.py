@@ -9,7 +9,7 @@ from poetry.core.packages import dependency as poetry_dep
 from metapkg import packages
 from metapkg import targets
 
-from edgedbpkg.pgext import pgvector
+from edgedbpkg.pgext import pgvector, postgis
 from edgedbpkg import postgresql
 
 if TYPE_CHECKING:
@@ -35,6 +35,7 @@ class PostgreSQLBundle(packages.BundledPackage):
         ],
         ">=16.0": [
             "pgext-pgvector (~= 0.6.0)",
+            "pgext-postgis (~= 3.4.3)",
         ],
     }
 
@@ -47,6 +48,7 @@ class PostgreSQLBundle(packages.BundledPackage):
         revision: str | None = None,
         is_release: bool = False,
         target: targets.Target,
+        requires: list[poetry_dep.Dependency] | None = None,
     ) -> PostgreSQLBundle:
         postgres = postgresql.PostgreSQL.resolve(
             io,
@@ -54,6 +56,7 @@ class PostgreSQLBundle(packages.BundledPackage):
             revision=revision,
             is_release=is_release,
             target=target,
+            requires=requires,
         )
 
         bundle = cls(
@@ -65,6 +68,7 @@ class PostgreSQLBundle(packages.BundledPackage):
             postgres,
             pgvector.PgVector("v0.4.2"),
             pgvector.PgVector("v0.6.0"),
+            postgis.PostGIS("3.4.3"),
         ]
 
         return bundle
@@ -77,9 +81,6 @@ class PostgreSQLBundle(packages.BundledPackage):
             ),
         )
         return reqs
-
-    def get_configure_script(self, build: targets.Build) -> str:
-        return ""
 
     def get_build_script(self, build: targets.Build) -> str:
         return ""

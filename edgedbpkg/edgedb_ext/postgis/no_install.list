@@ -1,0 +1,4 @@
+{prefix}/LICENSE*
+{prefix}/NOTICE*
+{datadir}/data/extensions/{name}-{version}/LICENSE*
+{datadir}/data/extensions/{name}-{version}/NOTICE*

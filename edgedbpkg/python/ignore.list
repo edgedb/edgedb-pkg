@@ -2,4 +2,5 @@
 {includedir}/python*/*.h
 {includedir}/python*/cpython/*.h
 {includedir}/python*/internal/*.h
-{datadir}/man/man*/*
+{mandir}
+{mandir}/**

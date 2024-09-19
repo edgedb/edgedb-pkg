@@ -26,13 +26,19 @@ RUN apk add --no-cache \
 		tar \
 		yarn \
 		zstd \
-		cmake
+		cmake \
+		tcl \
+		protobuf-dev \
+		ninja \
+		file \
+		zip
 
 RUN set -x; \
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --profile minimal --default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version
+	&& rustc --version \
+	&& ninja --version
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 

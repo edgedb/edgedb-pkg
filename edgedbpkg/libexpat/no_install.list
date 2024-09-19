@@ -1,0 +1,15 @@
+{libdir}/pkgconfig
+{libdir}/pkgconfig/**
+{libdir}/*.a
+{libdir}/*.la
+{libdir}/cmake
+{libdir}/cmake/**
+{bindir}
+{bindir}/*
+{includedir}
+{includedir}/**
+{prefix}/share
+{mandir}
+{mandir}/**
+{docdir}
+{docdir}/**

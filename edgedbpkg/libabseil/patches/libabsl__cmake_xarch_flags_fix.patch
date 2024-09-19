@@ -1,0 +1,49 @@
+From bd0c9c58cac4463d96b574de3097422bb78215a8 Mon Sep 17 00:00:00 2001
+From: Ruoyu Zhong <zhongruoyu@outlook.com>
+Date: Tue, 6 Aug 2024 12:26:15 -0700
+Subject: [PATCH] PR #1738: Fix shell option group handling in pkgconfig files
+
+Imported from GitHub PR https://github.com/abseil/abseil-cpp/pull/1738
+
+Since #1707 and #1710, `-Xarch_` option groups are present as single elements in the libraries' COPTS, and a `SHELL:` prefix is added to each of them. While these addressed certain build issues, they broke the handling of `-Xarch_` option groups in pkgconfig files.
+
+Fix that by taking care of the `SHELL:` prefix in COPTS when generating pkgconfig files. The skip-next-flag mechanism is also removed as the option groups are now present as single elements.
+
+Merge fd1246acbf4052d66fef66ee195cf254bca35b6c into 08850701d27544b4af6501154791d3d45e28b0f8
+
+Merging this change closes #1738
+
+COPYBARA_INTEGRATE_REVIEW=https://github.com/abseil/abseil-cpp/pull/1738 from ZhongRuoyu:pkgconfig-xarch-handling fd1246acbf4052d66fef66ee195cf254bca35b6c
+PiperOrigin-RevId: 660055129
+Change-Id: I57a1a51b2eb8983d076a3d5336acef12acae4560
+---
+ CMake/AbseilHelpers.cmake | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/CMake/AbseilHelpers.cmake b/CMake/AbseilHelpers.cmake
+index 3c4c92fec4c..d8fb9fe5de3 100644
+--- a/CMake/AbseilHelpers.cmake
++++ b/CMake/AbseilHelpers.cmake
+@@ -186,15 +186,15 @@ function(absl_cc_library)
+         endif()
+       endif()
+     endforeach()
+-    set(skip_next_cflag OFF)
+     foreach(cflag ${ABSL_CC_LIB_COPTS})
+-      if(skip_next_cflag)
+-        set(skip_next_cflag OFF)
+-      elseif(${cflag} MATCHES "^-Xarch_")
++      # Strip out the CMake-specific `SHELL:` prefix, which is used to construct
++      # a group of space-separated options.
++      # https://cmake.org/cmake/help/v3.30/command/target_compile_options.html#option-de-duplication
++      string(REGEX REPLACE "^SHELL:" "" cflag "${cflag}")
++      if(${cflag} MATCHES "^-Xarch_")
+         # An -Xarch_ flag implies that its successor only applies to the
+-        # specified platform. Filter both of them out before the successor
+-        # reaches the "^-m" filter.
+-        set(skip_next_cflag ON)
++        # specified platform. Such option groups are each specified in a single
++        # `SHELL:`-prefixed string in the COPTS list, which we simply ignore.
+       elseif(${cflag} MATCHES "^(-Wno|/wd)")
+         # These flags are needed to suppress warnings that might fire in our headers.
+         set(PC_CFLAGS "${PC_CFLAGS} ${cflag}")

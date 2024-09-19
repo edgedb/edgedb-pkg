@@ -8,10 +8,14 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		libssl-dev \
 		tk-dev \
+		tcl \
 		sudo \
 		bison \
 		flex \
+		file \
 		patchelf \
+		libprotobuf-dev \
+		zip \
 		zstd \
 %%IFNOT VARIANT=bionic%%
 		cmake \
@@ -25,14 +29,17 @@ ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION %%PLACEHOLDER%%
 ENV NODE_VERSION %%PLACEHOLDER%%
 ENV YARN_VERSION %%PLACEHOLDER%%
-%%IF VARIANT=bionic%%
 ENV CMAKE_VERSION %%PLACEHOLDER%%
-%%ENDIF%%
+ENV NINJA_VERSION 1.12.1
 
 RUN set -ex \
 	\
 	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& curl -fsSLo ninja-linux.zip "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip" \
+	&& unzip ninja-linux.zip -d /usr/local/bin \
+	&& rm -f ninja-linux.zip \
+	&& chmod +x /usr/local/bin/ninja \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -53,14 +60,12 @@ RUN set -ex \
       gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
-%%IF VARIANT=bionic%%
     && for key in \
       "${CMAKE_KEYS[@]}"
     ; do \
       gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
-%%ENDIF%%
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
@@ -118,7 +123,6 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-%%IF VARIANT=bionic%%
 	&& case "${dpkgArch##*-}" in \
 		amd64) CMAKE_ARCH='x86_64';; \
 		arm64) CMAKE_ARCH='aarch64';; \
@@ -143,7 +147,6 @@ RUN set -ex \
 		rm -rf cmake-build; \
 	fi \
 	&& rm "cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" "cmake-$CMAKE_VERSION-SHA-256.txt" "cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
-%%ENDIF%%
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
@@ -152,7 +155,8 @@ RUN set -ex \
 	&& node --version \
 	&& npm --version \
 	&& yarn --version \
-	&& cmake --version
+	&& cmake --version \
+	&& ninja --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \

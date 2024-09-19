@@ -1,0 +1,145 @@
+From c2f24f8c36a108c6fd8eb7dc9c0c3eb512c88ce4 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 26 Sep 2024 17:54:47 -0700
+Subject: [PATCH] Attempt to load data from a location relative to gdal.so
+
+---
+ port/CMakeLists.txt     |  1 +
+ port/cpl_conv.h         |  5 ++++
+ port/cpl_findfile.cpp   | 13 +++++++++
+ port/cpl_getdsopath.cpp | 64 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 83 insertions(+)
+ create mode 100644 port/cpl_getdsopath.cpp
+
+diff --git a/port/CMakeLists.txt b/port/CMakeLists.txt
+index 26469f1b47..1154d5597a 100644
+--- a/port/CMakeLists.txt
++++ b/port/CMakeLists.txt
+@@ -48,6 +48,7 @@ set(CPL_SOURCES
+     cpl_minixml.cpp
+     cpl_multiproc.cpp
+     cpl_list.cpp
++    cpl_getdsopath.cpp
+     cpl_getexecpath.cpp
+     cplstring.cpp
+     cpl_vsisimple.cpp
+diff --git a/port/cpl_conv.h b/port/cpl_conv.h
+index 2169d9da57..38384c73df 100644
+--- a/port/cpl_conv.h
++++ b/port/cpl_conv.h
+@@ -160,6 +160,11 @@ void CPL_DLL *CPLGetSymbol(const char *, const char *);
+ /* -------------------------------------------------------------------- */
+ int CPL_DLL CPLGetExecPath(char *pszPathBuf, int nMaxLength);
+ 
++/* -------------------------------------------------------------------- */
++/*      Fetch dynamic library path.                                     */
++/* -------------------------------------------------------------------- */
++int CPL_DLL CPLGetDSOPath(char *pszPathBuf, int nMaxLength);
++
+ /* -------------------------------------------------------------------- */
+ /*      Filename handling functions.                                    */
+ /* -------------------------------------------------------------------- */
+diff --git a/port/cpl_findfile.cpp b/port/cpl_findfile.cpp
+index add825780b..2f955dc863 100644
+--- a/port/cpl_findfile.cpp
++++ b/port/cpl_findfile.cpp
+@@ -30,6 +30,7 @@
+ #include "cpl_port.h"
+ #include "cpl_conv.h"
+ 
++#include <climits>
+ #include <cstddef>
+ 
+ #include "cpl_multiproc.h"
+@@ -110,6 +111,18 @@ static FindFileTLS *CPLFinderInit()
+         }
+         else
+         {
++            char *pszPathBuf = static_cast<char *>(
++                CPLCalloc(PATH_MAX, sizeof(char)));
++
++            if (CPLGetDSOPath(pszPathBuf, PATH_MAX))
++            {
++                const char *pszResult = CPLFormFilename(
++                    CPLGetDirname(pszPathBuf), "../share/gdal", nullptr);
++                CPLPushFinderLocation(pszResult);
++            }
++
++            CPLFree(pszPathBuf);
++
+ #ifdef INST_DATA
+             CPLPushFinderLocation(INST_DATA);
+ #endif
+diff --git a/port/cpl_getdsopath.cpp b/port/cpl_getdsopath.cpp
+new file mode 100644
+index 0000000000..43b506f800
+--- /dev/null
++++ b/port/cpl_getdsopath.cpp
+@@ -0,0 +1,64 @@
++/**********************************************************************
++ *
++ * Project:  CPL - Common Portability Library
++ * Purpose:  Implement CPLGetDSOPath().
++ * Author:   Elvis Pranskevichus, el@prans.net
++ *
++ **********************************************************************
++ * Copyright (c) 2005, Frank Warmerdam
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included
++ * in all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++ * DEALINGS IN THE SOFTWARE.
++ ****************************************************************************/
++
++#include "cpl_port.h"
++#include "cpl_conv.h"
++
++#if defined(HAVE_DLFCN_H)
++#include <dlfcn.h>
++#endif
++
++/************************************************************************/
++/*                           CPLGetDSOPath()                            */
++/************************************************************************/
++
++/**
++ * Fetch path of a dynamic shared object given a symbol exported from it.
++ *
++ * @param pszPathBuf the buffer into which the path is placed.
++ * @param nMaxLength the buffer size (including the nul-terminating character).
++ * MAX_PATH+1 is suggested.
++ *
++ * @return FALSE on failure or TRUE on success.
++ */
++
++int CPLGetDSOPath(char *pszPathBuf, int nMaxLength)
++{
++#if !defined(HAVE_DLFCN_H)
++    return FALSE;
++#else
++    Dl_info info;
++
++    if (dladdr(reinterpret_cast<void*>(CPLGetDSOPath), &info) != 0 && info.dli_fname) {
++        strncpy(pszPathBuf, info.dli_fname, nMaxLength);
++        return TRUE;
++    } else {
++        return FALSE;  // Failed to retrieve the shared object location
++    }
++#endif
++}
+-- 
+2.45.2
+

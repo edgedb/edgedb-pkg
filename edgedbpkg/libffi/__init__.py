@@ -4,7 +4,7 @@ from metapkg import packages
 from metapkg import targets
 
 
-class LibFFI(packages.BundledCPackage):
+class LibFFI(packages.BundledCAutoconfPackage):
     title = "libffi"
     name = packages.canonicalize_name("libffi")
     aliases = ["libffi-dev"]
@@ -17,14 +17,14 @@ class LibFFI(packages.BundledCPackage):
         }
     ]
 
-    def get_configure_script(self, build: targets.Build) -> str:
-        sdir = build.get_source_dir(self, relative_to="pkgbuild")
-        configure = sdir / "configure"
-        configure_flags = {
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        return super().get_configure_args(build, wd=wd) | {
             "--disable-multi-os-directory": None,
         }
-
-        return self.sh_configure(build, configure, configure_flags)
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["ffi"]

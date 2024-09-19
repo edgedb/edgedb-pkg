@@ -1,0 +1,514 @@
+From 016e36165161455b67420a5ee012eed1eff2b78c Mon Sep 17 00:00:00 2001
+From: Paul Ramsey <pramsey@cleverelephant.ca>
+Date: Wed, 22 Nov 2023 13:21:09 -0800
+Subject: [PATCH] In configure.ac, rework GEOS pkgconfig support to use
+ pkgconfig preferentially in the "no arguments" case. Simplify version number
+ parsing a little and try to linearize the flow more.
+
+---
+ configure    | 215 +++++++++++++++++++++++++++++++++++++++++----------
+ configure.ac | 129 ++++++++++++++++++++-----------
+ 2 files changed, 259 insertions(+), 85 deletions(-)
+
+diff --git a/configure b/configure
+index 37cd5d46b..51d5af97c 100755
+--- a/configure
++++ b/configure
+@@ -728,10 +728,12 @@ SFCGAL_CPPFLAGS
+ SFCGAL_VERSION
+ POSTGIS_SFCGAL_VERSION
+ SFCGAL_CONFIG
+-POSTGIS_GEOS_VERSION
+ GEOS_CPPFLAGS
+ GEOS_LDFLAGS
++POSTGIS_GEOS_VERSION
+ GEOSCONFIG
++GEOS_LIBS
++GEOS_CFLAGS
+ POSTGIS_LIBXML2_VERSION
+ XCRUN
+ LIBXML2_LIBS
+@@ -940,6 +942,8 @@ CUNIT_LIBS
+ PG_CONFIG
+ LIBXML2_CFLAGS
+ LIBXML2_LIBS
++GEOS_CFLAGS
++GEOS_LIBS
+ PROJ_CFLAGS
+ PROJ_LIBS
+ JSONC_CFLAGS
+@@ -1676,6 +1680,8 @@ Some influential environment variables:
+               C compiler flags for LIBXML2, overriding pkg-config
+   LIBXML2_LIBS
+               linker flags for LIBXML2, overriding pkg-config
++  GEOS_CFLAGS C compiler flags for GEOS, overriding pkg-config
++  GEOS_LIBS   linker flags for GEOS, overriding pkg-config
+   PROJ_CFLAGS C compiler flags for PROJ, overriding pkg-config
+   PROJ_LIBS   linker flags for PROJ, overriding pkg-config
+   JSONC_CFLAGS
+@@ -15580,6 +15586,9 @@ _ACEOF
+ 
+ 
+ 
++GEOS_MIN_VERSION=3.8.0
++GEOS_MIN_VERSION_NUMERIC=`echo $GEOS_MIN_VERSION | $PERL -nle 'printf "%d%02d%02d\n",$1,$2,$3 if /(\d+)\.(\d+)\.(\d+)/'`
++
+ 
+ # Check whether --with-geosconfig was given.
+ if test "${with_geosconfig+set}" = set; then :
+@@ -15589,8 +15598,127 @@ else
+ fi
+ 
+ 
+-if test "x$GEOSCONFIG" = "x"; then
+-		# Extract the first word of "geos-config", so it can be a program name with args.
++if test ! -z "$GEOSCONFIG"; then
++
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking that $GEOSCONFIG exists" >&5
++$as_echo_n "checking that $GEOSCONFIG exists... " >&6; }
++	if test -f "$GEOSCONFIG"; then
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking that $GEOSCONFIG is executable" >&5
++$as_echo_n "checking that $GEOSCONFIG is executable... " >&6; }
++		if test -x "$GEOSCONFIG"; then
++			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++		else
++			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++			as_fn_error $? "use --with-geosconfig=/path/to/executable/geos-config" "$LINENO" 5
++		fi
++	else
++		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++		as_fn_error $? "use --with-geosconfig=/path/to/geos-config" "$LINENO" 5
++	fi
++
++		GEOS_VERSION=`$GEOSCONFIG --version`
++	GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
++	GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
++	GEOS_CONFIG_SRC=$GEOSCONFIG
++
++else
++
++		if test ! -z "$PKG_CONFIG"; then
++
++
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GEOS" >&5
++$as_echo_n "checking for GEOS... " >&6; }
++
++if test -n "$GEOS_CFLAGS"; then
++    pkg_cv_GEOS_CFLAGS="$GEOS_CFLAGS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"geos\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "geos") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_GEOS_CFLAGS=`$PKG_CONFIG --cflags "geos" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++if test -n "$GEOS_LIBS"; then
++    pkg_cv_GEOS_LIBS="$GEOS_LIBS"
++ elif test -n "$PKG_CONFIG"; then
++    if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"geos\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "geos") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_GEOS_LIBS=`$PKG_CONFIG --libs "geos" 2>/dev/null`
++		      test "x$?" != "x0" && pkg_failed=yes
++else
++  pkg_failed=yes
++fi
++ else
++    pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        GEOS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "geos" 2>&1`
++        else
++	        GEOS_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "geos" 2>&1`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$GEOS_PKG_ERRORS" >&5
++
++
++				{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking for geos-config on the path..." >&5
++$as_echo "checking for geos-config on the path..." >&6; }
++
++
++elif test $pkg_failed = untried; then
++     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++
++				{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking for geos-config on the path..." >&5
++$as_echo "checking for geos-config on the path..." >&6; }
++
++
++else
++	GEOS_CFLAGS=$pkg_cv_GEOS_CFLAGS
++	GEOS_LIBS=$pkg_cv_GEOS_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++
++				GEOS_VERSION=`$PKG_CONFIG geos --modversion`
++				GEOS_LDFLAGS=`$PKG_CONFIG geos --libs`
++				GEOS_CPPFLAGS=`$PKG_CONFIG geos --cflags`
++				GEOS_PKGCONFIG=yes
++				GEOS_CONFIG_SRC="$PKG_CONFIG geos"
++
++fi
++	fi
++
++	if test -z "$GEOS_PKGCONFIG"; then
++				# Extract the first word of "geos-config", so it can be a program name with args.
+ set dummy geos-config; ac_word=$2
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+ $as_echo_n "checking for $ac_word... " >&6; }
+@@ -15630,38 +15758,46 @@ $as_echo "no" >&6; }
+ fi
+ 
+ 
+-
+-		if test "x$GEOSCONFIG" = "x"; then
+-		as_fn_error $? "could not find geos-config within the current path. You may need to try re-running configure with a --with-geosconfig parameter." "$LINENO" 5
+-	fi
+-else
+-		if test "x$GEOSCONFIG" = "xyes"; then
+-		as_fn_error $? "you must specify a parameter to --with-geosconfig, e.g. --with-geosconfig=/path/to/geos-config" "$LINENO" 5
+-	else
+-		if test -f $GEOSCONFIG; then
+-			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Using user-specified geos-config file: $GEOSCONFIG" >&5
+-$as_echo "Using user-specified geos-config file: $GEOSCONFIG" >&6; }
++		if test -z "$GEOSCONFIG"; then
++			as_fn_error $? "could not find geos-config on the current path, try using the --with-geosconfig parameter." "$LINENO" 5
+ 		else
+-			as_fn_error $? "the user-specified geos-config file $GEOSCONFIG does not exist" "$LINENO" 5
++			GEOS_VERSION=`$GEOSCONFIG --version`
++			GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
++			GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
++			GEOS_CONFIG_SRC="$GEOSCONFIG"
+ 		fi
+ 	fi
+ fi
+ 
+-GEOS_MAJOR_VERSION=`$GEOSCONFIG --version | cut -d. -f1 | sed 's/[^0-9]//g'`
+-GEOS_MINOR_VERSION=`$GEOSCONFIG --version | cut -d. -f2 | sed 's/[^0-9]//g'`
+-GEOS_PATCH_VERSION=`$GEOSCONFIG --version | cut -d. -f3 | sed 's/[^0-9]//g'`
+-if test "x$GEOS_PATCH_VERSION" = "x"; then
+-	GEOS_PATCH_VERSION="0";
+-fi
+-GEOS_FULL_VERSION=`$GEOSCONFIG --version`
+-GEOS_NUMERIC_PATCH_VERSION=`printf "%02d" $GEOS_PATCH_VERSION`
+-GEOS_NUMERIC_MINOR_VERSION=`printf "%02d" $GEOS_MINOR_VERSION`
+-POSTGIS_GEOS_VERSION="$GEOS_MAJOR_VERSION$GEOS_NUMERIC_MINOR_VERSION$GEOS_NUMERIC_PATCH_VERSION"
++POSTGIS_GEOS_VERSION=`echo $GEOS_VERSION | $PERL -nle 'printf "%d%02d%02d\n",$1,$2,$3 if /(\d+)\.(\d+)\.(\d+)/'`
++
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking GEOS version" >&5
++$as_echo_n "checking GEOS version... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $GEOS_VERSION" >&5
++$as_echo "$GEOS_VERSION" >&6; }
++
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking GEOS numeric version" >&5
++$as_echo_n "checking GEOS numeric version... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $POSTGIS_GEOS_VERSION" >&5
++$as_echo "$POSTGIS_GEOS_VERSION" >&6; }
++
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking GEOS link flags" >&5
++$as_echo_n "checking GEOS link flags... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $GEOS_LDFLAGS" >&5
++$as_echo "$GEOS_LDFLAGS" >&6; }
++
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking GEOS compile flags" >&5
++$as_echo_n "checking GEOS compile flags... " >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $GEOS_CPPFLAGS" >&5
++$as_echo "$GEOS_CPPFLAGS" >&6; }
+ 
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking GEOS version... $GEOS_FULL_VERSION" >&5
+-$as_echo "checking GEOS version... $GEOS_FULL_VERSION" >&6; }
+-if test ! "$POSTGIS_GEOS_VERSION" -ge 30600; then
+-	as_fn_error $? "PostGIS requires GEOS >= 3.6.0" "$LINENO" 5
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking GEOS version is supported" >&5
++$as_echo_n "checking GEOS version is supported... " >&6; }
++if test "$POSTGIS_GEOS_VERSION" -ge "$GEOS_MIN_VERSION_NUMERIC"; then
++	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++else
++	as_fn_error $? "PostGIS requires GEOS >= $GEOS_MIN_VERSION" "$LINENO" 5
+ fi
+ 
+ #
+@@ -15681,11 +15817,6 @@ $as_echo "checking for GEOS_RPATH under MacOS... $GEOS_RPATH" >&6; }
+ 	;;
+ esac
+ 
+-GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
+-GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
+-
+-
+-
+ CPPFLAGS_SAVE="$CPPFLAGS"
+ CPPFLAGS="$GEOS_CPPFLAGS"
+ ac_fn_c_check_header_mongrel "$LINENO" "geos_c.h" "ac_cv_header_geos_c_h" "$ac_includes_default"
+@@ -18624,7 +18755,7 @@ $as_echo "yes" >&6; }
+ 
+ 			PROJ_CPPFLAGS="$PROJ_CFLAGS"
+ 			PROJ_LDFLAGS="$PROJ_LIBS"
+-			POSTGIS_PROJ_VERSION=`$PKG_CONFIG proj --modversion | sed 's/\([0-9]\).*\([0-9]\).*\([0-9]\)/\1\2/'`
++			POSTGIS_PROJ_VERSION=`$PKG_CONFIG proj --modversion | $PERL -nle 'print "$1$2" if /(\d+)\.(\d+)\.(\d+)/'`
+ 
+ fi
+ else
+@@ -19162,7 +19293,7 @@ if test "$CHECK_PROTOBUF" != "no"; then
+ 
+ 	CPPFLAGS_SAVE="$CPPFLAGS"
+ 	LDFLAGS_SAVE="$LDFLAGS"
+-        LIBS_SAVE="$LIBS"
++	LIBS_SAVE="$LIBS"
+ 
+ 		if test -n "$PKG_CONFIG"; then
+ 
+@@ -28230,10 +28361,10 @@ fi
+ $as_echo "" >&6; }
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result:  -------------- Dependencies -------------- " >&5
+ $as_echo " -------------- Dependencies -------------- " >&6; }
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   GEOS config:          ${GEOSCONFIG}" >&5
+-$as_echo "  GEOS config:          ${GEOSCONFIG}" >&6; }
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   GEOS version:         ${GEOS_FULL_VERSION}" >&5
+-$as_echo "  GEOS version:         ${GEOS_FULL_VERSION}" >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   GEOS config:          ${GEOS_CONFIG_SRC}" >&5
++$as_echo "  GEOS config:          ${GEOS_CONFIG_SRC}" >&6; }
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   GEOS version:         ${GEOS_VERSION}" >&5
++$as_echo "  GEOS version:         ${GEOS_VERSION}" >&6; }
+ if test "x$RASTER" = "xraster"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result:   GDAL config:          ${GDAL_CONFIG}" >&5
+ $as_echo "  GDAL config:          ${GDAL_CONFIG}" >&6; }
+@@ -28343,8 +28474,8 @@ $as_echo "" >&6; }
+ if test "$POSTGIS_GEOS_VERSION" -lt 31200; then
+ { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  --------- GEOS VERSION WARNING ------------ " >&5
+ $as_echo "$as_me: WARNING:  --------- GEOS VERSION WARNING ------------ " >&2;}
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:   You are building against GEOS ${GEOS_FULL_VERSION}." >&5
+-$as_echo "$as_me: WARNING:   You are building against GEOS ${GEOS_FULL_VERSION}." >&2;}
++{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:   You are building against GEOS ${GEOS_VERSION}." >&5
++$as_echo "$as_me: WARNING:   You are building against GEOS ${GEOS_VERSION}." >&2;}
+ { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: " >&5
+ $as_echo "$as_me: WARNING: " >&2;}
+ { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:   To take advantage of _all_ the features of " >&5
+diff --git a/configure.ac b/configure.ac
+index baa0f1762..1be18424b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -718,50 +718,97 @@ dnl ===========================================================================
+ dnl Detect the version of GEOS installed on the system
+ dnl ===========================================================================
+ 
++dnl
++dnl Set the min version number here
++dnl
++GEOS_MIN_VERSION=3.8.0
++GEOS_MIN_VERSION_NUMERIC=`echo $GEOS_MIN_VERSION | $PERL -nle 'printf "%d%02d%02d\n",$1,$2,$3 if /(\d+)\.(\d+)\.(\d+)/'`
++
+ AC_ARG_WITH([geosconfig],
+ 	[AS_HELP_STRING([--with-geosconfig=FILE], [specify an alternative geos-config file])],
+ 	[GEOSCONFIG="$withval"], [GEOSCONFIG=""])
+ 
+-if test "x$GEOSCONFIG" = "x"; then
+-	dnl GEOSCONFIG was not specified, so search within the current path
+-	AC_PATH_PROG([GEOSCONFIG], [geos-config])
++if test ! -z "$GEOSCONFIG"; then
+ 
+-	dnl If we couldn't find geos-config, display an error
+-	if test "x$GEOSCONFIG" = "x"; then
+-		AC_MSG_ERROR([could not find geos-config within the current path. You may need to try re-running configure with a --with-geosconfig parameter.])
++	dnl the --with-geosconfig argument was set
++	AC_MSG_CHECKING([that $GEOSCONFIG exists])
++	if test -f "$GEOSCONFIG"; then
++		AC_MSG_RESULT([yes])
++		AC_MSG_CHECKING([that $GEOSCONFIG is executable])
++		if test -x "$GEOSCONFIG"; then
++			AC_MSG_RESULT([yes])
++		else
++			AC_MSG_RESULT([no])
++			AC_MSG_ERROR([use --with-geosconfig=/path/to/executable/geos-config])
++		fi
++	else
++		AC_MSG_RESULT([no])
++		AC_MSG_ERROR([use --with-geosconfig=/path/to/geos-config])
+ 	fi
++
++	dnl a usable geos-config was specified
++	GEOS_VERSION=`$GEOSCONFIG --version`
++	GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
++	GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
++	GEOS_CONFIG_SRC=$GEOSCONFIG
++
+ else
+-	dnl GEOSCONFIG was specified; display a message to the user
+-	if test "x$GEOSCONFIG" = "xyes"; then
+-		AC_MSG_ERROR([you must specify a parameter to --with-geosconfig, e.g. --with-geosconfig=/path/to/geos-config])
+-	else
+-		if test -f $GEOSCONFIG; then
+-			AC_MSG_RESULT([Using user-specified geos-config file: $GEOSCONFIG])
++
++	dnl the --with-geosconfig argument was NOT set
++	if test ! -z "$PKG_CONFIG"; then
++		dnl look in pkg-config first
++		dnl GEOS_LDFLAGS and GEOS_CPPFLAGS get set automatically
++
++			PKG_CHECK_MODULES([GEOS], [geos], [
++				GEOS_VERSION=`$PKG_CONFIG geos --modversion`
++				GEOS_LDFLAGS=`$PKG_CONFIG geos --libs`
++				GEOS_CPPFLAGS=`$PKG_CONFIG geos --cflags`
++				GEOS_PKGCONFIG=yes
++				GEOS_CONFIG_SRC="$PKG_CONFIG geos"
++			], [
++				AC_MSG_RESULT([checking for geos-config on the path...])
++
++			])
++	fi
++
++	if test -z "$GEOS_PKGCONFIG"; then
++		dnl pkg-config failed, so try to use geos-config from path
++		AC_PATH_PROG([GEOSCONFIG], [geos-config])
++		if test -z "$GEOSCONFIG"; then
++			AC_MSG_ERROR([could not find geos-config on the current path, try using the --with-geosconfig parameter.])
+ 		else
+-			AC_MSG_ERROR([the user-specified geos-config file $GEOSCONFIG does not exist])
++			GEOS_VERSION=`$GEOSCONFIG --version`
++			GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
++			GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
++			GEOS_CONFIG_SRC="$GEOSCONFIG"
+ 		fi
+ 	fi
+ fi
+ 
+-dnl Extract the version information from geos_config
+-dnl Note: we extract the major & minor separately, ensure they are numeric,
+-dnl and then combine to give the final version.
+-dnl This is to guard against user error...
+-GEOS_MAJOR_VERSION=`$GEOSCONFIG --version | cut -d. -f1 | sed 's/[[^0-9]]//g'`
+-GEOS_MINOR_VERSION=`$GEOSCONFIG --version | cut -d. -f2 | sed 's/[[^0-9]]//g'`
+-GEOS_PATCH_VERSION=`$GEOSCONFIG --version | cut -d. -f3 | sed 's/[[^0-9]]//g'`
+-if test "x$GEOS_PATCH_VERSION" = "x"; then
+-	GEOS_PATCH_VERSION="0";
+-fi
+-GEOS_FULL_VERSION=`$GEOSCONFIG --version`
+-GEOS_NUMERIC_PATCH_VERSION=`printf "%02d" $GEOS_PATCH_VERSION`
+-GEOS_NUMERIC_MINOR_VERSION=`printf "%02d" $GEOS_MINOR_VERSION`
+-POSTGIS_GEOS_VERSION="$GEOS_MAJOR_VERSION$GEOS_NUMERIC_MINOR_VERSION$GEOS_NUMERIC_PATCH_VERSION"
+-
+-dnl Ensure that we are using GEOS >= 3.6.0
+-AC_MSG_RESULT([checking GEOS version... $GEOS_FULL_VERSION])
+-if test ! "$POSTGIS_GEOS_VERSION" -ge 30600; then
+-	AC_MSG_ERROR([PostGIS requires GEOS >= 3.6.0])
++dnl
++dnl Convert human form (3.1.12) of version
++dnl    to numeric form (30112) for version checking
++dnl
++POSTGIS_GEOS_VERSION=`echo $GEOS_VERSION | $PERL -nle 'printf "%d%02d%02d\n",$1,$2,$3 if /(\d+)\.(\d+)\.(\d+)/'`
++
++AC_MSG_CHECKING([GEOS version])
++AC_MSG_RESULT([$GEOS_VERSION])
++
++AC_MSG_CHECKING([GEOS numeric version])
++AC_MSG_RESULT([$POSTGIS_GEOS_VERSION])
++
++AC_MSG_CHECKING([GEOS link flags])
++AC_MSG_RESULT([$GEOS_LDFLAGS])
++
++AC_MSG_CHECKING([GEOS compile flags])
++AC_MSG_RESULT([$GEOS_CPPFLAGS])
++
++dnl Ensure that we are using GEOS >= GEOS_MIN_VERSION
++AC_MSG_CHECKING([GEOS version is supported])
++if test "$POSTGIS_GEOS_VERSION" -ge "$GEOS_MIN_VERSION_NUMERIC"; then
++	AC_MSG_RESULT([yes])
++else
++	AC_MSG_ERROR([PostGIS requires GEOS >= $GEOS_MIN_VERSION])
+ fi
+ 
+ #
+@@ -780,12 +827,6 @@ case $host_os in
+ 	;;
+ esac
+ 
+-dnl Extract the linker and include flags
+-GEOS_LDFLAGS=`$GEOSCONFIG --clibs`
+-GEOS_CPPFLAGS=`$GEOSCONFIG --cflags`
+-AC_SUBST([GEOS_LDFLAGS])
+-AC_SUBST([GEOS_CPPFLAGS])
+-
+ dnl Ensure that we can parse geos_c.h
+ CPPFLAGS_SAVE="$CPPFLAGS"
+ CPPFLAGS="$GEOS_CPPFLAGS"
+@@ -803,6 +844,8 @@ LIBS="$LIBS_SAVE"
+ 
+ AC_DEFINE_UNQUOTED([POSTGIS_GEOS_VERSION], [$POSTGIS_GEOS_VERSION], [GEOS library version])
+ AC_SUBST([POSTGIS_GEOS_VERSION])
++AC_SUBST([GEOS_LDFLAGS])
++AC_SUBST([GEOS_CPPFLAGS])
+ 
+ 
+ dnl ===========================================================================
+@@ -928,7 +971,7 @@ elif test ! -z "$PKG_CONFIG"; then
+ 		[
+ 			PROJ_CPPFLAGS="$PROJ_CFLAGS"
+ 			PROJ_LDFLAGS="$PROJ_LIBS"
+-			POSTGIS_PROJ_VERSION=`$PKG_CONFIG proj --modversion | sed 's/\([[0-9]]\).*\([[0-9]]\).*\([[0-9]]\)/\1\2/'`
++			POSTGIS_PROJ_VERSION=`$PKG_CONFIG proj --modversion | $PERL -nle 'print "$1$2" if /(\d+)\.(\d+)\.(\d+)/'`
+ 		],
+ 		[
+ 			PROJ_LDFLAGS="-lproj"
+@@ -1076,7 +1119,7 @@ if test "$CHECK_PROTOBUF" != "no"; then
+ 
+ 	CPPFLAGS_SAVE="$CPPFLAGS"
+ 	LDFLAGS_SAVE="$LDFLAGS"
+-        LIBS_SAVE="$LIBS"
++	LIBS_SAVE="$LIBS"
+ 
+ 	dnl Try pkgconfig first
+ 	if test -n "$PKG_CONFIG"; then
+@@ -1869,8 +1912,8 @@ fi
+ 
+ AC_MSG_RESULT()
+ AC_MSG_RESULT([ -------------- Dependencies -------------- ])
+-AC_MSG_RESULT([  GEOS config:          ${GEOSCONFIG}])
+-AC_MSG_RESULT([  GEOS version:         ${GEOS_FULL_VERSION}])
++AC_MSG_RESULT([  GEOS config:          ${GEOS_CONFIG_SRC}])
++AC_MSG_RESULT([  GEOS version:         ${GEOS_VERSION}])
+ if test "x$RASTER" = "xraster"; then
+     AC_MSG_RESULT([  GDAL config:          ${GDAL_CONFIG}])
+     AC_MSG_RESULT([  GDAL version:         ${GDAL_FULL_VERSION}])
+@@ -1943,7 +1986,7 @@ AC_MSG_RESULT()
+ 
+ if test "$POSTGIS_GEOS_VERSION" -lt 31200; then
+ AC_MSG_WARN([ --------- GEOS VERSION WARNING ------------ ])
+-AC_MSG_WARN([  You are building against GEOS ${GEOS_FULL_VERSION}.])
++AC_MSG_WARN([  You are building against GEOS ${GEOS_VERSION}.])
+ AC_MSG_WARN([])
+ AC_MSG_WARN([  To take advantage of _all_ the features of ])
+ AC_MSG_WARN([  PostGIS, GEOS 3.12.0 or higher is required.])
+-- 
+2.44.2
+

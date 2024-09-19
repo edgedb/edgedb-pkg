@@ -14,14 +14,18 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		libssl-dev \
 		tk-dev \
+		tcl \
 		sudo \
 		bison \
 		flex \
+		file \
 		patchelf \
+		libprotobuf-dev \
+		zip \
 		zstd \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV PYTHON_VERSION 3.12.6
+ENV PYTHON_VERSION 3.12.7
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 ENV PATH /usr/local/cargo/bin:$PATH
@@ -29,11 +33,16 @@ ENV RUST_VERSION 1.76.0
 ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV CMAKE_VERSION 3.30.2
+ENV NINJA_VERSION 1.12.1
 
 RUN set -ex \
 	\
 	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& curl -fsSLo ninja-linux.zip "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip" \
+	&& unzip ninja-linux.zip -d /usr/local/bin \
+	&& rm -f ninja-linux.zip \
+	&& chmod +x /usr/local/bin/ninja \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -162,7 +171,8 @@ RUN set -ex \
 	&& node --version \
 	&& npm --version \
 	&& yarn --version \
-	&& cmake --version
+	&& cmake --version \
+	&& ninja --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -204,6 +214,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
+python -m pip install meson\n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\

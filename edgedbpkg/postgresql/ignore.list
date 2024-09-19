@@ -5,5 +5,5 @@
 {libdir}/postgresql/pgxs
 {libdir}/postgresql/pgxs/**
 {includedir}/**/*.h
-{datadir}/doc/postgresql
-{datadir}/doc/postgresql/**
+{docdir}/postgresql
+{docdir}/postgresql/**

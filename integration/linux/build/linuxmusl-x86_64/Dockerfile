@@ -32,13 +32,19 @@ RUN apk add --no-cache \
 		tar \
 		yarn \
 		zstd \
-		cmake
+		cmake \
+		tcl \
+		protobuf-dev \
+		ninja \
+		file \
+		zip
 
 RUN set -x; \
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --profile minimal --default-toolchain $RUST_VERSION \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version
+	&& rustc --version \
+	&& ninja --version
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
@@ -54,6 +60,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
+python -m pip install meson\n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\

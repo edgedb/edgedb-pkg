@@ -1,0 +1,43 @@
+From b83c4860e9b323cad0b9031e99676a363c537b9e Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Fri, 4 Oct 2024 13:08:50 -0700
+Subject: [PATCH] Fix out-of-tree builds without xsltproc
+
+---
+ configure    | 4 ++--
+ configure.ac | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/configure b/configure
+index a2ad1b50b..efbf46631 100755
+--- a/configure
++++ b/configure
+@@ -25824,8 +25824,8 @@ EXTENSIONS=""
+ if test "x$PG_CONFIG" != "xno"; then
+   if test \
+           "x$XSLTPROC" != "x" -o \
+-          -e doc/postgis_comments.sql -a \
+-          -e doc/raster_comments.sql;
++          -e ${srcdir}/doc/postgis_comments.sql -a \
++          -e ${srcdir}/doc/raster_comments.sql;
+   then
+       { $as_echo "$as_me:${as_lineno-$LINENO}: result: enabling PostgreSQL extension support..." >&5
+ $as_echo "enabling PostgreSQL extension support..." >&6; }
+diff --git a/configure.ac b/configure.ac
+index e55fabe87..6eb1d8de7 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1821,8 +1821,8 @@ EXTENSIONS=""
+ if test "x$PG_CONFIG" != "xno"; then
+   if test \
+           "x$XSLTPROC" != "x" -o \
+-          -e doc/postgis_comments.sql -a \
+-          -e doc/raster_comments.sql;
++          -e ${srcdir}/doc/postgis_comments.sql -a \
++          -e ${srcdir}/doc/raster_comments.sql;
+   then
+       AC_MSG_RESULT([enabling PostgreSQL extension support...])
+       EXTENSIONS=extensions
+-- 
+2.45.2
+

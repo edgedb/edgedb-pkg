@@ -1,0 +1,12 @@
+{libdir}/pkgconfig
+{libdir}/pkgconfig/**
+{libdir}/*.a
+{libdir}/*.la
+{bindir}
+{bindir}/*
+{includedir}
+{includedir}/**
+{mandir}
+{mandir}/**
+{docdir}
+{docdir}/**

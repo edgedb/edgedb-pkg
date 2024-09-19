@@ -1,7 +1,7 @@
-From 703463c8ff99e003b08f6ec0bab746ccf0eb0f93 Mon Sep 17 00:00:00 2001
+From cd9ca68583a77db766a9ca2b4a5b7de775ee42d1 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Mon, 11 Feb 2019 20:28:00 -0500
-Subject: [PATCH 5/5] Use pkg-config for libuuid, openssl and zlib
+Subject: [PATCH] Use pkg-config for libuuid, openssl and zlib
 
 ---
  configure                        | 650 +++++++++++++++++++++++++++++--
@@ -19,7 +19,7 @@ Subject: [PATCH 5/5] Use pkg-config for libuuid, openssl and zlib
  12 files changed, 755 insertions(+), 35 deletions(-)
 
 diff --git a/configure b/configure
-index 7279c98da0..ca58d52b07 100755
+index 6140a5988f..748b081c40 100755
 --- a/configure
 +++ b/configure
 @@ -652,9 +652,14 @@ OPENSSL
@@ -362,7 +362,7 @@ index 7279c98da0..ca58d52b07 100755
    if test "$PORTNAME" != "win32"; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for CRYPTO_new_ex_data in -lcrypto" >&5
  $as_echo_n "checking for CRYPTO_new_ex_data in -lcrypto... " >&6; }
-@@ -13023,6 +13293,10 @@ done
+@@ -13024,6 +13294,10 @@ done
  
  $as_echo "#define USE_OPENSSL 1" >>confdefs.h
  
@@ -373,7 +373,7 @@ index 7279c98da0..ca58d52b07 100755
  elif test "$with_ssl" != no ; then
    as_fn_error $? "--with-ssl must specify openssl" "$LINENO" 5
  fi
-@@ -13521,14 +13795,85 @@ else
+@@ -13522,14 +13796,85 @@ else
  fi
  
  elif test "$with_uuid" = e2fs ; then
@@ -466,7 +466,7 @@ index 7279c98da0..ca58d52b07 100755
    $as_echo_n "(cached) " >&6
  else
    ac_check_lib_save_LIBS=$LIBS
-@@ -13542,34 +13887,279 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+@@ -13543,34 +13888,279 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  #ifdef __cplusplus
  extern "C"
  #endif
@@ -755,7 +755,7 @@ index 7279c98da0..ca58d52b07 100755
  elif test "$with_uuid" = ossp ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for uuid_export in -lossp-uuid" >&5
  $as_echo_n "checking for uuid_export in -lossp-uuid... " >&6; }
-@@ -13925,6 +14515,8 @@ done
+@@ -13926,6 +14516,8 @@ done
  fi
  
  if test "$with_zlib" = yes; then
@@ -764,7 +764,7 @@ index 7279c98da0..ca58d52b07 100755
    ac_fn_c_check_header_mongrel "$LINENO" "zlib.h" "ac_cv_header_zlib_h" "$ac_includes_default"
  if test "x$ac_cv_header_zlib_h" = xyes; then :
  
-@@ -13936,6 +14528,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
+@@ -13937,6 +14529,7 @@ Use --without-zlib to disable zlib support." "$LINENO" 5
  fi
  
  
@@ -772,7 +772,7 @@ index 7279c98da0..ca58d52b07 100755
  fi
  
  if test -z "$LZ4"; then
-@@ -14183,6 +14776,8 @@ pgac_openssl_version="$($OPENSSL version 2> /dev/null || echo openssl not found)
+@@ -14184,6 +14777,8 @@ pgac_openssl_version="$($OPENSSL version 2> /dev/null || echo openssl not found)
  { $as_echo "$as_me:${as_lineno-$LINENO}: using openssl: $pgac_openssl_version" >&5
  $as_echo "$as_me: using openssl: $pgac_openssl_version" >&6;}
  if test "$with_ssl" = openssl ; then
@@ -781,7 +781,7 @@ index 7279c98da0..ca58d52b07 100755
    ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
  if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
  
-@@ -14199,6 +14794,7 @@ else
+@@ -14200,6 +14795,7 @@ else
  fi
  
  
@@ -789,7 +789,7 @@ index 7279c98da0..ca58d52b07 100755
  fi
  
  if test "$with_pam" = yes ; then
-@@ -14352,6 +14948,9 @@ fi
+@@ -14353,6 +14949,9 @@ fi
  
  fi
  
@@ -799,7 +799,7 @@ index 7279c98da0..ca58d52b07 100755
  # for contrib/uuid-ossp
  if test "$with_uuid" = bsd ; then
    for ac_header in uuid.h
-@@ -14486,6 +15085,8 @@ done
+@@ -14487,6 +15086,8 @@ done
  
  fi
  
@@ -808,7 +808,7 @@ index 7279c98da0..ca58d52b07 100755
  if test "$PORTNAME" = "win32" ; then
     for ac_header in crtdefs.h
  do :
-@@ -15221,6 +15822,8 @@ if test "$with_zlib" = yes; then
+@@ -15222,6 +15823,8 @@ if test "$with_zlib" = yes; then
    # Check that <zlib.h> defines z_streamp (versions before about 1.0.4
    # did not).  While we could work around the lack of z_streamp, it
    # seems unwise to encourage people to use such old zlib versions...
@@ -817,7 +817,7 @@ index 7279c98da0..ca58d52b07 100755
    ac_fn_c_check_type "$LINENO" "z_streamp" "ac_cv_type_z_streamp" "#include <zlib.h>
  "
  if test "x$ac_cv_type_z_streamp" = xyes; then :
-@@ -15230,6 +15833,7 @@ else
+@@ -15231,6 +15834,7 @@ else
  Use --without-zlib to disable zlib support." "$LINENO" 5
  fi
  
@@ -826,7 +826,7 @@ index 7279c98da0..ca58d52b07 100755
  
  case $host_cpu in
 diff --git a/configure.ac b/configure.ac
-index e50ef69f82..d6338ec1c0 100644
+index 7c5c221474..e4cde96ce7 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -1321,11 +1321,39 @@ Use --without-readline to disable readline support.])
@@ -892,7 +892,7 @@ index e50ef69f82..d6338ec1c0 100644
       AC_CHECK_LIB(ssl,    SSL_new, [], [AC_MSG_ERROR([library 'ssl' is required for OpenSSL])])
 @@ -1393,6 +1429,10 @@ if test "$with_ssl" = openssl ; then
    # Function introduced in OpenSSL 1.1.1.
-   AC_CHECK_FUNCS([X509_get_signature_info])
+   AC_CHECK_FUNCS([X509_get_signature_info SSL_CTX_set_num_tickets])
    AC_DEFINE([USE_OPENSSL], 1, [Define to 1 to build with OpenSSL support. (--with-ssl=openssl)])
 +
 +  CPPFLAGS=$pgac_save_CPPFLAGS
@@ -1070,7 +1070,7 @@ index f15ca4fd85..12dc768fc3 100644
  ifdef PGXS
  override CPPFLAGS := -I$(includedir_server) -I$(includedir_internal) $(CPPFLAGS)
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index 3c42003175..7812d064ed 100644
+index 82cae98a44..229e9f0872 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
 @@ -44,8 +44,8 @@ OBJS = \
@@ -1138,7 +1138,7 @@ index 372f8e4d7c..d8b6dac2ac 100644
  OBJS_COMMON += \
  	cryptohash.o \
 diff --git a/src/include/pg_config.h.in b/src/include/pg_config.h.in
-index c2e27b5416..71d67895d5 100644
+index 01770a0730..1ff8954b7f 100644
 --- a/src/include/pg_config.h.in
 +++ b/src/include/pg_config.h.in
 @@ -289,7 +289,7 @@
@@ -1163,5 +1163,5 @@ index 0919d8f32f..e0e70ce5e6 100644
  
  ifeq ($(with_gssapi),yes)
 -- 
-2.43.0
+2.45.2
 
