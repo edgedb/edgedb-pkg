@@ -9,26 +9,51 @@ ENV LANG en_US.UTF-8
 
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
+%%IF VARIANT=7%%
+ENV GCC_VERSION 11
+%%ENDIF%%
+
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
 #
 # We need to disable the mirrorlist and explicitly set up a
 # baseurl. Switch to the archive.kernel.org mirror while we are at it.
-RUN ulimit -n 1024 \
+RUN set -ex \
+	&& ulimit -n 1024 \
+	&& sed -i 's/enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y
+    && yum update -y \
+%%IF VARIANT=7%%
+    && yum install -y centos-release-scl epel-release \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-SCLo* \
+    && sed -i "s|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g" /etc/yum.repos.d/CentOS-SCLo* \
+    && yum update -y \
+%%ENDIF%%
+	&& echo "repo setup done"
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small.
 RUN ulimit -n 1024 \
     && yum install -y \
-    wget gcc gcc-c++ make patch zlib-devel openssl-devel sqlite-devel bzip2-devel \
+    wget gcc gcc-c++ make patch zlib-devel sqlite-devel bzip2-devel \
+	openssl-devel \
+%%IF VARIANT=7%%
+	openssl11-devel \
+	devtoolset-${GCC_VERSION} \
+%%ENDIF%%
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates cmake
+	sudo ca-certificates
 
+%%IF VARIANT=7%%
+RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
+	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
+%%ENDIF%%
+
+# Needed to pick up SCL stuff from profile.d/
+SHELL ["/bin/bash", "--login", "-c"]
 
 ENV GPG_KEY %%PLACEHOLDER%%
 ENV PYTHON_VERSION %%PLACEHOLDER%%
@@ -36,19 +61,21 @@ ENV GIT_VERSION 2.20.1
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
+ENV GO_VERSION %%PLACEHOLDER%%
 ENV PATH /usr/local/cargo/bin:$PATH
 ENV RUST_VERSION %%PLACEHOLDER%%
 ENV NODE_VERSION %%PLACEHOLDER%%
 ENV YARN_VERSION %%PLACEHOLDER%%
+ENV CMAKE_VERSION %%PLACEHOLDER%%
 
 RUN set -ex \
 	\
-	&& wget -O python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& wget -O python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& wget -O git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
-	&& wget -O git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
-	&& wget -O tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
-	&& wget -O tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
+	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
+	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
+	&& curl -fsSLo git.tar.xz "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
+	&& curl -fsSLo git.tar.sign "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
+	&& curl -fsSLo tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
+	&& curl -fsSLo tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -75,6 +102,12 @@ RUN set -ex \
       gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
+    && for key in \
+      "${CMAKE_KEYS[@]}"
+    ; do \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
@@ -91,6 +124,9 @@ RUN set -ex \
 	&& rm tar.tar.xz \
 	\
 	&& cd /usr/src/python \
+%%IF VARIANT=7%%
+	&& sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure \
+%%ENDIF%%
 	&& gnuArch="$(gcc -dumpmachine)" \
 	&& ./configure \
 		--build="$gnuArch" \
@@ -128,22 +164,46 @@ RUN set -ex \
 	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
 	\
 	&& dpkgArch="$(rpm --eval '%{_arch}')" \
+	&& dpkgArch="$(rpm --eval '%{_arch}')" \
 	&& case "${dpkgArch##*-}" in \
-		x86_64) ARCH='x64';; \
-		ppc64el) ARCH='ppc64le';; \
-		s390x) ARCH='s390x';; \
-		arm64) ARCH='arm64';; \
-		aarch64) ARCH='arm64';; \
-		armhf) ARCH='armv7l';; \
-		i386) ARCH='x86';; \
+		x86_64) \
+			NODE_ARCH='x64' \
+			GO_ARCH='amd64' \
+			CMAKE_ARCH='x86_64' \
+			;; \
+		ppc64el) \
+			NODE_ARCH='ppc64le' \
+			GO_ARCH='ppc64le' \
+			CMAKE_ARCH='' \
+			;; \
+		s390x) \
+			NODE_ARCH='s390x' \
+			GO_ARCH='s390x' \
+			CMAKE_ARCH='' \
+			;; \
+		arm64) \
+			NODE_ARCH='arm64' \
+			GO_ARCH='arm64' \
+			CMAKE_ARCH='' \
+			;; \
+		aarch64) \
+			NODE_ARCH='arm64' \
+			GO_ARCH='arm64' \
+			CMAKE_ARCH='aarch64' \
+			;; \
+		i386) \
+			NODE_ARCH='x86' \
+			GO_ARCH='386' \
+			CMAKE_ARCH='' \
+			;; \
 		*) echo "unsupported architecture"; exit 1 ;; \
 	esac \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" \
 	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
 	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
+	&& grep " node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
+	&& tar -xJf "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+	&& rm "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
 	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
 	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
 	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
@@ -153,6 +213,29 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& curl --proto '=https' --tlsv1.2 -sSfL \
+		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
+	&& tar -C /usr/local -xzf /tmp/go.tgz \
+	&& rm /tmp/go.tgz \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
+	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
+	&& gpg --batch --verify cmake-$CMAKE_VERSION-SHA-256.txt.asc cmake-$CMAKE_VERSION-SHA-256.txt \
+	&& grep " cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz\$" cmake-$CMAKE_VERSION-SHA-256.txt | sha256sum -c - \
+	&& if [ -n "$CMAKE_ARCH" ]; then \
+		echo $CMAKE_ARCH; \
+		tar -xzf "cmake-$CMAKE_VERSION-linux-$CMAKE_ARCH.tar.gz" -C /usr/local --strip-components=1 --no-same-owner; \
+	else \
+		mkdir cmake-build; \
+		tar -xzf "cmake-$CMAKE_VERSION.tar.gz" -C cmake-build --strip-components=1; \
+		cd cmake-build; \
+		./bootstrap --parallel="$(nproc)"; \
+		make -j "$(nproc)"; \
+		make install; \
+		cd ..; \
+		rm -rf cmake-build; \
+	fi \
+	&& rm "cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" "cmake-$CMAKE_VERSION-SHA-256.txt" "cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
@@ -176,7 +259,7 @@ ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
 
 RUN set -ex; \
 	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
+	curl -fsSLo get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
 	\
 	python get-pip.py \
 		--disable-pip-version-check \

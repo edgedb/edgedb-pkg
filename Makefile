@@ -121,7 +121,8 @@ endif
 
 build: check-target
 	make -C integration/linux/build
-	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/build:$(TARGET) \
+	env BUILDKIT_PROGRESS=plain \
+		docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/build:$(TARGET) \
 		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
 		--platform $(DOCKER_PLATFORM) \
 		integration/linux/build/$(TARGET)
@@ -141,7 +142,8 @@ build: check-target
 
 test: check-target
 	make -C integration/linux/test
-	docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/test:$(TARGET) \
+	env BUILDKIT_PROGRESS=plain \
+		docker build -t $(DOCKER_ARCH_PREFIX)edgedb-pkg/test:$(TARGET) \
 		--build-arg DOCKER_ARCH=$(DOCKER_ARCH_PREFIX) \
 		--platform $(DOCKER_PLATFORM) \
 		integration/linux/test/$(TARGET)
@@ -158,7 +160,8 @@ test: check-target
 
 test-systemd: check-target
 	make -C integration/linux/test-systemd
-	docker build -t edgedb-pkg/test-systemd:$(TARGET) integration/linux/test-systemd/$(TARGET)
+	env BUILDKIT_PROGRESS=plain \
+		docker build -t edgedb-pkg/test-systemd:$(TARGET) integration/linux/test-systemd/$(TARGET)
 	podman run -it --rm \
 		--cap-add SYS_ADMIN \
 		--cgroupns=host \
@@ -173,7 +176,8 @@ test-systemd: check-target
 
 publish:
 	make -C integration/linux/upload
-	docker build -t edgedb-pkg/upload:linux-x86_64 integration/linux/upload/linux-x86_64
+	env BUILDKIT_PROGRESS=plain \
+		docker build -t edgedb-pkg/upload:linux-x86_64 integration/linux/upload/linux-x86_64
 	docker run -it --rm \
 		$(EXTRAENV) \
 		-e PKG_PLATFORM=$(PLATFORM) \
@@ -187,6 +191,7 @@ publish:
 
 test-published: check-target
 	make -C integration/linux/testpublished
+	export BUILDKIT_PROGRESS=plain
 	docker build -t edgedb-pkg/testpublished:$(TARGET) integration/linux/testpublished/$(TARGET)
 	docker run -it --rm \
 		$(EXTRAENV) \

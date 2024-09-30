@@ -21,7 +21,7 @@ RUN yum install -y \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en cmake
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.9.19
+ENV PYTHON_VERSION 3.12.6
 ENV GIT_VERSION 2.20.1
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
