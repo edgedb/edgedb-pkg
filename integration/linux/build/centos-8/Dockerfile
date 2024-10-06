@@ -45,7 +45,7 @@ RUN ulimit -n 1024 \
 SHELL ["/bin/bash", "--login", "-c"]
 
 ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION 3.12.6
+ENV PYTHON_VERSION 3.12.7
 ENV GIT_VERSION 2.20.1
 ENV TAR_VERSION latest
 ENV RUSTUP_HOME /usr/local/rustup
