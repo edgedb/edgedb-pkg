@@ -25,7 +25,7 @@ RUN yum install --enablerepo=devel -y \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
     perl-Getopt-Long perl-File-Copy perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
-	perl-File-Compare python3-pip python3-devel \
+	perl-File-Compare python3.12-pip python3.12-devel \
 	systemd-rpm-macros sudo ca-certificates git tar xz cmake
 
 
@@ -94,7 +94,7 @@ RUN set -ex \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
-	&& python3 --version \
+	&& python3.12 --version \
 	&& rustc --version \
 	&& node --version \
 	&& npm --version \
@@ -104,8 +104,10 @@ RUN set -ex \
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
-	&& ln -s /usr/bin/python3 python \
-	&& ln -s /usr/bin/python3-config python-config
+	&& ln -s /usr/bin/python3.12 python3 \
+	&& ln -s /usr/bin/python3.12-config python3-config \
+	&& ln -s /usr/bin/python3.12 python \
+	&& ln -s /usr/bin/python3.12-config python-config
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
