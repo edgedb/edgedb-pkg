@@ -23,6 +23,7 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 # baseurl. Switch to the archive.kernel.org mirror while we are at it.
 RUN set -ex \
 	&& ulimit -n 1024 \
+	&& ( [ -e /etc/yum/pluginconf.d/fastestmirror.conf ] && sed -i 's/enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf || true ) \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g' /etc/yum.repos.d/CentOS-* \
     && yum update -y \
