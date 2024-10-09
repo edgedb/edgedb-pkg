@@ -1,0 +1,62 @@
+From 33167ddb21e17f74cce006e78f743e2b89ca52bd Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 3 Oct 2024 17:37:17 -0700
+Subject: [PATCH] Fix building on macOS
+
+topology/Makefile clobbers bindir, which, in turn breaks the
+`-bundle_loader` flag set by pgxs.mk.
+---
+ topology/Makefile.in | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/topology/Makefile.in b/topology/Makefile.in
+index be2afd862..9365c94e1 100644
+--- a/topology/Makefile.in
++++ b/topology/Makefile.in
+@@ -83,7 +83,7 @@ include $(PGXS)
+ # Set prefix variables _after_ the include of PGXS
+ prefix = @prefix@
+ exec_prefix = @exec_prefix@
+-bindir = @bindir@
++my_bindir = @bindir@
+ 
+ # Set PERL _after_ the include of PGXS
+ PERL=@PERL@
+@@ -99,7 +99,7 @@ $(OBJS): ../liblwgeom/.libs/liblwgeom.a ../libpgcommon/libpgcommon.a ../postgis_
+ # so that no prefix is included. This allows us to relocate to a temporary
+ # directory for regression testing.
+ ifeq ($(REGRESS),1)
+-        bindir=/bin
++        my_bindir=/bin
+         pkglibdir=/lib
+         datadir=/share
+         datamoduledir=contrib/postgis
+@@ -176,20 +176,20 @@ distclean: clean
+ 	rm -f Makefile test/Makefile
+ 
+ installdir:
+-	mkdir -p $(DESTDIR)$(bindir)
++	mkdir -p $(DESTDIR)$(my_bindir)
+ 
+ install: install-importer install-exporter
+ 
+ install-importer: loader/pgtopo_import | installdir
+-	$(LIBTOOL) --mode=install $(INSTALL) $^ "$(DESTDIR)$(bindir)/pgtopo_import"
++	$(LIBTOOL) --mode=install $(INSTALL) $^ "$(DESTDIR)$(my_bindir)/pgtopo_import"
+ 
+ install-exporter: loader/pgtopo_export | installdir
+-	$(LIBTOOL) --mode=install $(INSTALL) $^ "$(DESTDIR)$(bindir)/pgtopo_export"
++	$(LIBTOOL) --mode=install $(INSTALL) $^ "$(DESTDIR)$(my_bindir)/pgtopo_export"
+ 
+ uninstall: uninstall-importer uninstall-exporter
+ 
+ uninstall-importer:
+-	rm -f '$(DESTDIR)$(bindir)/pgtopo_import'
++	rm -f '$(DESTDIR)$(my_bindir)/pgtopo_import'
+ 
+ uninstall-exporter:
+-	rm -f '$(DESTDIR)$(bindir)/pgtopo_export'
++	rm -f '$(DESTDIR)$(my_bindir)/pgtopo_export'
+-- 
+2.45.2
+

@@ -1,0 +1,57 @@
+From cba7d5e60bbc3b892bd50b81b89f6936fd3e52e7 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Tue, 24 Sep 2024 22:01:15 -0700
+Subject: [PATCH] Avoid linking with libstdc++ explicitly
+
+---
+ configure    | 4 ++--
+ configure.ac | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/configure b/configure
+index 6b3d2d06b..19bd71236 100755
+--- a/configure
++++ b/configure
+@@ -25002,7 +25002,7 @@ fi
+     if test "x$HAVE_CPP" = "xyes"; then
+         WAGYU_LDFLAGS="-lc++"
+     elif test "x$HAVE_STDCPP" = "xyes"; then
+-        WAGYU_LDFLAGS="-lstdc++"
++        WAGYU_LDFLAGS=""
+     else
+         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \"Could not find a C++ standard library\"" >&5
+ $as_echo "$as_me: WARNING: \"Could not find a C++ standard library\"" >&2;}
+@@ -25749,7 +25749,7 @@ fi
+ if test "x$HAVE_CPP" = "xyes"; then
+ 	FLATGEOBUF_LDFLAGS="-lc++"
+ elif test "x$HAVE_STDCPP" = "xyes"; then
+-	FLATGEOBUF_LDFLAGS="-lstdc++"
++	FLATGEOBUF_LDFLAGS=""
+ else
+ 	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \"Could not find a C++ standard library\"" >&5
+ $as_echo "$as_me: WARNING: \"Could not find a C++ standard library\"" >&2;}
+diff --git a/configure.ac b/configure.ac
+index be4c49739..82fca382f 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1713,7 +1713,7 @@ if test "x$HAVE_PROTOBUF" = "xyes"; then
+     if test "x$HAVE_CPP" = "xyes"; then
+         WAGYU_LDFLAGS="-lc++"
+     elif test "x$HAVE_STDCPP" = "xyes"; then
+-        WAGYU_LDFLAGS="-lstdc++"
++        WAGYU_LDFLAGS=""
+     else
+         AC_MSG_WARN("Could not find a C++ standard library")
+         WAGYU_LDFLAGS=""
+@@ -1786,7 +1786,7 @@ AC_CHECK_LIB(stdc++, main, [HAVE_STDCPP=yes], [HAVE_STDCPP=no])
+ if test "x$HAVE_CPP" = "xyes"; then
+ 	FLATGEOBUF_LDFLAGS="-lc++"
+ elif test "x$HAVE_STDCPP" = "xyes"; then
+-	FLATGEOBUF_LDFLAGS="-lstdc++"
++	FLATGEOBUF_LDFLAGS=""
+ else
+ 	AC_MSG_WARN("Could not find a C++ standard library")
+ 	FLATGEOBUF_LDFLAGS=""
+-- 
+2.45.2
+

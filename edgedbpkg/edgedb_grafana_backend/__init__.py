@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-import shlex
 import textwrap
 
 from metapkg import packages
@@ -30,12 +29,9 @@ class EdgeDBGrafanaBackend(packages.BundledPackage):
         mage.Mage("v1.15.0"),
     ]
 
-    def get_configure_script(self, build: targets.Build) -> str:
-        sdir = shlex.quote(
-            str(build.get_source_dir(self, relative_to="pkgbuild"))
-        )
-        copy_sources = f"test ./ -ef {sdir} || cp -a {sdir}/* ./"
-        return copy_sources
+    @property
+    def supports_out_of_tree_builds(self) -> bool:
+        return False
 
     def get_build_script(self, build: targets.Build) -> str:
         gopath = build.get_temp_dir(self, relative_to="pkgbuild")
@@ -49,9 +45,9 @@ class EdgeDBGrafanaBackend(packages.BundledPackage):
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        installdest = build.get_install_dir(
+        installdest = build.get_build_install_dir(
             self, relative_to="pkgbuild"
-        ) / build.get_full_install_prefix().relative_to("/")
+        ) / build.get_rel_install_prefix(self)
         return textwrap.dedent(
             f"""\
             {script}

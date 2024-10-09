@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import shlex
+
 from metapkg import packages
 from metapkg import targets
 
 
-class ICU(packages.BundledCPackage):
+class ICU(packages.BundledCAutoconfPackage):
     title = "ICU"
     name = packages.canonicalize_name("icu")
     aliases = ["icu-dev"]
@@ -21,15 +23,20 @@ class ICU(packages.BundledCPackage):
         }
     ]
 
-    def get_configure_script(self, build: targets.Build) -> str:
+    def sh_get_configure_command(self, build: targets.Build) -> str:
         sdir = build.get_source_dir(self, relative_to="pkgbuild")
-        configure = sdir / "source" / "configure"
-        configure_flags = {
+        return shlex.quote(str(sdir / "source" / "configure"))
+
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        return super().get_configure_args(build, wd) | {
             "--disable-samples": None,
             "--disable-tests": None,
             "--enable-rpath": None,
         }
-        return self.sh_configure(build, configure, configure_flags)
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["icui18n", "icuuc", "icudata"]

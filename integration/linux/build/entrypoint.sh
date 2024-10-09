@@ -10,6 +10,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"
 
+python -m pip install meson
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 if [ -n "${METAPKG_PATH}" ]; then

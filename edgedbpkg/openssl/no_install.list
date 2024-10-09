@@ -4,3 +4,5 @@
 {libdir}/pkgconfig/**
 {libdir}/*.a
 {libdir}/*.la
+{libdir}/cmake
+{libdir}/cmake/**

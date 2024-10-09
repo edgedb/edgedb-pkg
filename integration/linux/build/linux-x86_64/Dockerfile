@@ -26,6 +26,8 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV CMAKE_VERSION 3.30.2
 ENV GCC_VERSION 11
+ENV NINJA_VERSION 1.12.1
+ENV PKGCONF_VERSION 2.3.0
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
@@ -57,7 +59,7 @@ RUN case "$HOSTTYPE" in \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates zstd
+	sudo ca-certificates zstd tcl file zip unzip
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
@@ -76,6 +78,7 @@ RUN set -ex \
 	&& curl -fsSLo patchelf.tar.bz2 "https://github.com/NixOS/patchelf/releases/download/${PATCHELF_VERSION}/patchelf-${PATCHELF_VERSION}.tar.bz2" \
 	&& curl -fsSLo tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
 	&& curl -fsSLo tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
+	&& curl -fsSLo pkgconf.tar.xz "https://distfiles.ariadne.space/pkgconf/pkgconf-${PKGCONF_VERSION}.tar.xz" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -138,6 +141,9 @@ RUN set -ex \
 	&& mkdir -p /usr/src/patchelf \
 	&& tar -xjC /usr/src/patchelf --strip-components=1 -f patchelf.tar.bz2 \
 	&& rm patchelf.tar.bz2 \
+	&& mkdir -p /usr/src/pkgconf \
+	&& tar -xJC /usr/src/pkgconf --strip-components=1 -f pkgconf.tar.xz \
+	&& rm pkgconf.tar.xz \
 	&& cd /usr/src/python \
 	&& sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure \
 	\
@@ -177,6 +183,12 @@ RUN set -ex \
 	&& make -j $(nproc) \
 	&& make install \
 	&& rm -rf /usr/src/patchelf \
+	&& cd /usr/src/pkgconf \
+	&& ./configure \
+	&& make -j $(nproc) \
+	&& make install \
+	&& rm -rf /usr/src/pkgconf \
+	&& ln -sf /usr/local/bin/pkgconf /usr/bin/pkg-config \
 	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal \
@@ -189,31 +201,19 @@ RUN set -ex \
 			NODE_ARCH='x64' \
 			GO_ARCH='amd64' \
 			CMAKE_ARCH='x86_64' \
-			;; \
-		ppc64el) \
-			NODE_ARCH='ppc64le' \
-			GO_ARCH='ppc64le' \
-			CMAKE_ARCH='' \
-			;; \
-		s390x) \
-			NODE_ARCH='s390x' \
-			GO_ARCH='s390x' \
-			CMAKE_ARCH='' \
+			NINJA_ARCH='' \
 			;; \
 		arm64) \
 			NODE_ARCH='arm64' \
 			GO_ARCH='arm64' \
-			CMAKE_ARCH='' \
+			CMAKE_ARCH='aarch64' \
+			NINJA_ARCH='aarch64' \
 			;; \
 		aarch64) \
 			NODE_ARCH='arm64' \
 			GO_ARCH='arm64' \
 			CMAKE_ARCH='aarch64' \
-			;; \
-		i386) \
-			NODE_ARCH='x86' \
-			GO_ARCH='386' \
-			CMAKE_ARCH='' \
+			NINJA_ARCH='aarch64' \
 			;; \
 		*) echo "unsupported architecture"; exit 1 ;; \
 	esac \
@@ -236,6 +236,10 @@ RUN set -ex \
 		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
 	&& tar -C /usr/local -xzf /tmp/go.tgz \
 	&& rm /tmp/go.tgz \
+	&& curl -fsSL "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux${NINJA_ARCH:+-$NINJA_ARCH}.zip" -o "ninja.zip" \
+	&& unzip ninja.zip -d /usr/local/bin \
+	&& rm -f ninja.zip \
+	&& chmod +x /usr/local/bin/ninja \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
@@ -260,12 +264,15 @@ RUN set -ex \
 	\
 	&& python3 --version \
 	&& rustc --version \
+	&& go version \
 	&& node --version \
 	&& npm --version \
 	&& yarn --version \
 	&& git --version \
 	&& tar --version \
-	&& cmake --version
+	&& cmake --version \
+	&& ninja --version \
+	&& pkg-config --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -307,6 +314,7 @@ rm -rf "${CARGO_HOME}"/{git,registry}\n\
 ln -s ~/.cache/cargo/registry "${CARGO_HOME}/registry"\n\
 ln -s ~/.cache/cargo/git "${CARGO_HOME}/git"\n\
 \n\
+python -m pip install meson\n\
 python -m pip install -U git+https://github.com/edgedb/edgedb-pkg\n\
 \n\
 if [ -n "${METAPKG_PATH}" ]; then\n\

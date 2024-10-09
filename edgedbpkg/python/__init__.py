@@ -1,7 +1,4 @@
 from __future__ import annotations
-from typing import (
-    Mapping,
-)
 
 import pathlib
 import platform
@@ -20,7 +17,7 @@ from edgedbpkg import openssl
 from edgedbpkg import zlib
 
 
-class Python(packages.BundledCPackage):
+class Python(packages.BundledCAutoconfPackage):
     title = "Python"
     name = packages.canonicalize_name("python-edgedb")
 
@@ -35,6 +32,7 @@ class Python(packages.BundledCPackage):
     artifact_requirements = [
         "openssl (>=1.1.1)",
         "libb2 (>=0.98.1)",
+        "libffi (>=3.0.13)",
         "uuid",
         "zlib",
     ]
@@ -80,18 +78,12 @@ class Python(packages.BundledCPackage):
 
         return patches
 
-    def get_configure_script(self, build: targets.Build) -> str:
-        sdir = build.get_source_dir(self, relative_to="pkgbuild")
-
-        configure = sdir / "configure"
-
-        configure_flags = {
-            "--prefix": build.get_full_install_prefix(),
-            "--sysconfdir": build.get_install_path("sysconf"),
-            "--datarootdir": build.get_install_path("data"),
-            "--bindir": build.get_install_path("bin"),
-            "--libdir": build.get_install_path("lib"),
-            "--includedir": build.get_install_path("include"),
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        conf_args = super().get_configure_args(build, wd=wd) | {
             "--enable-ipv6": None,
             "--with-dbmliborder": "bdb:gdbm",
             "--with-computed-gotos": None,
@@ -99,12 +91,12 @@ class Python(packages.BundledCPackage):
 
         if build.extra_optimizations_enabled():
             if build.supports_pgo():
-                configure_flags["--enable-optimizations"] = None
+                conf_args["--enable-optimizations"] = None
             if build.supports_lto():
-                configure_flags["--with-lto"] = None
+                conf_args["--with-lto"] = None
             if build.uses_modern_gcc():
                 build.sh_append_flags(
-                    configure_flags,
+                    conf_args,
                     "CFLAGS",
                     ("-fno-semantic-interposition",),
                 )
@@ -114,65 +106,46 @@ class Python(packages.BundledCPackage):
             # low to support the default recursion limit.
             # See https://github.com/python/cpython/issues/76488
             build.sh_append_flags(
-                configure_flags,
+                conf_args,
                 "LDFLAGS",
                 ("-Wl,-z,stack-size=1000000",),
             )
 
         if platform.system() == "Darwin":
-            configure_flags["--enable-universalsdk"] = (
-                "!$(xcrun --show-sdk-path)"
-            )
+            conf_args["--enable-universalsdk"] = "!$(xcrun --show-sdk-path)"
             arch = build.target.machine_architecture
             if arch == "x86_64":
-                configure_flags["--with-universal-archs"] = "intel-64"
+                conf_args["--with-universal-archs"] = "intel-64"
             elif arch == "aarch64":
-                configure_flags["--with-universal-archs"] = "arm-64"
+                conf_args["--with-universal-archs"] = "arm-64"
             else:
                 raise RuntimeError(f"unexpected architecture: {arch}")
 
-        self.configure_dependency(build, configure_flags, "libffi", "LIBFFI")
         libffi_pkg = build.get_package("libffi")
         if not build.is_bundled(libffi_pkg):
             # This is somewhat confusing, but Python treats
             # --without-system-ffi on macOS as instruction to actually
             # _use_ the native system libffi (as opposed to pkg-config),
             # and ignores this option on other platforms.
-            configure_flags["--without-system-ffi"] = None
+            conf_args["--without-system-ffi"] = None
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to="pkgbuild"
+            build.sh_replace_quoted_paths(
+                conf_args,
+                "--with-openssl",
+                build.sh_get_bundled_install_path(openssl_pkg, wd=wd),
             )
-            openssl_path /= build.get_full_install_prefix().relative_to("/")
-            configure_flags["--with-openssl"] = openssl_path
-            configure_flags["--with-openssl-rpath"] = (
-                openssl_pkg.get_shlib_paths(build)[0]
+            build.sh_replace_paths(
+                conf_args,
+                "--with-openssl-rpath",
+                build.get_install_path(openssl_pkg, "lib"),
             )
 
-        self.configure_dependency(build, configure_flags, "uuid", "LIBUUID")
-        self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
-        self.configure_dependency(build, configure_flags, "libb2", "LIBB2")
-
-        return build.sh_configure(configure, configure_flags)
-
-    def get_make_env(self, build: targets.Build, wd: str) -> str:
-        env = super().get_make_env(build, wd)
-        openssl_pkg = build.get_package("openssl")
-        libffi_pkg = build.get_package("libffi")
-        libb2_pkg = build.get_package("libb2")
-        uuid_pkg = build.get_package("uuid")
-        zlib_pkg = build.get_package("zlib")
-        ld_env = build.get_ld_env(
-            [openssl_pkg, libffi_pkg, uuid_pkg, zlib_pkg, libb2_pkg], wd
-        )
-        return env + " ".join(ld_env)
+        return conf_args
 
     def get_build_script(self, build: targets.Build) -> str:
-        make = build.sh_get_command("make")
-
-        prefix = build.get_full_install_prefix().relative_to("/")
+        prefix = build.get_rel_install_prefix(self)
         dest = build.get_temp_root(relative_to="pkgbuild")
 
         if platform.system() == "Darwin":
@@ -188,7 +161,11 @@ class Python(packages.BundledCPackage):
 
         python = f"python{exe_suffix}"
 
-        wrapper_env = self.get_make_env(build, "${d}")
+        wrapper_env = build.sh_format_args(
+            self.get_build_env(build, wd="${d}"),
+            force_args_eq=True,
+            linebreaks=False,
+        )
         bash = build.sh_get_command("bash")
 
         make_wrapper = textwrap.dedent(
@@ -227,7 +204,7 @@ class Python(packages.BundledCPackage):
             "spwd",
         ]
 
-        make_env = self.get_make_env(build, "$(pwd)")
+        make = self.get_build_command(build, self.get_make_args(build))
 
         return textwrap.dedent(
             f"""\
@@ -240,26 +217,29 @@ class Python(packages.BundledCPackage):
             # make sure config.c is regenerated reliably by make
             rm Modules/config.c
             ls -al Modules/
-            {make} {make_env}
+            _wd=$(pwd -P)
+            {make}
             ./{python} -m ensurepip --root "{dest}"
             {make_wrapper}"""
         )
 
-    def get_make_install_env(self, build: targets.Build, wd: str) -> str:
-        env = super().get_make_install_env(build, wd)
-        return f"{env} ENSUREPIP=no"
+    def get_build_install_env(
+        self, build: targets.Build, wd: str
+    ) -> packages.Args:
+        return super().get_build_install_env(build, wd=wd) | {
+            "ENSUREPIP": "no",
+        }
 
     def get_make_install_args(
         self,
         build: targets.Build,
-    ) -> Mapping[str, str | pathlib.Path | None]:
-        args = dict(super().get_make_args(build))
-        args["-j"] = "1"
-        return args
+    ) -> packages.Args:
+        # Python's make install isn't thread-safe
+        return super().get_make_args(build) | {"-j1": None}
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        installdest = build.get_install_dir(self, relative_to="pkgbuild")
+        installdest = build.get_build_install_dir(self, relative_to="pkgbuild")
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
@@ -286,7 +266,7 @@ class Python(packages.BundledCPackage):
         else:
             extra_install = ""
 
-        bin_dir = build.get_install_path("bin")
+        bin_dir = build.get_install_path(self, "bin")
         minorv = self.version.minor
         extra_install += textwrap.dedent(
             f"""\

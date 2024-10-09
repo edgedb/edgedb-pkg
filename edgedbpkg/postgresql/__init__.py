@@ -13,7 +13,7 @@ from metapkg import targets
 from edgedbpkg import icu, libuuid, openssl, zlib
 
 
-class PostgreSQL(packages.BundledCPackage):
+class PostgreSQL(packages.BundledCAutoconfPackage):
     title = "PostgreSQL"
     name = packages.canonicalize_name("postgresql-edgedb")
     group = "Applications/Databases"
@@ -90,7 +90,11 @@ class PostgreSQL(packages.BundledCPackage):
 
         return patches
 
-    def get_configure_script(self, build: targets.Build) -> str:
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
         extra_version = ""
 
         system = platform.system()
@@ -102,15 +106,7 @@ class PostgreSQL(packages.BundledCPackage):
         else:
             raise NotImplementedError(f"unsupported target system: {system}")
 
-        sdir = build.get_source_dir(self, relative_to="pkgbuild")
-        configure = sdir / "configure"
-
-        configure_flags: dict[str, str | pathlib.Path | None] = {
-            "--sysconfdir": build.get_install_path("sysconf"),
-            "--datarootdir": build.get_install_path("data"),
-            "--bindir": build.get_install_path("bin"),
-            "--libdir": build.get_install_path("lib"),
-            "--includedir": build.get_install_path("include"),
+        conf_args = super().get_configure_args(build, wd=wd) | {
             "--with-extra-version": extra_version,
             "--with-icu": None,
             "--without-pam": None,
@@ -119,17 +115,12 @@ class PostgreSQL(packages.BundledCPackage):
             "--without-readline": None,
         }
 
-        self.configure_dependency(build, configure_flags, "icu", "ICU")
-        self.configure_dependency(build, configure_flags, "uuid", "UUID")
-        self.configure_dependency(build, configure_flags, "zlib", "ZLIB")
-        self.configure_dependency(build, configure_flags, "openssl", "OPENSSL")
-
         if build.target.has_capability("tzdata"):
             zoneinfo = build.target.get_resource_path(build, "tzdata")
-            configure_flags["--with-system-tzdata"] = zoneinfo
+            conf_args["--with-system-tzdata"] = zoneinfo
 
         if build.target.has_capability("systemd"):
-            configure_flags["--with-systemd"] = None
+            conf_args["--with-systemd"] = None
 
         if (
             build.extra_optimizations_enabled()
@@ -137,7 +128,7 @@ class PostgreSQL(packages.BundledCPackage):
             and build.uses_modern_gcc()
         ):
             build.sh_append_flags(
-                configure_flags,
+                conf_args,
                 "CFLAGS",
                 (
                     "-flto",
@@ -147,36 +138,40 @@ class PostgreSQL(packages.BundledCPackage):
                 ),
             )
 
-        return self.sh_configure(build, configure, configure_flags)
+        return conf_args
 
     def get_build_script(self, build: targets.Build) -> str:
-        make = build.sh_get_command("make")
-
-        return textwrap.dedent(
-            f"""\
-            {make}
-            {make} -C contrib
-            {make} DESTDIR=$(pwd)/_install install
-            {make} -C contrib DESTDIR=$(pwd)/_install install
-        """
+        args = self.get_make_args(build)
+        ddir = '!"${_wd}"/_install'
+        return "\n".join(
+            [
+                self.get_build_command(build, args),
+                self.get_build_command(
+                    build, args | {"--directory": "contrib"}
+                ),
+                self.get_build_command(
+                    build, args | {"DESTDIR": ddir}, "install"
+                ),
+                self.get_build_command(
+                    build,
+                    args | {"--directory": "contrib", "DESTDIR": ddir},
+                    "install",
+                ),
+            ]
         )
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        installdest = build.get_install_dir(self, relative_to="pkgbuild")
-        make = build.sh_get_command("make")
-
-        return script + textwrap.dedent(
-            f"""\
-            {make} DESTDIR=$(pwd)/"{installdest}" -C contrib install
-            """
-        )
+        args = self.get_make_install_args(build) | {"--directory": "contrib"}
+        script += "\n" + self.get_build_install_command(build, args, "install")
+        return script
 
     def get_build_tools(self, build: targets.Build) -> dict[str, pathlib.Path]:
-        bindir = build.get_install_path("bin").relative_to("/")
-        datadir = build.get_install_path("data")
-        libdir = build.get_install_path("lib")
-        includedir = build.get_install_path("include")
+        bindir = build.get_install_path(self, "bin").relative_to("/")
+        datadir = build.get_install_path(self, "data")
+        docdir = build.get_install_path(self, "doc")
+        libdir = build.get_install_path(self, "lib")
+        includedir = build.get_install_path(self, "include")
         builddir_hlp = build.get_build_dir(self, relative_to="helpers")
 
         # Since we are using a temporary Postgres installation,
@@ -202,14 +197,18 @@ class PostgreSQL(packages.BundledCPackage):
 
             for line in proc.stdout.split('\\n'):
                 if ('{datadir}' in line or
+                        '{docdir}' in line or
                         ('{libdir}' in line and 'pgxs' not in line)):
                     line = line.replace(str(path), '')
                 print(line)
         """
         )
 
-        wrapper_cmd = build.write_helper(
-            "pg_config_wrapper.py", wrapper, relative_to="sourceroot"
+        wrapper_cmd = build.sh_write_python_helper(
+            "pg_config_wrapper.py",
+            wrapper,
+            relative_to="pkgbuild",
+            helper_path_relative_to="sourceroot",
         )
 
         # Same, but for install-time, so includes more paths
@@ -232,6 +231,7 @@ class PostgreSQL(packages.BundledCPackage):
 
             for line in proc.stdout.split('\\n'):
                 if ('{datadir}' in line or
+                        '{docdir}' in line or
                         '{includedir}' in line or
                         ('{libdir}' in line and 'pgxs' not in line)):
                     line = line.replace(str(path), '')
@@ -239,11 +239,19 @@ class PostgreSQL(packages.BundledCPackage):
         """
         )
 
-        install_wrapper_cmd = build.write_helper(
-            "pg_config_install_wrapper.py", wrapper, relative_to="sourceroot"
+        install_wrapper_cmd = build.sh_write_python_helper(
+            "pg_config_install_wrapper.py",
+            wrapper,
+            relative_to="pkgbuild",
+            helper_path_relative_to="sourceroot",
         )
 
         return {
-            "pg_config": wrapper_cmd,
-            "pg_config_install": install_wrapper_cmd,
+            "pg_config": pathlib.Path(wrapper_cmd),
+            "pg_config_install": pathlib.Path(install_wrapper_cmd),
         }
+
+    def get_shlibs(self, build: targets.Build) -> list[str]:
+        return [
+            "pq",
+        ]

@@ -6,7 +6,7 @@ from metapkg import packages
 from metapkg import targets
 
 
-class LibB2(packages.BundledCPackage):
+class LibB2(packages.BundledCAutoconfPackage):
     title = "libb2"
     name = packages.canonicalize_name("libb2")
     aliases = ["libb2-dev"]
@@ -19,31 +19,35 @@ class LibB2(packages.BundledCPackage):
         }
     ]
 
-    def get_configure_script(self, build: targets.Build) -> str:
-        sdir = build.get_source_dir(self, relative_to="pkgbuild")
-        # Restore modification times to avoid invoking the autotools.
-        script = (
-            f'touch -r "{sdir}/aclocal.m4" "{sdir}/configure.ac"'
-            f' "{sdir}/configure"\n'
-        )
-        configure = sdir / "configure"
-        configure_flags: dict[str, str | pathlib.Path | None] = {
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        args = dict(super().get_configure_args(build, wd=wd)) | {
             "--disable-openmp": None,
             "--disable-native": None,
         }
+
         if build.target.machine_architecture == "x86_64":
-            configure_flags["--enable-fat"] = None
+            args["--enable-fat"] = None
         else:
-            configure_flags["--disable-fat"] = None
+            args["--disable-fat"] = None
 
         # Upstream defaults to -O3, so likely should we.
         build.sh_append_flags(
-            configure_flags,
+            args,
             "CFLAGS",
             ("-O3",),
         )
 
-        return script + self.sh_configure(build, configure, configure_flags)
+        return args
+
+    def get_configure_script(self, build: targets.Build) -> str:
+        # Restore modification times to avoid invoking the autotools.
+        sdir = build.get_source_dir(self, relative_to="pkgbuild")
+        touch = f'touch -r "{sdir}/aclocal.m4" "{sdir}/configure.ac"\n'
+        return touch + super().get_configure_script(build)
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["b2"]

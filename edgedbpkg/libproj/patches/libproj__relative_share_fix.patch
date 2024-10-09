@@ -1,0 +1,55 @@
+From c371db9767f27cd53ad6813a8959bbb3b76cf9f0 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Thu, 26 Sep 2024 22:01:47 -0700
+Subject: [PATCH] Fix `pj_get_relative_share_proj...` when the DSO is loaded
+ with relative rpath
+
+When relative rpath is used `dli_fname` will contain `..` and the like,
+so use `realpath` to canonicalize the path before attempting to operate
+on it.
+---
+ src/filemanager.cpp | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/filemanager.cpp b/src/filemanager.cpp
+index c176c70c..8888c036 100644
+--- a/src/filemanager.cpp
++++ b/src/filemanager.cpp
+@@ -42,6 +42,7 @@
+ 
+ #include <algorithm>
+ #include <limits>
++#include <climits>
+ #include <string>
+ 
+ #include "filemanager.hpp"
+@@ -1330,7 +1331,15 @@ static std::string pj_get_relative_share_proj_internal_no_check() {
+     if (!dladdr((void *)pj_get_relative_share_proj, &info)) {
+         return std::string();
+     }
+-    std::string out(info.dli_fname);
++    std::vector<char> abspath(PATH_MAX + 1);
++    if (!realpath(info.dli_fname, &abspath[0])) {
++        return std::string();
++    }
++    std::string out(abspath.data());
++
++    pj_log(pj_get_default_ctx(), PJ_LOG_ERROR,
++           "pj_get_relative_share_proj_internal_no_check(): dli_fname: %s, realpath: %s",
++           info.dli_fname, out.c_str());
+     constexpr char dir_sep = '/';
+     // "optimization" for cmake builds where RUNPATH is set to ${prefix}/lib
+     out = replaceAll(out, "/bin/../", "/");
+@@ -1377,6 +1386,9 @@ pj_get_relative_share_proj_internal_check_exists(PJ_CONTEXT *ctx) {
+         ctx = pj_get_default_ctx();
+     }
+     std::string path(pj_get_relative_share_proj_internal_no_check());
++    pj_log(ctx, PJ_LOG_ERROR,
++           "pj_get_relative_share_proj_internal_check_exists(%s)",
++           path.c_str());
+     if (!path.empty() && NS_PROJ::FileManager::exists(ctx, path.c_str())) {
+         return path;
+     }
+-- 
+2.45.2
+

@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 import base64
 import os
 import pathlib
-import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
@@ -84,6 +83,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         revision: str | None = None,
         is_release: bool = False,
         target: targets.Target,
+        requires: list[poetry_dep.Dependency] | None = None,
     ) -> EdgeDBLanguageServer:
         os.environ["EDGEDB_BUILD_OFFICIAL"] = "yes"
         os.environ["EDGEDB_BUILD_TARGET"] = (
@@ -114,6 +114,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                     revision=revision,
                     is_release=is_release,
                     target=target,
+                    requires=requires,
                 )
                 .with_features(["language-server"])
             )
@@ -169,12 +170,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     def get_package_repository(
         cls, target: targets.Target, io: cleo_io.IO
     ) -> python.PyPiRepository:
-        repo = super().get_package_repository(target, io)
-        repo.register_package_impl("cryptography", edgedb_server.Cryptography)
-        repo.register_package_impl("cffi", edgedb_server.Cffi)
-        repo.register_package_impl("jwcrypto", edgedb_server.JWCrypto)
-        repo.register_package_impl("edgedb", edgedb_server.EdgeDBPython)
-        return repo
+        return edgedb_server.EdgeDB.get_package_repository(target, io)
 
     @property
     def base_slot(self) -> str:
@@ -211,14 +207,20 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         return True
 
     def sh_get_build_wheel_env(
-        self, build: targets.Build, *, site_packages_var: str
-    ) -> dict[str, str]:
+        self,
+        build: targets.Build,
+        *,
+        site_packages: str,
+        wd: str,
+    ) -> packages.Args:
         env = dict(
             super().sh_get_build_wheel_env(
-                build, site_packages_var=site_packages_var
+                build, site_packages=site_packages, wd=wd
             )
         )
-        shared_dir = (build.get_install_path("data") / "data").relative_to("/")
+        shared_dir = (
+            build.get_install_path(self, "data") / "data"
+        ).relative_to("/")
         temp_root = build.get_temp_root(relative_to="pkgsource")
         src_python = build.sh_get_command(
             "python", package=self, relative_to="pkgsource"
@@ -228,7 +230,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
             (
                 "import os.path",
                 "rp = os.path.relpath",
-                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"sp = rp('{site_packages}', start='{temp_root}')",
                 f"print(rp('{shared_dir}', start=os.path.join(sp, 'edb')))",
             )
         )
@@ -242,6 +244,27 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         env["_EDGEDB_BUILDMETA_SHARED_DATA_DIR"] = str(
             build.get_build_dir(self, relative_to="pkgsource") / "share"
         )
+
+        openssl_pkg = build.get_package("openssl")
+        if build.is_bundled(openssl_pkg):
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_LIB_DIR",
+                build.sh_must_get_bundled_pkg_lib_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_INCLUDE_DIR",
+                build.sh_must_get_bundled_pkg_include_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
 
         return env
 
@@ -258,9 +281,9 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        dest = build.get_install_dir(self, relative_to="pkgbuild")
+        dest = build.get_build_install_dir(self, relative_to="pkgbuild")
 
-        datadir = build.get_install_path("data")
+        datadir = build.get_install_path(self, "data")
         script += textwrap.dedent(
             f"""\
             mkdir -p "{dest}/{datadir}"
@@ -268,7 +291,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
             """
         )
 
-        bindir = build.get_install_path("bin").relative_to("/")
+        bindir = build.get_install_path(self, "bin").relative_to("/")
 
         ep_helper_pkg = build.get_package("pyentrypoint")
         ep_helper = (
@@ -296,7 +319,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         return ["libcrypto.*", "libssl.*"]
 
     def get_exposed_commands(self, build: targets.Build) -> list[pathlib.Path]:
-        bindir = build.get_install_path("bin")
+        bindir = build.get_install_path(self, "bin")
 
         return [
             bindir / "edgedb-ls",

@@ -1,0 +1,6 @@
+{bundlelibdir}/postgresql/*.so
+{bundlelibdir}/postgresql/*.dylib
+{bundledatadir}/postgresql/contrib
+{bundledatadir}/postgresql/contrib/**
+{bundledatadir}/postgresql/extension
+{bundledatadir}/postgresql/extension/*

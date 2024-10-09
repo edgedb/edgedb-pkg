@@ -7,7 +7,6 @@ import base64
 import os
 import pathlib
 import platform
-import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
@@ -78,15 +77,40 @@ class EdgeDB(packages.BundledPythonPackage):
         ],
     }
 
-    artifact_build_requirements = [
-        "pyentrypoint (>=1.0.0)",
-        "pypkg-setuptools (<70.2.0)",
-    ]
+    artifact_build_requirements = {
+        ">=2.0,<3.0.rc1": [
+            "postgresql-edgedb (~= 14.0)",
+            "python-edgedb (~= 3.10.0)",
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+        ">=3.0rc1,<4.0.dev1": [
+            "postgresql-edgedb (~= 14.0)",
+            "python-edgedb (~= 3.11.0)",
+            "pgext-pgvector (~= 0.4.0)",
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+        ">=4.0.dev1,<5.0.dev1": [
+            "postgresql-edgedb (~= 15.0)",
+            "python-edgedb (~= 3.11.0)",
+            "pgext-pgvector (~= 0.4.0)",
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+        ">=5.0.dev1": [
+            "postgresql-edgedb (~= 16.0)",
+            "python-edgedb (~= 3.12.0)",
+            "pgext-pgvector (~= 0.6.0)",
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+    }
 
     bundle_deps = [
         postgresql.PostgreSQL(version="14.11"),
         postgresql.PostgreSQL(version="15.6"),
-        postgresql.PostgreSQL(version="16.2"),
+        postgresql.PostgreSQL(version="16.4"),
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.8"),
         python_bundle.Python(version="3.12.2"),
@@ -104,6 +128,7 @@ class EdgeDB(packages.BundledPythonPackage):
         revision: str | None = None,
         is_release: bool = False,
         target: targets.Target,
+        requires: list[poetry_dep.Dependency] | None = None,
     ) -> EdgeDB:
         os.environ["EDGEDB_BUILD_OFFICIAL"] = "yes"
         os.environ["EDGEDB_BUILD_TARGET"] = (
@@ -132,6 +157,7 @@ class EdgeDB(packages.BundledPythonPackage):
                 revision=revision,
                 is_release=is_release,
                 target=target,
+                requires=requires,
             )
         finally:
             if prev is None:
@@ -185,8 +211,6 @@ class EdgeDB(packages.BundledPythonPackage):
         repo.register_package_impl("jwcrypto", JWCrypto)
         repo.register_package_impl("edgedb", EdgeDBPython)
         repo.register_package_impl("maturin", Maturin)
-        repo.register_package_impl("pydantic-core", PyPackageNeedingMaturin)
-        repo.register_package_impl("rpds-py", PyPackageNeedingMaturin)
         return repo
 
     @property
@@ -239,19 +263,25 @@ class EdgeDB(packages.BundledPythonPackage):
         return fields
 
     def sh_get_build_wheel_env(
-        self, build: targets.Build, *, site_packages_var: str
-    ) -> dict[str, str]:
+        self,
+        build: targets.Build,
+        *,
+        site_packages: str,
+        wd: str,
+    ) -> packages.Args:
         env = dict(
             super().sh_get_build_wheel_env(
-                build, site_packages_var=site_packages_var
+                build, site_packages=site_packages, wd=wd
             )
         )
-        bindir = build.get_install_path("bin").relative_to("/")
+        bindir = build.get_install_path(self, "bin").relative_to("/")
         if build.target.is_portable():
             runstate = ""
         else:
-            runstate = str(build.get_install_path("runstate") / "edgedb")
-        shared_dir = (build.get_install_path("data") / "data").relative_to("/")
+            runstate = str(build.get_install_path(self, "runstate") / "edgedb")
+        shared_dir = (
+            build.get_install_path(self, "data") / "data"
+        ).relative_to("/")
         temp_root = build.get_temp_root(relative_to="pkgsource")
         src_python = build.sh_get_command(
             "python", package=self, relative_to="pkgsource"
@@ -260,7 +290,7 @@ class EdgeDB(packages.BundledPythonPackage):
             (
                 "import os.path",
                 "rp = os.path.relpath",
-                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"sp = rp('{site_packages}', start='{temp_root}')",
                 f"print(rp('{bindir}', start=os.path.join(sp, 'edb')))",
             )
         )
@@ -271,7 +301,7 @@ class EdgeDB(packages.BundledPythonPackage):
             (
                 "import os.path",
                 "rp = os.path.relpath",
-                f"sp = rp('{site_packages_var}', start='{temp_root}')",
+                f"sp = rp('{site_packages}', start='{temp_root}')",
                 f"print(rp('{shared_dir}', start=os.path.join(sp, 'edb')))",
             )
         )
@@ -288,20 +318,24 @@ class EdgeDB(packages.BundledPythonPackage):
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
-            try:
-                openssl_path = build.get_install_dir(
-                    openssl_pkg, relative_to="buildroot"
-                )
-            except ValueError:
-                # deb/build.py doesn't have buildroot
-                openssl_path = build.get_install_dir(
-                    openssl_pkg, relative_to="pkgsource"
-                )
-            openssl_path /= build.get_full_install_prefix().relative_to("/")
-            quoted = shlex.quote(str(openssl_path))
-            pwd = "$(pwd -P)"
-            env["OPENSSL_LIB_DIR"] = f"!{pwd}/{quoted}/lib"
-            env["OPENSSL_INCLUDE_DIR"] = f"!{pwd}/{quoted}/include"
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_LIB_DIR",
+                build.sh_must_get_bundled_pkg_lib_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_INCLUDE_DIR",
+                build.sh_must_get_bundled_pkg_include_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
 
         return env
 
@@ -317,9 +351,6 @@ class EdgeDB(packages.BundledPythonPackage):
             )
 
         pg_pkg = build.get_package("postgresql-edgedb")
-        icu_pkg = build.get_package("icu")
-        openssl_pkg = build.get_package("openssl")
-        uuid_pkg = build.get_package("uuid")
 
         build_python = build.sh_get_command("python")
         temp_dir = build.get_temp_dir(self, relative_to="pkgbuild")
@@ -327,29 +358,34 @@ class EdgeDB(packages.BundledPythonPackage):
         pg_temp_install_path = (
             build.get_build_dir(pg_pkg, relative_to="pkgbuild") / "_install"
         )
-        bindir = build.get_install_path("bin").relative_to("/")
-        libdir = build.get_install_path("lib").relative_to("/")
+        bindir = build.get_install_path(self, "bin").relative_to("/")
+        libdir = build.get_install_path(self, "lib").relative_to("/")
         pg_config = pg_temp_install_path / bindir / "pg_config"
         pg_libpath = pg_temp_install_path / libdir
 
         temp_install_dir = build.get_temp_root(
             relative_to="pkgbuild"
-        ) / build.get_full_install_prefix().relative_to("/")
+        ) / build.get_rel_install_prefix(self)
         sitescript = (
             f"import site; "
             f'print(site.getsitepackages(["{temp_install_dir}"])[0])'
         )
-        runstatescript = "import tempfile; " "print(tempfile.mkdtemp())"
+        runstatescript = "import tempfile; print(tempfile.mkdtemp())"
         abspath = (
             "import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve())"
         )
 
-        ld_env = " ".join(
-            build.get_ld_env(
-                deps=[icu_pkg, openssl_pkg, uuid_pkg],
-                wd="${_wd}",
-                extra=["${_ldlibpath}"],
-            )
+        all_build_deps = build.get_build_reqs(self, recursive=True)
+        ld_env_args = build.get_ld_env(
+            deps=all_build_deps,
+            wd="${_wd}",
+            extra=["${_ldlibpath}"],
+        )
+
+        ld_env = build.sh_format_args(
+            ld_env_args,
+            force_args_eq=True,
+            linebreaks=False,
         )
 
         if platform.system() == "Darwin":
@@ -427,9 +463,9 @@ class EdgeDB(packages.BundledPythonPackage):
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
         srcdir = build.get_source_dir(self, relative_to="pkgbuild")
-        dest = build.get_install_dir(self, relative_to="pkgbuild")
+        dest = build.get_build_install_dir(self, relative_to="pkgbuild")
 
-        datadir = build.get_install_path("data")
+        datadir = build.get_install_path(self, "data")
         script += textwrap.dedent(
             f"""\
             mkdir -p "{dest}/{datadir}"
@@ -440,7 +476,7 @@ class EdgeDB(packages.BundledPythonPackage):
             """
         )
 
-        bindir = build.get_install_path("bin").relative_to("/")
+        bindir = build.get_install_path(self, "bin").relative_to("/")
 
         ep_helper_pkg = build.get_package("pyentrypoint")
         ep_helper = (
@@ -481,7 +517,9 @@ class EdgeDB(packages.BundledPythonPackage):
         return {"before-install": ["adduser"], "after-install": rc_deps}
 
     def get_before_install_script(self, build: targets.Build) -> str:
-        dataroot = build.get_install_path("localstate") / "lib" / "edgedb"
+        dataroot = (
+            build.get_install_path(self, "localstate") / "lib" / "edgedb"
+        )
 
         action = build.target.get_action("adduser", build)
         assert isinstance(action, targets.AddUserAction)
@@ -497,7 +535,7 @@ class EdgeDB(packages.BundledPythonPackage):
         return user_script
 
     def get_exposed_commands(self, build: targets.Build) -> list[pathlib.Path]:
-        bindir = build.get_install_path("bin")
+        bindir = build.get_install_path(self, "bin")
 
         return [
             bindir / "edgedb-server",
@@ -551,25 +589,34 @@ class EdgeDB(packages.BundledPythonPackage):
 
 class Cryptography(packages.PythonPackage):
     def sh_get_build_wheel_env(
-        self, build: targets.Build, *, site_packages_var: str
-    ) -> dict[str, str]:
-        env = dict(
-            super().sh_get_build_wheel_env(
-                build, site_packages_var=site_packages_var
-            )
-        )
-        env["OPENSSL_STATIC"] = "0"
+        self, build: targets.Build, *, site_packages: str, wd: str
+    ) -> packages.Args:
+        env = super().sh_get_build_wheel_env(
+            build, site_packages=site_packages, wd=wd
+        ) | {
+            "OPENSSL_STATIC": "0",
+        }
 
         openssl_pkg = build.get_package("openssl")
         if build.is_bundled(openssl_pkg):
-            openssl_path = build.get_install_dir(
-                openssl_pkg, relative_to="pkgsource"
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_LIB_DIR",
+                build.sh_must_get_bundled_pkg_lib_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
             )
-            openssl_path /= build.get_full_install_prefix().relative_to("/")
-            quoted = shlex.quote(str(openssl_path))
-            pwd = "$(pwd -P)"
-            env["OPENSSL_LIB_DIR"] = f"!{pwd}/{quoted}/lib"
-            env["OPENSSL_INCLUDE_DIR"] = f"!{pwd}/{quoted}/include"
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_INCLUDE_DIR",
+                build.sh_must_get_bundled_pkg_include_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
 
         return env
 
@@ -599,8 +646,8 @@ class Cffi(packages.PythonPackage):
 class JWCrypto(packages.PythonPackage):
     def get_file_no_install_entries(self, build: targets.Build) -> list[str]:
         entries = super().get_file_no_install_entries(build)
-        entries.append("{prefix}/share/doc/jwcrypto")
-        entries.append("{prefix}/share/doc/jwcrypto/**")
+        entries.append("{docdir}/jwcrypto")
+        entries.append("{docdir}/jwcrypto/**")
         return entries
 
 
@@ -612,14 +659,6 @@ class EdgeDBPython(packages.PythonPackage):
 
 
 class Maturin(packages.PythonPackage):
-    executable = "maturin"
-
-    def get_build_tools(self, build: targets.Build) -> dict[str, pathlib.Path]:
-        install_dir = build.get_install_dir(self, relative_to="sourceroot")
-        bin_dir = build.get_install_path("bin").relative_to("/")
-        return {self.executable: install_dir / bin_dir / "maturin"}
-
-
-class PyPackageNeedingMaturin(packages.PythonPackage):
-    def get_dep_commands(self) -> list[str]:
-        return [Maturin.executable]
+    @property
+    def provides_build_tools(self) -> bool:
+        return True

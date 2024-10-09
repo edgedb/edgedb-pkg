@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import *
 
 import platform
 import re
@@ -24,18 +23,27 @@ class OpenSSL(packages.BundledCPackage):
         }
     ]
 
-    def get_configure_script(self, build: targets.Build) -> str:
-        sdir = shlex.quote(
-            str(build.get_source_dir(self, relative_to="pkgbuild"))
-        )
-        copy_sources = f"test ./ -ef {sdir} || cp -a {sdir}/* ./"
+    @property
+    def supports_out_of_tree_builds(self) -> bool:
+        return False
 
-        configure = "./Configure"
-        configure_flags = {
-            "--openssldir": str(
-                build.get_full_install_prefix() / "etc" / "ssl"
-            ),
-            "--libdir": str(build.get_install_path("lib")),
+    def sh_get_configure_command(self, build: targets.Build) -> str:
+        if self.supports_out_of_tree_builds:
+            sdir = build.get_source_dir(self, relative_to="pkgbuild")
+        else:
+            sdir = build.get_build_dir(self, relative_to="pkgbuild")
+
+        return shlex.quote(str(sdir / "Configure"))
+
+    def get_configure_args(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        conf_args = super().get_configure_args(build, wd=wd) | {
+            "--prefix": build.get_install_prefix(self),
+            "--openssldir": build.get_install_path(self, "sysconf") / "ssl",
+            "--libdir": build.get_install_path(self, "lib"),
             "no-ssl3": None,
             "shared": None,
         }
@@ -43,31 +51,32 @@ class OpenSSL(packages.BundledCPackage):
         arch = build.target.machine_architecture
         if arch == "x86_64":
             if platform.system() == "Darwin":
-                configure_flags["darwin64-x86_64-cc"] = None
-            configure_flags["enable-ec_nistp_64_gcc_128"] = None
+                conf_args["darwin64-x86_64-cc"] = None
+            conf_args["enable-ec_nistp_64_gcc_128"] = None
         elif arch == "aarch64":
             if platform.system() == "Darwin":
-                configure_flags["darwin64-arm64-cc"] = None
+                conf_args["darwin64-arm64-cc"] = None
         else:
             raise RuntimeError(f"unexpected architecture: {arch}")
 
         if self.options.get("shared", True):
-            configure_flags["shared"] = None
+            conf_args["shared"] = None
         else:
-            configure_flags["no-shared"] = None
-            configure_flags["no-legacy"] = None
+            conf_args["no-shared"] = None
+            conf_args["no-legacy"] = None
 
-        cfgcmd = self.sh_configure(build, configure, configure_flags)
+        return conf_args
+
+    def get_configure_env(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        conf_env = super().get_configure_env(build, wd=wd)
         if platform.system() == "Darwin":
             # Force 64-bit build
-            cfgcmd = f"KERNEL_BITS=64 {cfgcmd}"
-
-        return "\n\n".join(
-            [
-                copy_sources,
-                cfgcmd,
-            ]
-        )
+            conf_env["KERNEL_BITS"] = "64"
+        return conf_env
 
     def get_make_install_target(self, build: targets.Build) -> str:
         # Don't bother installing a gazillion of man pages.
