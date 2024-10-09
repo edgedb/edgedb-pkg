@@ -196,7 +196,7 @@ fi\n\
 \n\
 exec gosu edgedb:edgedb /edgedb/bin/python3 \\\n\
     -m edb.tools --no-devmode test \\\n\
-    /edgedb/data/tests \\\n\
+    /edgedb/share/tests \\\n\
     -e cqa_ -e tools_ \\\n\
     --verbose ${dash_j}\n\' >/entrypoint.sh
 

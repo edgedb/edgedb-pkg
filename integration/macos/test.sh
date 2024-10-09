@@ -55,7 +55,7 @@ fi
 
 export PATH="${workdir}/bin/:${PATH}"
 
-test_dir="${workdir}/data/tests"
+test_dir="${workdir}/share/tests"
 if [ -n "${PKG_TEST_FILES}" ]; then
     # ${PKG_TEST_FILES} is specificaly used outside the quote so that it
     # can contain a glob.
