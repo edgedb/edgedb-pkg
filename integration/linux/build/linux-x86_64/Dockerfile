@@ -236,10 +236,13 @@ RUN set -ex \
 		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
 	&& tar -C /usr/local -xzf /tmp/go.tgz \
 	&& rm /tmp/go.tgz \
-	&& curl -fsSL "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux${NINJA_ARCH:+-$NINJA_ARCH}.zip" -o "ninja.zip" \
-	&& unzip ninja.zip -d /usr/local/bin \
-	&& rm -f ninja.zip \
-	&& chmod +x /usr/local/bin/ninja \
+	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
+	&& mkdir -p /usr/src/ninja \
+	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
+	&& rm /tmp/ninja.tar.gz \
+	&& cd /usr/src/ninja \
+	&& ./configure.py --bootstrap --verbose \
+	&& cp -a ./ninja /usr/local/bin/ninja \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
 	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
