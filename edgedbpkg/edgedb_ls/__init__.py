@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 import base64
 import os
 import pathlib
-import shlex
 import textwrap
 
 from poetry.core.packages import dependency as poetry_dep
@@ -171,12 +170,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
     def get_package_repository(
         cls, target: targets.Target, io: cleo_io.IO
     ) -> python.PyPiRepository:
-        repo = super().get_package_repository(target, io)
-        repo.register_package_impl("cryptography", edgedb_server.Cryptography)
-        repo.register_package_impl("cffi", edgedb_server.Cffi)
-        repo.register_package_impl("jwcrypto", edgedb_server.JWCrypto)
-        repo.register_package_impl("edgedb", edgedb_server.EdgeDBPython)
-        return repo
+        return edgedb_server.EdgeDB.get_package_repository(target, io)
 
     @property
     def base_slot(self) -> str:
@@ -250,6 +244,27 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         env["_EDGEDB_BUILDMETA_SHARED_DATA_DIR"] = str(
             build.get_build_dir(self, relative_to="pkgsource") / "share"
         )
+
+        openssl_pkg = build.get_package("openssl")
+        if build.is_bundled(openssl_pkg):
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_LIB_DIR",
+                build.sh_must_get_bundled_pkg_lib_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
+            build.sh_replace_quoted_paths(
+                env,
+                "OPENSSL_INCLUDE_DIR",
+                build.sh_must_get_bundled_pkg_include_path(
+                    openssl_pkg,
+                    relative_to="pkgsource",
+                    wd=wd,
+                ),
+            )
 
         return env
 
