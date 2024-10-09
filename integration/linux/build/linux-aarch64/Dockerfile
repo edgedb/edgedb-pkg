@@ -50,7 +50,7 @@ RUN case "$HOSTTYPE" in \
     && yum install -y centos-release-scl epel-release \
     \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-SCLo* \
-    && sed -i "s|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault|g" /etc/yum.repos.d/CentOS-SCLo* \
+    && sed -i "s|# \?baseurl=http://mirror.centos.org/centos|baseurl=https://archive.kernel.org/centos-vault/$DIR|g" /etc/yum.repos.d/CentOS-SCLo* \
     \
     && yum update -y \
 	&& yum install -y \
