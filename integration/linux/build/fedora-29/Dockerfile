@@ -36,10 +36,6 @@ RUN set -ex \
 	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
 	&& curl -fsSLo git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
 	&& curl -fsSLo git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
-	&& curl -fsSLo ninja-linux.zip "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip" \
-	&& unzip ninja-linux.zip -d /usr/local/bin \
-	&& rm -f ninja-linux.zip \
-	&& chmod +x /usr/local/bin/ninja \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
 	&& (try=1; while [ $try -le 5 ]; do \
@@ -82,6 +78,13 @@ RUN set -ex \
 	&& make prefix=/usr/local install \
 	&& rm -rf /usr/src/git \
 	&& git --version \
+	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
+	&& mkdir -p /usr/src/ninja \
+	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
+	&& rm /tmp/ninja.tar.gz \
+	&& cd /usr/src/ninja \
+	&& ./configure.py --bootstrap --verbose \
+	&& cp -a ./ninja /usr/local/bin/ninja \
 	&& cd / \
 	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
 		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \

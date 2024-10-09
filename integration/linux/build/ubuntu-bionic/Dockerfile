@@ -39,10 +39,6 @@ RUN set -ex \
 	\
 	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
 	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& curl -fsSLo ninja-linux.zip "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip" \
-	&& unzip ninja-linux.zip -d /usr/local/bin \
-	&& rm -f ninja-linux.zip \
-	&& chmod +x /usr/local/bin/ninja \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -139,6 +135,13 @@ RUN set -ex \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
 	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
 	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
+	&& mkdir -p /usr/src/ninja \
+	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
+	&& rm /tmp/ninja.tar.gz \
+	&& cd /usr/src/ninja \
+	&& ./configure.py --bootstrap --verbose \
+	&& cp -a ./ninja /usr/local/bin/ninja \
 	&& case "${dpkgArch##*-}" in \
 		amd64) CMAKE_ARCH='x86_64';; \
 		arm64) CMAKE_ARCH='aarch64';; \
