@@ -162,13 +162,13 @@ RUN set -ex \
 	&& rm pkgconf.tar.xz \
 	&& cd /usr/src/openssl \
 	&& ./config \
-		--prefix="/usr/local/openssl3" \
-		--openssldir="/usr/local/openssl3/etc/ssl" \
-		--libdir="/usr/local/openssl3/lib" \
+		--prefix="/usr/local/openssl" \
+		--openssldir="/etc/ssl" \
+		--libdir="/usr/local/openssl/lib" \
 		"no-ssl3" \
 		"shared" \
 	&& make -j "$(nproc)" \
-	&& make install_sw \
+	&& make -j "$(nproc)" install_sw \
 	&& rm -rf /usr/src/openssl \
 	&& cd /usr/src/python \
 	\
@@ -180,8 +180,8 @@ RUN set -ex \
 		--with-system-expat \
 		--with-system-ffi \
 		--without-ensurepip \
-		--with-openssl="/usr/local/openssl3" \
-		--with-openssl-rpath="/usr/local/openssl3/lib" \
+		--with-openssl="/usr/local/openssl" \
+		--with-openssl-rpath="/usr/local/openssl/lib" \
 	&& make -j "$(nproc)" \
 	&& make install \
 	&& ldconfig \

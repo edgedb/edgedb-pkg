@@ -155,7 +155,7 @@ RUN set -ex \
 	&& cd /usr/src/openssl \
 	&& ./config \
 		--prefix="/usr/local/openssl" \
-		--openssldir="/usr/local/openssl/etc/ssl" \
+		--openssldir="/etc/ssl" \
 		--libdir="/usr/local/openssl/lib" \
 		"no-ssl3" \
 		"shared" \
