@@ -78,6 +78,23 @@ class Python(packages.BundledCAutoconfPackage):
 
         return patches
 
+    def get_configure_env(
+        self,
+        build: targets.Build,
+        wd: str | None = None,
+    ) -> packages.Args:
+        env_args = dict(super().get_configure_env(build, wd=wd))
+        if build.target.libc == "musl":
+            # Set explicit stack size on musl where the default is too
+            # low to support the default recursion limit.
+            # See https://github.com/python/cpython/issues/76488
+            build.sh_append_flags(
+                env_args,
+                "LDFLAGS",
+                ("-Wl,-z,stack-size=1000000",),
+            )
+        return env_args
+
     def get_configure_args(
         self,
         build: targets.Build,
@@ -100,16 +117,6 @@ class Python(packages.BundledCAutoconfPackage):
                     "CFLAGS",
                     ("-fno-semantic-interposition",),
                 )
-
-        if "musl" in build.target.triple:
-            # Set explicit stack size on musl where the default is too
-            # low to support the default recursion limit.
-            # See https://github.com/python/cpython/issues/76488
-            build.sh_append_flags(
-                conf_args,
-                "LDFLAGS",
-                ("-Wl,-z,stack-size=1000000",),
-            )
 
         if platform.system() == "Darwin":
             conf_args["--enable-universalsdk"] = "!$(xcrun --show-sdk-path)"
