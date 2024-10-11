@@ -55,7 +55,9 @@ RUN case "$HOSTTYPE" in \
     && yum update -y \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
-    wget zlib-devel openssl-devel openssl11-devel sqlite-devel bzip2 bzip2-devel \
+    wget zlib-devel openssl-devel \
+	openssl11-devel \
+	sqlite-devel bzip2 bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \

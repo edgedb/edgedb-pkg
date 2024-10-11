@@ -26,6 +26,7 @@ ENV NODE_VERSION 16.16.0
 ENV YARN_VERSION 1.22.19
 ENV CMAKE_VERSION 3.30.2
 ENV GCC_VERSION 10
+ENV OPENSSL_VERSION 1.1.1w
 ENV NINJA_VERSION 1.12.1
 ENV PKGCONF_VERSION 2.3.0
 
@@ -55,7 +56,8 @@ RUN case "$HOSTTYPE" in \
     && yum update -y \
 	&& yum install -y \
 	devtoolset-${GCC_VERSION} make patch flex bison \
-    wget zlib-devel openssl-devel openssl11-devel sqlite-devel bzip2 bzip2-devel \
+    wget zlib-devel openssl-devel \
+	sqlite-devel bzip2 bzip2-devel \
     expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
 	curl-devel xz-devel libffi-devel gettext \
     perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
@@ -79,6 +81,8 @@ RUN set -ex \
 	&& curl -fsSLo tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
 	&& curl -fsSLo tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
 	&& curl -fsSLo pkgconf.tar.xz "https://distfiles.ariadne.space/pkgconf/pkgconf-${PKGCONF_VERSION}.tar.xz" \
+	&& curl -fsSLo openssl.tar.gz "https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VERSION//./_}/openssl-${OPENSSL_VERSION}.tar.gz" \
+	&& curl -fsSLo openssl.tar.gz.asc "https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VERSION//./_}/openssl-${OPENSSL_VERSION}.tar.gz.asc" \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
     && for key in \
@@ -125,6 +129,18 @@ RUN set -ex \
       gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
       gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
     done \
+    && for key in \
+      BA5473A2B0587B07FB27CF2D216094DFD0CB81EF \
+      EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5 \
+    ; do \
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
+      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
+    done \
+	&& gpg --batch --verify openssl.tar.gz.asc openssl.tar.gz \
+	&& rm -rf openssl.tar.gz.asc \
+	&& mkdir -p /usr/src/openssl \
+	&& tar -xzC /usr/src/openssl --strip-components=1 -f openssl.tar.gz \
+	&& rm openssl.tar.gz \
 	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
 	&& rm -rf python.tar.xz.asc \
 	&& mkdir -p /usr/src/python \
@@ -144,8 +160,17 @@ RUN set -ex \
 	&& mkdir -p /usr/src/pkgconf \
 	&& tar -xJC /usr/src/pkgconf --strip-components=1 -f pkgconf.tar.xz \
 	&& rm pkgconf.tar.xz \
+	&& cd /usr/src/openssl \
+	&& ./config \
+		--prefix="/usr/local/openssl3" \
+		--openssldir="/usr/local/openssl3/etc/ssl" \
+		--libdir="/usr/local/openssl3/lib" \
+		"no-ssl3" \
+		"shared" \
+	&& make -j "$(nproc)" \
+	&& make install_sw \
+	&& rm -rf /usr/src/openssl \
 	&& cd /usr/src/python \
-	&& sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure \
 	\
 	&& gnuArch="$(gcc -dumpmachine)" \
 	&& ./configure \
@@ -155,6 +180,8 @@ RUN set -ex \
 		--with-system-expat \
 		--with-system-ffi \
 		--without-ensurepip \
+		--with-openssl="/usr/local/openssl3" \
+		--with-openssl-rpath="/usr/local/openssl3/lib" \
 	&& make -j "$(nproc)" \
 	&& make install \
 	&& ldconfig \

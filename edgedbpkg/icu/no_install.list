@@ -3,3 +3,4 @@
 {libdir}/libicuio*
 {libdir}/libicutest*
 {libdir}/libicutu*
+{datadir}/icu/**
