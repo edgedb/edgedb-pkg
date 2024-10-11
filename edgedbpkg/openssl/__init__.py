@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 import platform
 import re
 import shlex
@@ -99,3 +100,16 @@ class OpenSSL(packages.BundledCPackage):
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["ssl", "crypto"]
+
+    def provides_build_tools(self) -> bool:
+        return True
+
+    def get_install_path(
+        self,
+        build: targets.Build,
+        aspect: targets.InstallAspect,
+    ) -> pathlib.Path | None:
+        if aspect == "include":
+            return build.get_install_prefix(self) / "include"
+        else:
+            return super().get_install_path(build, aspect)

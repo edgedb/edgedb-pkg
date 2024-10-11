@@ -1,2 +1,2 @@
 {bindir}/python*
-{libdir}/**
+{libdir}/python*/**

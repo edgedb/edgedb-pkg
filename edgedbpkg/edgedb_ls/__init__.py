@@ -261,7 +261,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
                 "OPENSSL_INCLUDE_DIR",
                 build.sh_must_get_bundled_pkg_include_path(
                     openssl_pkg,
-                    relative_to="pkgsource",
+                    relative_to="pkgbuild",
                     wd=wd,
                 ),
             )

@@ -27,8 +27,8 @@ class EdgeDBCLI(packages.BundledRustPackage):
     ) -> packages.PackageFileLayout:
         return packages.PackageFileLayout.SINGLE_BINARY
 
-    def get_license_files_pattern(self) -> str:
-        return ""
+    def get_license_files_patterns(self) -> list[str]:
+        return []
 
     def get_artifact_metadata(self, build: targets.Build) -> dict[str, Any]:
         metadata = dict(super().get_artifact_metadata(build))

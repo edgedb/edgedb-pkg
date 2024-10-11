@@ -1,9 +1,5 @@
 {libdir}/icu
 {libdir}/icu/**
-{libdir}/pkgconfig
-{libdir}/pkgconfig/**
-{libdir}/*.a
-{libdir}/*.la
 {libdir}/libicuio*
 {libdir}/libicutest*
 {libdir}/libicutu*

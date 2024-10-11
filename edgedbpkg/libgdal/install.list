@@ -1,4 +1,1 @@
-{libdir}/**
-{prefix}/share
-{prefix}/share/gdal
-{prefix}/share/gdal/**
+{datadir}/gdal/**

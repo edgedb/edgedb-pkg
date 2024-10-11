@@ -1,6 +1,9 @@
 {libdir}/postgresql/*.so
+{libdir}/python*/site-packages
 {datadir}/postgresql/extension/*
 {datadir}/data/**
 {datadir}/tests/**
+{bindir}/edgedb-server
+{bindir}/edgedb-load-ext
 {bindir}/edgedb-server.py
 {bindir}/edgedb-load-ext.py

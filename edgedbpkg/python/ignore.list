@@ -1,6 +1,0 @@
-{bindir}/*
-{includedir}/python*/*.h
-{includedir}/python*/cpython/*.h
-{includedir}/python*/internal/*.h
-{mandir}
-{mandir}/**

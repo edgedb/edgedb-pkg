@@ -1,4 +1,2 @@
 {bindir}/*
-{prefix}/share/**
 {prefix}/etc/**
-{prefix}/include/**

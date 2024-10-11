@@ -1,2 +1,1 @@
-{libdir}/**
-{prefix}/share/proj/**
+{datadir}/proj/**

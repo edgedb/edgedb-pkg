@@ -1,6 +1,3 @@
-{libdir}/libpython*.a
-{libdir}/pkgconfig
-{libdir}/pkgconfig/**
 {libdir}/python*/config-*/libpython*.a
 {libdir}/python*/test
 {libdir}/python*/test/**

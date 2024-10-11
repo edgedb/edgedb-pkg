@@ -32,10 +32,8 @@ class ProtoBuf(packages.BundledCMakePackage):
         "zlib-dev",
     ]
 
-    _libabseil = libabseil.LibAbseil("20240722.0")
-
     bundle_deps = [
-        _libabseil,
+        libabseil.LibAbseil("20240722.0"),
         libjsoncpp.LibJsonCpp("1.9.6"),
         zlib.Zlib("1.3.1"),
     ]
@@ -66,10 +64,7 @@ class ProtoBuf(packages.BundledCMakePackage):
         }
 
     def get_shlibs(self, build: targets.Build) -> list[str]:
-        # pkg-config files' LDFLAGS omit various -labsl deps,
-        # which makes dependencies of protobuf fail to link correctly.
-        # work around that by pretending that libabsl is bundled here.
         return [
             "protobuf",
             "protoc",
-        ] + self._libabseil.get_shlibs(build)
+        ]

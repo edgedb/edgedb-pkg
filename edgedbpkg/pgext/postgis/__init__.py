@@ -31,7 +31,7 @@ class PostGIS(pgext.PostgresCExtension):
     ]
 
     artifact_requirements = [
-        "libgdal (>=2.0.0)",
+        "libgdal (>=3.0.0)",
         "libgeos (>=3.9.0)",
         "libjson-c",
         "libpcre2-dev",
@@ -42,7 +42,7 @@ class PostGIS(pgext.PostgresCExtension):
 
     artifact_build_requirements = [
         "postgresql-edgedb (>=13)",
-        "libgdal-dev (>=2.0.0)",
+        "libgdal-dev (>=3.0.0)",
         "libgeos-dev (>=3.9.0)",
         "libjson-c-dev",
         "libpcre2-dev",
