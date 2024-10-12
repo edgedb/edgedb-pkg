@@ -19,6 +19,11 @@ from edgedbpkg import pgext
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
 
+EXTS_MK = (
+    "https://raw.githubusercontent.com/edgedb/edgedb/refs/heads/master"
+    + "/tests/extension-testing/exts.mk"
+)
+
 
 class EdgeDBExtension(packages.BuildSystemMakePackage):
     # Populated in resolve() when this is built as top-level package.
@@ -108,6 +113,14 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         return ext
 
     @classmethod
+    def _get_sources(cls, version: str | None) -> list[packages.BaseSource]:
+        srcs = super()._get_sources(version)
+        srcs.append(
+            packages.HttpsSource(EXTS_MK, name="exts.mk", archive=None)
+        )
+        return srcs
+
+    @classmethod
     def get_pgext_ver(cls) -> str | None:
         return None
 
@@ -146,12 +159,14 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
 
     def get_make_args(self, build: targets.Build) -> packages.Args:
         return super().get_make_args(build) | {
+            "MKS": "exts.mk",
             "WITH_SQL": "no",
             "WITH_EDGEQL": "yes",
         }
 
     def get_make_install_args(self, build: targets.Build) -> packages.Args:
         return super().get_make_args(build) | {
+            "MKS": "exts.mk",
             "WITH_SQL": "no",
             "WITH_EDGEQL": "yes",
         }

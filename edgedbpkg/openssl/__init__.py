@@ -101,6 +101,7 @@ class OpenSSL(packages.BundledCPackage):
     def get_shlibs(self, build: targets.Build) -> list[str]:
         return ["ssl", "crypto"]
 
+    @property
     def provides_build_tools(self) -> bool:
         return True
 
