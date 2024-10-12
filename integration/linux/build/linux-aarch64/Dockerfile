@@ -163,7 +163,7 @@ RUN set -ex \
 	&& cd /usr/src/openssl \
 	&& ./config \
 		--prefix="/usr/local/openssl" \
-		--openssldir="/etc/ssl" \
+		--openssldir="/usr/local/openssl/etc/ssl" \
 		--libdir="/usr/local/openssl/lib" \
 		"no-ssl3" \
 		"shared" \
@@ -292,6 +292,7 @@ RUN set -ex \
 	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
 	&& rm -rf "$GNUPGHOME" \
 	\
+	&& gcc --version \
 	&& python3 --version \
 	&& rustc --version \
 	&& go version \
@@ -302,7 +303,8 @@ RUN set -ex \
 	&& tar --version \
 	&& cmake --version \
 	&& ninja --version \
-	&& pkg-config --version
+	&& pkg-config --version \
+	&& patchelf --version
 
 # make some useful symlinks that are expected to exist
 RUN cd /usr/local/bin \
@@ -315,22 +317,20 @@ RUN cd /usr/local/bin \
 ENV PYTHON_PIP_VERSION 24.2
 
 RUN set -ex; \
-	\
-	curl -fsSLo get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	python get-pip.py \
+	curl -fsSLo get-pip.py 'https://bootstrap.pypa.io/get-pip.py' \
+	&& python get-pip.py \
 		--disable-pip-version-check \
 		"pip==$PYTHON_PIP_VERSION" \
-	; \
-	pip --version; \
-	\
-	find /usr/local -depth \
+	&& find /usr/local -depth \
 		\( \
 			\( -type d -a \( -name test -o -name tests \) \) \
 			-o \
 			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' +; \
-	rm -f get-pip.py
+		\) -exec rm -rf '{}' + \
+	&& rm -f get-pip.py \
+	&& pip install certifi \
+	&& python -c 'import ssl, certifi, pathlib, shutil; ca = pathlib.Path(ssl.get_default_verify_paths().openssl_cafile); ca.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(certifi.where(), str(ca))' \
+	&& pip --version
 
 RUN /bin/echo -e '#!/bin/bash\n\
 \n\
@@ -418,11 +418,5 @@ else\n\
 fi\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
-
-RUN gcc --version \
-	&& python3 --version \
-	&& git --version \
-	&& rustc --version \
-	&& patchelf --version
 
 ENTRYPOINT ["/bin/sh", "--login", "-c", "/entrypoint.sh"]
