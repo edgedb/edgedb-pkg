@@ -62,6 +62,6 @@ fi
 
 exec gosu edgedb:edgedb /edgedb/bin/python3 \
     -m edb.tools --no-devmode test \
-    /edgedb/data/tests \
+    /edgedb/share/tests \
     -e cqa_ -e tools_ \
     --verbose ${dash_j}
