@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibFFI(packages.BundledCAutoconfPackage):
     title = "libffi"
-    name = packages.canonicalize_name("libffi")
+    ident = "libffi"
     aliases = ["libffi-dev"]
 
     _server = "https://github.com/libffi/libffi/releases/download/"

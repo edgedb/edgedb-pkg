@@ -20,7 +20,7 @@ from edgedbpkg import (
 
 class LibGDAL(packages.BundledCMakePackage):
     title = "libgdal"
-    name = packages.canonicalize_name("libgdal")
+    ident = "libgdal"
     aliases = ["libgdal-dev"]
 
     _server = "https://download.osgeo.org/gdal/"

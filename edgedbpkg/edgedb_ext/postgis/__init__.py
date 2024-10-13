@@ -10,7 +10,7 @@ from edgedbpkg import edgedb_ext
 
 class PostGIS(edgedb_ext.EdgeDBExtension):
     title = "edgedb postgis extension"
-    name = packages.canonicalize_name("edbext-postgis")
+    ident = "edbext-postgis"
     description = "Geographic Objects for EdgeDB"
     license_id = "GPL-3"
     group = "Applications/Databases"

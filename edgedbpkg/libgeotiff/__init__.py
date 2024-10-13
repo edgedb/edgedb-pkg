@@ -8,7 +8,7 @@ from edgedbpkg import libproj, libtiff, zlib
 
 class LibGeoTIFF(packages.BundledCAutoconfPackage):
     title = "libgeotiff"
-    name = packages.canonicalize_name("libgeotiff")
+    ident = "libgeotiff"
     aliases = ["libgeotiff-dev"]
 
     _server = "https://download.osgeo.org/geotiff/"

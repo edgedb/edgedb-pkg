@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 class PostgreSQLBundle(packages.BundledPackage):
     title = "PostgreSQL"
-    name = packages.canonicalize_name("postgresql-bundle")
+    ident = "postgresql-bundle"
     group = "Applications/Databases"
 
     sources = [
@@ -44,6 +44,7 @@ class PostgreSQLBundle(packages.BundledPackage):
         cls,
         io: cleo_io.IO,
         *,
+        name: packages.NormalizedName | None = None,
         version: str | None = None,
         revision: str | None = None,
         is_release: bool = False,
@@ -52,6 +53,7 @@ class PostgreSQLBundle(packages.BundledPackage):
     ) -> PostgreSQLBundle:
         postgres = postgresql.PostgreSQL.resolve(
             io,
+            name=name,
             version=version,
             revision=revision,
             is_release=is_release,

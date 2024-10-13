@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibJsonCpp(packages.BundledCMesonPackage):
     title = "libjsoncpp"
-    name = packages.canonicalize_name("libjsoncpp")
+    ident = "libjsoncpp"
     aliases = ["libjsoncpp-dev"]
 
     _server = "https://github.com/open-source-parsers/jsoncpp/archive/"

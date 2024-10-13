@@ -8,7 +8,7 @@ from metapkg import targets
 
 class ICU(packages.BundledCAutoconfPackage):
     title = "ICU"
-    name = packages.canonicalize_name("icu")
+    ident = "icu"
     aliases = ["icu-dev"]
 
     _server = "https://github.com/unicode-org/icu/releases/download/"

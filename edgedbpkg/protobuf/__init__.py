@@ -10,7 +10,7 @@ from edgedbpkg import zlib
 
 class ProtoBuf(packages.BundledCMakePackage):
     title = "protobuf"
-    name = packages.canonicalize_name("protobuf")
+    ident = "protobuf"
 
     _server = "https://github.com/protocolbuffers/protobuf/releases/download/"
 

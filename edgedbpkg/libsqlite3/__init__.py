@@ -13,7 +13,7 @@ from edgedbpkg import zlib
 
 class LibSQLite3(packages.BundledCAutoconfPackage):
     title = "libsqlite3"
-    name = packages.canonicalize_name("libsqlite3")
+    ident = "libsqlite3"
     aliases = ["libsqlite3-dev"]
 
     _server = "https://www.sqlite.org/2024/"

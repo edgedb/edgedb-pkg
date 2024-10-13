@@ -19,7 +19,7 @@ from edgedbpkg import zlib
 
 class Python(packages.BundledCAutoconfPackage):
     title = "Python"
-    name = packages.canonicalize_name("python-edgedb")
+    ident = "python-edgedb"
 
     _pftp = "https://www.python.org/ftp/python/{base_version}/"
 

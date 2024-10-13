@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibAbseil(packages.BundledCMakePackage):
     title = "libabsl"
-    name = packages.canonicalize_name("libabsl")
+    ident = "libabsl"
     aliases = ["libabsl-dev"]
 
     _server = "https://github.com/abseil/abseil-cpp/archive/"

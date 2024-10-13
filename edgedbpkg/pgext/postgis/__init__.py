@@ -17,7 +17,7 @@ from edgedbpkg import pgext
 
 class PostGIS(pgext.PostgresCExtension):
     title = "postgis extension"
-    name = packages.canonicalize_name("pgext-postgis")
+    ident = "pgext-postgis"
     description = "Geographic Objects for PostgreSQL"
     license_id = "GPL-3"
     group = "Applications/Databases"

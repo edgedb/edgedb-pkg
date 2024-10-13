@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibExpat(packages.BundledCAutoconfPackage):
     title = "libexpat"
-    name = packages.canonicalize_name("libexpat")
+    ident = "libexpat"
     aliases = ["libexpat-dev"]
 
     _server = "https://github.com/libexpat/libexpat/releases/download/"

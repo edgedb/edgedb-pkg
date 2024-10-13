@@ -7,7 +7,7 @@ from edgedbpkg import pgext
 
 class PgVector(pgext.PostgresCExtension):
     title = "pgvector extension"
-    name = packages.canonicalize_name("pgext-pgvector")
+    ident = "pgext-pgvector"
     description = "Open-source vector similarity search for Postgres"
     license_id = "PostgreSQL"
     group = "Applications/Databases"

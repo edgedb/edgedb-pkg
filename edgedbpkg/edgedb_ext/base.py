@@ -4,11 +4,13 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import dataclasses
 import importlib
 import pathlib
 import shlex
 
 from poetry.core.packages import dependency as poetry_dep
+from poetry.core.constraints import version as poetry_version
 
 from metapkg import packages
 from metapkg import targets
@@ -36,26 +38,29 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         cls,
         io: cleo_io.IO,
         *,
+        name: packages.NormalizedName | None = None,
         version: str | None = None,
         revision: str | None = None,
         is_release: bool = False,
         target: targets.Target,
         requires: list[poetry_dep.Dependency] | None = None,
     ) -> EdgeDBExtension:
-        slot = ""
+        server_slot = ""
         if version is not None:
-            slot, _, version = version.rpartition("!")
+            server_slot, _, version = version.rpartition("!")
 
-        if not slot:
+        if not server_slot:
             raise RuntimeError(
                 "must specify EdgeDB version as epoch, eg 5!1.0"
             )
 
-        edb_ver = slot
-        if "." not in edb_ver:
-            edb_ver = f"{edb_ver}.0"
+        edb_ver = poetry_version.Version.parse(server_slot)
+        if edb_ver.minor is None:
+            edb_ver = edb_ver.replace(
+                release=dataclasses.replace(edb_ver.release, minor=0),
+            )
 
-        edb = edgedb.EdgeDB(version=edb_ver)
+        edb = edgedb.EdgeDB(version=str(edb_ver))
 
         if requires is None:
             requires = []
@@ -77,7 +82,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
                     "by the specified EdgeDB version"
                 )
 
-            pgextname = cls.name.replace("edbext-", "pgext-")
+            pgextname = cls.ident.replace("edbext-", "pgext-")
             requires.append(
                 poetry_dep.Dependency.create_from_pep_508(
                     f"{pgextname} (== {pgext_ver})",
@@ -94,8 +99,14 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         else:
             pg_ext = None
 
+        if name is None:
+            name = cls.ident.removeprefix("edbext-")
+
+        name = f"{edb.name_slot}-{name}"
+
         ext = super().resolve(
             io,
+            name=name,
             version=version,
             revision=revision,
             is_release=is_release,
@@ -106,9 +117,6 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
 
         if pg_ext is not None:
             ext.bundle_deps.append(pg_ext)
-
-        if slot:
-            ext.set_slot(slot)
 
         return ext
 
@@ -126,20 +134,6 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
 
     @property
     def supports_out_of_tree_builds(self) -> bool:
-        return False
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._slot = ""
-
-    def set_slot(self, slot: str) -> None:
-        self._slot = slot
-
-    @property
-    def slot(self) -> str:
-        return self._slot
-
-    def version_includes_slot(self) -> bool:
         return False
 
     def get_build_script(self, build: targets.Build) -> str:

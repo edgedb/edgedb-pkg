@@ -8,7 +8,7 @@ from edgedbpkg import libsqlite3, libtiff
 
 class LibProj(packages.BundledCMakePackage):
     title = "libproj"
-    name = packages.canonicalize_name("libproj")
+    ident = "libproj"
     aliases = ["libproj-dev"]
 
     _server = "https://github.com/OSGeo/PROJ/releases/download/"

@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibGEOS(packages.BundledCMakePackage):
     title = "libgeos"
-    name = packages.canonicalize_name("libgeos")
+    ident = "libgeos"
     aliases = ["libgeos-dev"]
 
     _server = "https://github.com/libgeos/geos/releases/download/"

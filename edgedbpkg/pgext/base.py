@@ -30,6 +30,7 @@ class PostgresCExtension(packages.BundledCAutoconfPackage):
         cls,
         io: cleo_io.IO,
         *,
+        name: packages.NormalizedName | None = None,
         version: str | None = None,
         revision: str | None = None,
         is_release: bool = False,

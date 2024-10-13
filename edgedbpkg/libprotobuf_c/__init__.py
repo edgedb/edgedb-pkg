@@ -8,7 +8,7 @@ from metapkg import targets
 
 class LibProtoBufC(packages.BundledCAutoconfPackage):
     title = "libprotobuf-c"
-    name = packages.canonicalize_name("libprotobuf-c")
+    ident = "libprotobuf-c"
     aliases = ["libprotobuf-c-dev"]
 
     _server = "https://github.com/protobuf-c/protobuf-c/releases/download/"

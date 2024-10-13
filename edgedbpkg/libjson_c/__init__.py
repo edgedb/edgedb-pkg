@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibJsonC(packages.BundledCMakePackage):
     title = "libjson-c"
-    name = packages.canonicalize_name("libjson-c")
+    ident = "libjson-c"
     aliases = ["libjson-c-dev"]
 
     _server = "https://s3.amazonaws.com/json-c_releases/releases/"

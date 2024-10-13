@@ -7,7 +7,7 @@ from edgedbpkg import protobuf
 
 class ProtoCompilerC(packages.BundledCAutoconfPackage):
     title = "protoc-c"
-    name = packages.canonicalize_name("protoc-c")
+    ident = "protoc-c"
 
     _server = "https://github.com/protobuf-c/protobuf-c/releases/download/"
 

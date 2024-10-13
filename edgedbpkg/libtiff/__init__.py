@@ -8,7 +8,7 @@ from edgedbpkg import zlib
 
 class LibTIFF(packages.BundledCAutoconfPackage):
     title = "libtiff"
-    name = packages.canonicalize_name("libtiff")
+    ident = "libtiff"
     aliases = ["libtiff-dev"]
 
     _server = "https://download.osgeo.org/libtiff/"

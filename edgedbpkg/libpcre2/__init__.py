@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibPCRE2(packages.BundledCAutoconfPackage):
     title = "libpcre2"
-    name = packages.canonicalize_name("libpcre2")
+    ident = "libpcre2"
     aliases = ["libpcre2-dev"]
 
     _server = "https://github.com/PCRE2Project/pcre2/releases/download/"

@@ -8,7 +8,7 @@ from metapkg import targets
 
 class LibB2(packages.BundledCAutoconfPackage):
     title = "libb2"
-    name = packages.canonicalize_name("libb2")
+    ident = "libb2"
     aliases = ["libb2-dev"]
 
     _server = "https://github.com/BLAKE2/libb2/releases/download/"

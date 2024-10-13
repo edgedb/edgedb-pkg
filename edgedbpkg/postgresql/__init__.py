@@ -15,7 +15,7 @@ from edgedbpkg import icu, libuuid, openssl, zlib
 
 class PostgreSQL(packages.BundledCAutoconfPackage):
     title = "PostgreSQL"
-    name = packages.canonicalize_name("postgresql-edgedb")
+    ident = "postgresql-edgedb"
     group = "Applications/Databases"
 
     _pftp = "https://ftp.postgresql.org/pub/source/v{version}/"

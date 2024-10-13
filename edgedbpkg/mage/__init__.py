@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class Mage(packages.BundledGoPackage):
     title = "Mage"
-    name = packages.canonicalize_name("mage")
+    ident = "mage"
 
     sources = [
         {

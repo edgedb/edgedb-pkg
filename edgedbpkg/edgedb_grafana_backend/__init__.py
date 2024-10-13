@@ -13,7 +13,7 @@ from edgedbpkg import mage
 
 class EdgeDBGrafanaBackend(packages.BundledPackage):
     title = "EdgeDB Grafana Backend"
-    name = packages.canonicalize_name("edgedb-grafana-backend")
+    ident = "edgedb-grafana-backend"
 
     sources = [
         {

@@ -11,7 +11,7 @@ from metapkg import targets
 
 class OpenSSL(packages.BundledCPackage):
     title = "OpenSSL"
-    name = packages.canonicalize_name("openssl")
+    ident = "openssl"
     aliases = ["openssl-dev"]
 
     _server = "https://www.openssl.org/source/"

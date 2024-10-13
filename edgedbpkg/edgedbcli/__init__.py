@@ -9,7 +9,7 @@ from metapkg import targets
 
 class EdgeDBCLI(packages.BundledRustPackage):
     title = "EdgeDBCLI"
-    name = packages.canonicalize_name("edgedb-cli")
+    ident = "edgedb-cli"
     description = "EdgeDB Command Line Tools"
     license_id = "Apache-2.0"
     group = "Applications/Databases"

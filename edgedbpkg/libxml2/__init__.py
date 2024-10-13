@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibXML2(packages.BundledCAutoconfPackage):
     title = "libxml2"
-    name = packages.canonicalize_name("libxml2")
+    ident = "libxml2"
     aliases = ["libxml2-dev"]
 
     _server = "https://download.gnome.org/sources/libxml2/"

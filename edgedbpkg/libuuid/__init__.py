@@ -6,7 +6,7 @@ from metapkg import targets
 
 class LibUUID(packages.BundledCAutoconfPackage):
     title = "uuid"
-    name = packages.canonicalize_name("uuid")
+    ident = "uuid"
     aliases = ["uuid-dev"]
 
     _server = "https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/"
