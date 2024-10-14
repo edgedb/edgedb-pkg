@@ -37,6 +37,7 @@ RUN apk add --no-cache \
 		protobuf-dev \
 		ninja \
 		file \
+		xz \
 		zip
 
 RUN set -x; \
