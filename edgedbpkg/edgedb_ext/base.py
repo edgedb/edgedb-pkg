@@ -60,7 +60,12 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
                 release=dataclasses.replace(edb_ver.release, minor=0),
             )
 
-        edb = edgedb.EdgeDB(version=str(edb_ver))
+        edb = edgedb.EdgeDB.resolve(
+            io,
+            version=str(edb_ver),
+            is_release=edb_ver.dev is None,
+            target=target,
+        )
 
         if requires is None:
             requires = []

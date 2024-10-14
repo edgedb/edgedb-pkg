@@ -9,10 +9,12 @@ import pathlib
 import platform
 import textwrap
 
+from poetry.core.constraints import version as poetry_version
 from poetry.core.packages import dependency as poetry_dep
 
 from metapkg import packages
 from metapkg import targets
+from metapkg import tools
 from metapkg.packages import python
 
 from edgedbpkg import postgresql
@@ -22,7 +24,6 @@ from edgedbpkg import pyentrypoint
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
-    from poetry.core.constraints import version as poetry_version
 
 
 python.set_python_runtime_dependency(
@@ -118,6 +119,33 @@ class EdgeDB(packages.BundledPythonPackage):
         pgvector.PgVector("v0.4.2"),
         pgvector.PgVector("v0.6.0"),
     ]
+
+    @classmethod
+    def get_vcs_source(
+        cls, io: cleo_io.IO, ref: str | None = None
+    ) -> packages.GitSource | None:
+        if ref is not None:
+            try:
+                ver = poetry_version.Version.parse(ref)
+            except ValueError:
+                pass
+            else:
+                repo = cls.resolve_vcs_repo(io)
+                if ver.dev is not None:
+                    # Resolve major.minor-devN
+                    commit_count = repo.run("rev-list", "--count", "HEAD")
+                    offset = int(commit_count) - ver.dev.number
+                    if offset >= 0:
+                        rev = repo.run(
+                            "rev-list",
+                            f"--skip={offset}",
+                            "--max-count=1",
+                            "HEAD",
+                        )
+                        if rev:
+                            return super().get_vcs_source(io, rev)
+
+        return super().get_vcs_source(io, ref)
 
     @classmethod
     def resolve(
