@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pathlib
 
-from metapkg import packages
 from metapkg import targets
 
 from edgedbpkg import edgedb_ext

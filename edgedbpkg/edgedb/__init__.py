@@ -198,6 +198,13 @@ class EdgeDB(packages.BundledPythonPackage):
             os.environ.pop("BUILD_EXT_MODE", None)
 
     @classmethod
+    def get_next_feature_version(
+        cls,
+        version: poetry_version.Version,
+    ) -> poetry_version.Version:
+        return version.next_major()
+
+    @classmethod
     def canonicalize_version(
         cls,
         io: cleo_io.IO,
