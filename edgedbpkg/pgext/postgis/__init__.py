@@ -68,7 +68,14 @@ class PostGIS(pgext.PostgresCExtension):
         build: targets.Build,
         wd: str | None = None,
     ) -> packages.Args:
-        return super().get_configure_args(build, wd=wd) | {
+        args = super().get_configure_args(build, wd=wd) | {
             "--without-gui": None,
             "--with-address-standardizer": None,
         }
+
+        if "-apple-" in build.target.triple:
+            # Otherwise postgis might pick up brew-installed GNU gettext,
+            # which is NOT what we want.
+            args["--without-gettext"] = None
+
+        return args
