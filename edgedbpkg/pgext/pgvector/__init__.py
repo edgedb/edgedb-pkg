@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from metapkg import packages
-
 from edgedbpkg import pgext
 
 

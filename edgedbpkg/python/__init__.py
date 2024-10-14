@@ -161,9 +161,9 @@ class Python(packages.BundledCAutoconfPackage):
             exe_suffix = ""
 
         sitescript = (
-            f"import site; import pathlib; "
-            f"print(pathlib.Path( "
-            f'site.getsitepackages([\\"${{p}}\\"])[0]).resolve())'
+            "import site; import pathlib; "
+            "print(pathlib.Path( "
+            'site.getsitepackages([\\"${p}\\"])[0]).resolve())'
         )
 
         python = f"python{exe_suffix}"

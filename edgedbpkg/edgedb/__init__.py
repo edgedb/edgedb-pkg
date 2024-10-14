@@ -14,7 +14,6 @@ from poetry.core.packages import dependency as poetry_dep
 
 from metapkg import packages
 from metapkg import targets
-from metapkg import tools
 from metapkg.packages import python
 
 from edgedbpkg import postgresql

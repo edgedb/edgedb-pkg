@@ -8,7 +8,6 @@ import pathlib
 import re
 import shlex
 
-from poetry.core.constraints import version as poetry_version
 from poetry.core.packages import dependency as poetry_dep
 
 from metapkg import packages

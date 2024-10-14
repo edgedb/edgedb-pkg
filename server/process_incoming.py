@@ -1201,7 +1201,7 @@ def process_rpm(
 
         shutil.copy(incoming_dir / rpm, local_dist_dir / rpm)
 
-    logger.info(f"process_rpm: running `createrepo_c --update`")
+    logger.info("process_rpm: running `createrepo_c --update`")
     subprocess_run(
         [
             "createrepo_c",
@@ -1361,7 +1361,7 @@ def process_rpm(
                 need_db_update = True
 
     if need_db_update:
-        logger.info(f"process_rpm: running `createrepo_c --update` (again)")
+        logger.info("process_rpm: running `createrepo_c --update` (again)")
         subprocess_run(
             [
                 "createrepo_c",
