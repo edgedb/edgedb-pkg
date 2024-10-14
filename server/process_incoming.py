@@ -383,7 +383,8 @@ def append_artifact(
         metadata["revision"],
     )
     version_details = metadata["version_details"]
-    tags = metadata.get("tags", {})
+    tags = dict(metadata.get("tags", {}))
+    tags.pop("bucket", None)
     index_key = (metadata["name"], version_key, metadata["architecture"])
     prev_pkg = packages.get(index_key)
     if prev_pkg is not None:
