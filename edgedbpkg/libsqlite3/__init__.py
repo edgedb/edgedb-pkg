@@ -45,8 +45,7 @@ class LibSQLite3(packages.BundledCAutoconfPackage):
             "sqlitever": "{p[0]:d}{p[1]:02d}{p[2]:02d}{p[3]:02d}".format(p=p)
         }
 
-    @classmethod
-    def get_dep_pkg_name(cls) -> str:
+    def get_dep_pkg_name(self) -> str:
         """Name used by pkg-config or CMake to refer to this package."""
         return "SQLite3"
 

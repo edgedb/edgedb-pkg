@@ -17,8 +17,7 @@ class LibGEOS(packages.BundledCMakePackage):
         },
     ]
 
-    @classmethod
-    def get_dep_pkg_name(cls) -> str:
+    def get_dep_pkg_name(self) -> str:
         """Name used by pkg-config or CMake to refer to this package."""
         return "GEOS"
 

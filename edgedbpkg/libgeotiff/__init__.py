@@ -37,8 +37,7 @@ class LibGeoTIFF(packages.BundledCAutoconfPackage):
         zlib.Zlib("1.3.1"),
     ]
 
-    @classmethod
-    def get_dep_pkg_name(cls) -> str:
+    def get_dep_pkg_name(self) -> str:
         """Name used by pkg-config or CMake to refer to this package."""
         return "GEOTIFF"
 
