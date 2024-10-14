@@ -1,1 +1,2 @@
 {datadir}/gdal/**
+{libdir}/gdalplugins/*
