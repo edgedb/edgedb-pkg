@@ -7,7 +7,6 @@ from typing import (
 import dataclasses
 import importlib
 import pathlib
-import shlex
 
 from poetry.core.packages import dependency as poetry_dep
 from poetry.core.constraints import version as poetry_version
@@ -105,9 +104,11 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
             pg_ext = None
 
         if name is None:
-            name = cls.ident.removeprefix("edbext-")
+            pkgname = cls.ident.removeprefix("edbext-")
+        else:
+            pkgname = str(name)
 
-        name = f"{edb.name_slot}-{name}"
+        name = packages.canonicalize_name(f"{edb.name_slot}-{pkgname}")
 
         ext = super().resolve(
             io,
