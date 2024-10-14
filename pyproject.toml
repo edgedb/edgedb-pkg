@@ -8,6 +8,14 @@ dependencies = ["metapkg@git+https://github.com/edgedb/metapkg.git"]
 requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+dev = ['black', 'ruff', 'mypy']
+server = [
+    "boto3-stubs[boto3,s3] ~= 1.35.40",
+    "python-debian ~= 0.1.49",
+    "semver ~= 3.0.2",
+]
+
 [tool.setuptools]
 packages = { find = { include = ["edgedbpkg", "edgedbpkg.*"] } }
 zip-safe = false

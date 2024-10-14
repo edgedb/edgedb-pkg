@@ -200,6 +200,7 @@ class Package(TypedDict):
     architecture: str  # x86_64
     revision: str  # 2020091300~nightly
     build_date: str  # 2023-12-14T21:30:16+00:00
+    tags: dict[str, str]  # {extension: postgis}
     installrefs: list[InstallRef]
     installref: str
 
@@ -382,7 +383,7 @@ def append_artifact(
         metadata["revision"],
     )
     version_details = metadata["version_details"]
-
+    tags = metadata.get("tags", {})
     index_key = (metadata["name"], version_key, metadata["architecture"])
     prev_pkg = packages.get(index_key)
     if prev_pkg is not None:
@@ -404,6 +405,7 @@ def append_artifact(
                 "build_date",
                 "1970-01-01T00:00:00+00:00",
             ),
+            tags=tags,
             architecture=metadata["architecture"],
             installref=installref["ref"],
             installrefs=[installref],
@@ -425,6 +427,8 @@ def load_index(idxfile: pathlib.Path) -> PackageIndex:
                         pkg["version_key"],
                         pkg["architecture"],
                     )
+                    if "tags" not in pkg:
+                        pkg["tags"] = {}
                     index[index_key] = Package(**pkg)  # type: ignore
 
     return index
