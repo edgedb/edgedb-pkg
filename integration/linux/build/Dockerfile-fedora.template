@@ -1,120 +1,66 @@
-FROM fedora:%%PLACEHOLDER%%
-
-# ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:$PATH
-
-# http://bugs.python.org/issue19846
-# > At the moment, setting "LANG=C" on a Linux system *fundamentally breaks Python 3*, and that's not OK.
-ENV LANG en_US.UTF-8
-
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-RUN yum install -y \
-    wget gcc make zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext glibc-langpack-en cmake \
-	tcl file zip unzip
-
-ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION %%PLACEHOLDER%%
-ENV GIT_VERSION 2.20.1
-ENV RUSTUP_HOME /usr/local/rustup
-ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION %%PLACEHOLDER%%
-ENV NINJA_VERSION 1.12.1
-
-RUN set -ex \
-	\
-	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& curl -fsSLo git.tar.xz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
-	&& curl -fsSLo git.tar.sign "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-	&& (try=1; while [ $try -le 5 ]; do \
-		gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$GPG_KEY" && break || true; \
-		try=$(( $try + 1 )); sleep 1; done) \
-	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" python.tar.xz.asc \
-	&& mkdir -p /usr/src/python \
-	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
-	&& rm python.tar.xz \
-	&& mkdir -p /usr/src/git \
-	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
-	&& rm git.tar.xz \
-	\
-	&& cd /usr/src/python \
-	&& gnuArch="$(gcc -dumpmachine)" \
-	&& ./configure \
-		--build="$gnuArch" \
-		--enable-loadable-sqlite-extensions \
-		--enable-shared \
-		--with-system-expat \
-		--with-system-ffi \
-		--without-ensurepip \
-	&& make -j "$(nproc)" \
-	&& make install \
-	&& ldconfig \
-	\
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& rm -rf /usr/src/python \
-	\
-	&& python3 --version \
-	&& cd /usr/src/git \
-	&& make prefix=/usr/local V=1 -j $(nproc) all \
-	&& make prefix=/usr/local install \
-	&& rm -rf /usr/src/git \
-	&& git --version \
-	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
-	&& mkdir -p /usr/src/ninja \
-	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
-	&& rm /tmp/ninja.tar.gz \
-	&& cd /usr/src/ninja \
-	&& ./configure.py --bootstrap --verbose \
-	&& cp -a ./ninja /usr/local/bin/ninja \
-	&& cd / \
-	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version \
-	&& ninja --version
-
-# make some useful symlinks that are expected to exist
-RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
-
-# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
-
-RUN set -ex; \
-	\
-	wget -O get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	python get-pip.py \
-		--disable-pip-version-check \
-		"pip==$PYTHON_PIP_VERSION" \
-	; \
-	pip --version; \
-	\
-	find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' +; \
-	rm -f get-pip.py
-
-%%WRITE_ENTRYPOINT%%
-RUN chmod +x /entrypoint.sh
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}fedora:%%PLACEHOLDER%%
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+ENV LANG C.UTF-8
+
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+
+RUN echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+	&& dnf install -y \
+		'dnf-command(config-manager)'
+
+RUN dnf install -y \
+		bison \
+		bzip2 \
+		bzip2-devel \
+		ca-certificates \
+		cmake \
+		curl-devel \
+		expat-devel \
+		file \
+		flex \
+		gcc \
+		gcc-c++ \
+		gdbm-devel \
+		gettext \
+		git \
+		glibc-langpack-en \
+		libffi-devel \
+		libuuid-devel \
+		make \
+		ncurses-devel \
+		nodejs \
+		openssl-devel \
+		patch \
+		perl-Data-Dumper \
+		perl-Getopt-Long \
+		perl-IPC-Cmd \
+		readline-devel \
+		sqlite-devel \
+		sudo \
+		tar \
+		tcl \
+		unzip \
+		wget \
+		xz \
+		xz-devel \
+		zip \
+		zlib-devel \
+		zstd
+
+%%SCRIPTS%%
+
+RUN set -ex \
+	&& /_bootstrap/python.sh \
+	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/patchelf.sh \
+	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/yarn.sh \
+	&& /_bootstrap/go.sh \
+	&& /_bootstrap/meson.sh \
+	&& /_bootstrap/ninja.sh

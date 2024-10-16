@@ -56,14 +56,22 @@ fi
 
 cd "$(dirname "$($READLINK -f "$BASH_SOURCE")")"
 
-version="3.12"
-pipVersion="$(curl -fsSL 'https://pypi.org/pypi/pip/json' | $JQ -r .info.version)"
-rustVersion="1.76.0"
-# Do not bump NodeJS to newer, binary releases incompatible with older glibc
-nodeVersion="16.16.0"
-yarnVersion="1.22.19"
-goVersion="1.21.6"
-cmakeVersion="3.30.2"
+tools=(
+	"cmake"
+	"gcc"
+	"git"
+	"go"
+	"meson"
+	"ninja"
+	"node"
+	"npm"
+	"patchelf"
+	"pkg-config"
+	"python3"
+	"rustc"
+	"tar"
+	"yarn"
+)
 
 generated_warning() {
 	cat <<-EOH
@@ -76,75 +84,30 @@ generated_warning() {
 	EOH
 }
 
-entrypoint="$(cat entrypoint.sh \
-				| $SED -r -e 's/\\/\\\\/g' \
-				| $SED -r -e 's/\x27/\x27\\\x27\x27/g' \
-				| $SED -r -e 's/^(.*)$/\1\\n\\/g' \
-				| $SED -r -e 's/&/\\&/g')"
-entrypoint_cmd="RUN /bin/echo -e '${entrypoint}' >/entrypoint.sh"
+scripts=$(mktemp /tmp/dockerfile-update.XXXXXX)
+function tmpfile_cleanup {
+  rm -f "$scripts" >&2
+}
+trap tmpfile_cleanup EXIT
 
-tmp=$(mktemp /tmp/dockerfile-update.XXXXXX)
-echo "${entrypoint_cmd}" >"${tmp}"
+embed_script() {
+	local source_file=$1
+	local target=$2
+	local source_dir=$(dirname "$source_file")
+	local source_name="${source_file%.*}"
+	source_name="${source_name^^}"
+	local placeholder="%%${source_name//\//_}%%"
+	local source
+	local source_cmd
 
-rcVersion="${version%-rc}"
-rcGrepV='-v'
-if [ "$rcVersion" != "$version" ]; then
-	rcGrepV=
-fi
-
-possibles=( $(
-	{
-		git ls-remote --tags https://github.com/python/cpython.git "refs/tags/v${rcVersion}.*" \
-			| $SED -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
-			| grep $rcGrepV -E -- '[a-zA-Z]+' \
-			|| :
-
-		# this page has a very aggressive varnish cache in front of it, which is why we also scrape tags from GitHub
-		curl -fsSL 'https://www.python.org/ftp/python/' \
-			| grep '<a href="'"$rcVersion." \
-			| $SED -r 's!.*<a href="([^"/]+)/?".*!\1!' \
-			| grep $rcGrepV -E -- '[a-zA-Z]+' \
-			|| :
-	} | sort -ruV
-) )
-fullVersion=
-declare -A impossible=()
-for possible in "${possibles[@]}"; do
-	rcPossible="${possible%[a-z]*}"
-
-	if wget -q -O /dev/null -o /dev/null --spider "https://www.python.org/ftp/python/$rcPossible/Python-$possible.tar.xz"; then
-		fullVersion="$possible"
-		break
-	fi
-
-	if [ -n "${impossible[$rcPossible]:-}" ]; then
-		continue
-	fi
-	impossible[$rcPossible]=1
-	possibleVersions=( $(
-		wget -qO- -o /dev/null "https://www.python.org/ftp/python/$rcPossible/" \
-			| grep '<a href="Python-'"$rcVersion"'.*\.tar\.xz"' \
-			| $SED -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
-			| grep $rcGrepV -E -- '[a-zA-Z]+' \
-			| sort -rV \
-			|| true
-	) )
-	if [ "${#possibleVersions[@]}" -gt 0 ]; then
-		fullVersion="${possibleVersions[0]}"
-		break
-	fi
-done
-
-if [ -z "$fullVersion" ]; then
-	{
-		echo
-		echo
-		echo "  error: cannot find $version (alpha/beta/rc?)"
-		echo
-		echo
-	} >&2
-	exit 1
-fi
+	source="$(cat "$source_file" \
+					| $SED -r -e 's/\\/\\\\/g' \
+					| $SED -r -e 's/\x27/\x27\\\x27\x27/g' \
+					| $SED -r -e 's/^(.*)$/\1\\n\\/g' \
+					| $SED -r -e 's/&/\\&/g')"
+	embed_cmd="RUN mkdir -p '${source_dir}'; /bin/echo -e '${source}' >/${source_file}; chmod +x /${source_file}"
+	echo "${embed_cmd}" >>"${scripts}"
+}
 
 template="${1}"
 target="${2}"
@@ -158,30 +121,28 @@ $SED -ri \
 	-e '/%%IFNOT VARIANT=.*'"${variant}"'.*%%/,/%%ENDIF%%/d' \
 	-e '/%%IF VARIANT=.*%%/,/%%ENDIF%%/d' \
 	-e '/%%IFNOT VARIANT=.*%%/,/%%ENDIF%%/ { /%%IFNOT VARIANT=/d; /%%ENDIF%%/d; }' \
-	-e 's/^(ENV PYTHON_VERSION) .*/\1 '"$fullVersion"'/' \
-	-e 's/^(ENV PYTHON_RELEASE) .*/\1 '"${fullVersion%%[a-z]*}"'/' \
-	-e 's/^(ENV PYTHON_PIP_VERSION) .*/\1 '"$pipVersion"'/' \
-	-e 's/^(ENV RUST_VERSION) .*/\1 '"$rustVersion"'/' \
-	-e 's/^(ENV NODE_VERSION) .*/\1 '"$nodeVersion"'/' \
-	-e 's/^(ENV YARN_VERSION) .*/\1 '"$yarnVersion"'/' \
-	-e 's/^(ENV GO_VERSION) .*/\1 '"$goVersion"'/' \
-	-e 's/^(ENV CMAKE_VERSION) .*/\1 '"$cmakeVersion"'/' \
-	-e 's!^(FROM (buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant}"'!' \
-	-e 's!^(FROM (\w+)):%%PLACEHOLDER%%!\1:'"${variant}"'!'\
+	-e 's!^(FROM (\$\{DOCKER_ARCH\}?buildpack-deps)):%%PLACEHOLDER%%!\1:'"${variant}"'!' \
+	-e 's!^(FROM (\$\{DOCKER_ARCH\}?\w+)):%%PLACEHOLDER%%!\1:'"${variant}"'!'\
 	"${target}"
 
-# Add GPG keys
-new_line=' \\\
-'
-for key_file in _keys/*.keys; do
-	key_file_basename=$(basename "${key_file}")
-	key_type=${key_file_basename%.*}
-	while read -r line; do
-		pattern='"\$\{'$(echo "${key_type}" | tr '[:lower:]' '[:upper:]')'_KEYS\[@\]\}"'
-		sed -Ei -e "s/([ \\t]*)(${pattern})/\\1${line}${new_line}\\1\\2/" "${target}"
-	done < "_keys/${key_type}.keys"
-	sed -Ei -e "/${pattern}/d" "${target}"
+embed_script entrypoint.sh "$target"
+
+for bootstrap in _bootstrap/*.sh; do
+	embed_script "$bootstrap" "$target"
 done
 
-$AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${tmp}"'")}/%%WRITE_ENTRYPOINT%/{gsub("%%WRITE_ENTRYPOINT%%", l)}1' "${target}"
-rm "${tmp}"
+$AWK -i inplace '@load "readfile"; BEGIN{l = readfile("'"${scripts}"'")}/%%SCRIPTS%%/{gsub("%%SCRIPTS%%", l)}1' "${target}"
+
+echo "RUN rm -rf /_bootstrap" >> "$target"
+
+check="RUN set -ex"
+for tool in "${tools[@]}"; do
+	case "$tool" in
+		go) cmd="go version" ;;
+		*) cmd="${tool} --version" ;;
+	esac
+
+	check+=" && ${cmd}"
+done
+
+echo "$check" >> "$target"

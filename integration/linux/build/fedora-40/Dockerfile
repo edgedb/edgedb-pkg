@@ -5,7 +5,7 @@
 #
 
 ARG DOCKER_ARCH=
-FROM ${DOCKER_ARCH}buildpack-deps:bionic
+FROM ${DOCKER_ARCH}fedora:40
 
 ENTRYPOINT ["/entrypoint.sh"]
 
@@ -16,21 +16,48 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
 
-RUN apt-get update \
-	&& apt-get dist-upgrade -y \
-	&& apt-get install -y --no-install-recommends \
+RUN echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+	&& dnf install -y \
+		'dnf-command(config-manager)'
+
+RUN dnf install -y \
 		bison \
+		bzip2 \
+		bzip2-devel \
+		ca-certificates \
+		cmake \
+		curl-devel \
+		expat-devel \
 		file \
 		flex \
-		libprotobuf-dev \
-		libssl-dev \
-		patchelf \
+		gcc \
+		gcc-c++ \
+		gdbm-devel \
+		gettext \
+		git \
+		glibc-langpack-en \
+		libffi-devel \
+		libuuid-devel \
+		make \
+		ncurses-devel \
+		nodejs \
+		openssl-devel \
+		patch \
+		perl-Data-Dumper \
+		perl-Getopt-Long \
+		perl-IPC-Cmd \
+		readline-devel \
+		sqlite-devel \
 		sudo \
+		tar \
 		tcl \
-		tk-dev \
+		unzip \
+		wget \
+		xz \
+		xz-devel \
 		zip \
-		zstd \
-	&& rm -rf /var/lib/apt/lists/*
+		zlib-devel \
+		zstd
 
 RUN mkdir -p '.'; /bin/echo -e '#!/bin/bash\n\
 \n\
@@ -611,12 +638,11 @@ ln -s /usr/src/yarn/bin/yarnpkg /usr/local/bin/yarnpkg\n\' >/_bootstrap/yarn.sh;
 RUN set -ex \
 	&& /_bootstrap/python.sh \
 	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/patchelf.sh \
 	&& /_bootstrap/rust.sh \
-	&& /_bootstrap/node.sh \
 	&& /_bootstrap/yarn.sh \
 	&& /_bootstrap/go.sh \
-	&& /_bootstrap/ninja.sh \
 	&& /_bootstrap/meson.sh \
-	&& /_bootstrap/cmake.sh
+	&& /_bootstrap/ninja.sh
 RUN rm -rf /_bootstrap
 RUN set -ex && cmake --version && gcc --version && git --version && go version && meson --version && ninja --version && node --version && npm --version && patchelf --version && pkg-config --version && python3 --version && rustc --version && tar --version && yarn --version

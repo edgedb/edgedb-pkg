@@ -1,49 +1,56 @@
 ARG DOCKER_ARCH=
-FROM ${DOCKER_ARCH}alpine:3.16.2
+FROM ${DOCKER_ARCH}alpine:3.16
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 ENV LANG C.UTF-8
-ENV RUST_VERSION %%PLACEHOLDER%%
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 
 RUN apk add --no-cache \
 		bash \
 		bison \
 		build-base \
+		bzip2-dev \
+		coreutils \
 		curl \
+		curl-dev \
+		expat-dev \
+		file \
 		flex \
+		gdbm-dev \
 		git \
+		gnupg \
 		libffi-dev \
 		linux-headers \
+		ncurses-dev \
 		nodejs \
+		npm \
+		openssl-dev \
 		patchelf \
 		perl \
-		python3 \
-		python3-dev \
-		py3-pip \
+		protobuf-dev \
+		readline-dev \
 		sudo \
 		tar \
-		yarn \
-		zstd \
-		cmake \
 		tcl \
-		protobuf-dev \
-		ninja \
-		file \
+		util-linux-dev \
 		xz \
-		zip
+		xz-dev \
+		yarn \
+		zip \
+		zstd
 
-RUN set -x; \
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --profile minimal --default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	&& rustc --version \
-	&& ninja --version
+%%SCRIPTS%%
 
-RUN ln -s /usr/bin/python3 /usr/bin/python
-
-%%WRITE_ENTRYPOINT%%
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+RUN set -ex \
+	&& /_bootstrap/python.sh \
+	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/meson.sh \
+	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/go.sh \
+	&& /_bootstrap/ninja.sh \
+	&& /_bootstrap/cmake.sh

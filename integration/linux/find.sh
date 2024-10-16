@@ -17,4 +17,4 @@ else
     FIND="$(which find)"
 fi
 
-$FIND . -maxdepth 1 -mindepth 1 -type d ! -name "_keys" -printf '%P\n'
+$FIND . -maxdepth 1 -mindepth 1 -type d ! -name "_keys" ! -name "_bootstrap" -printf '%P\n'

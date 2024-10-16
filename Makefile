@@ -13,7 +13,7 @@ SUPPORTED_TARGETS = \
 	centos-7 \
 	centos-8 \
 	rockylinux-9 \
-	fedora-29 \
+	fedora-40 \
 	linux-x86_64 \
 	linuxmusl-x86_64 \
 	linux-aarch64 \

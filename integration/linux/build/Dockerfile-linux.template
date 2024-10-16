@@ -1,33 +1,22 @@
 ARG DOCKER_ARCH=
 FROM ${DOCKER_ARCH}centos:7
 
-# ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+ENTRYPOINT ["/bin/sh", "--login", "-c", "/entrypoint.sh"]
 
 ENV LANG C
 
-ENV GPG_KEY %%PLACEHOLDER%%
-ENV PYTHON_VERSION %%PLACEHOLDER%%
-ENV GIT_VERSION 2.33.1
-ENV PATCHELF_VERSION 0.13
-ENV TAR_VERSION latest
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV GO_VERSION %%PLACEHOLDER%%
-ENV RUST_VERSION %%PLACEHOLDER%%
-ENV NODE_VERSION %%PLACEHOLDER%%
-ENV YARN_VERSION %%PLACEHOLDER%%
-ENV CMAKE_VERSION %%PLACEHOLDER%%
+
 %%IF VARIANT=aarch64%%
 ENV GCC_VERSION 10
-ENV OPENSSL_VERSION 1.1.1w
 %%ENDIF%%
+
 %%IFNOT VARIANT=aarch64%%
 ENV GCC_VERSION 11
 %%ENDIF%%
-ENV NINJA_VERSION 1.12.1
-ENV PKGCONF_VERSION 2.3.0
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
@@ -35,35 +24,46 @@ ENV PKGCONF_VERSION 2.3.0
 # We need to disable the mirrorlist and explicitly set up a
 # baseurl. Switch to the archive.kernel.org mirror while we are at it.
 RUN ulimit -n 1024 \
+	&& echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
     && sed -i 's|# \?baseurl=http://mirror.centos.org|baseurl=https://archive.kernel.org/centos-vault/|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y
-
-# We also need to disable mirrorlist and set a baseurl for the SCLo
-# repos we add here, and we need to do some extra work on arm to point
-# it at "altarch".
-RUN case "$HOSTTYPE" in \
-      aarch64) DIR=altarch ;; \
-      *) DIR=centos ;; \
-    esac; echo === $DIR; \
-    ulimit -n 1024 \
+    && yum update -y \
     && yum install -y centos-release-scl epel-release \
-    \
     && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-SCLo* \
+	&& case "$HOSTTYPE" in aarch64) DIR=altarch ;; *) DIR=centos ;; esac \
     && sed -i "s|# \?baseurl=http://mirror.centos.org/centos|baseurl=https://archive.kernel.org/centos-vault/$DIR|g" /etc/yum.repos.d/CentOS-SCLo* \
-    \
     && yum update -y \
 	&& yum install -y \
-	devtoolset-${GCC_VERSION} make patch flex bison \
-    wget zlib-devel openssl-devel \
-%%IFNOT VARIANT=aarch64%%
-	openssl11-devel \
-%%ENDIF%%
-	sqlite-devel bzip2 bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext \
-    perl-Getopt-Long perl-IPC-Cmd perl-Data-Dumper \
-	sudo ca-certificates zstd tcl file zip unzip
+		bison \
+		bzip2 \
+		bzip2-devel \
+		ca-certificates \
+		curl-devel \
+		devtoolset-${GCC_VERSION} \
+		expat-devel \
+		file \
+		flex \
+		gdbm-devel \
+		gettext \
+		libffi-devel \
+		libuuid-devel \
+		make \
+		ncurses-devel \
+		openssl-devel \
+		patch \
+		perl-Data-Dumper \
+		perl-Getopt-Long \
+		perl-IPC-Cmd \
+		readline-devel \
+		sqlite-devel \
+		sudo \
+		tcl \
+		unzip \
+		wget \
+		xz-devel \
+		zip \
+		zlib-devel \
+		zstd
 
 RUN printf "#!/bin/bash\nsource scl_source enable devtoolset-${GCC_VERSION}" \
 	> /etc/profile.d/enabledevtoolset${GCC_VERSION}.sh
@@ -74,265 +74,22 @@ RUN localedef -f UTF-8 -i en_US en_US.UTF-8
 # Needed to pick up SCL stuff from profile.d/
 SHELL ["/bin/bash", "--login", "-c"]
 
+%%SCRIPTS%%
+
+ENV OPENSSL_VERSION 1.1.1w
+ENV PYTHON_LOCAL_OPENSSL 1
+
 RUN set -ex \
-	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-	&& curl -fsSLo git.tar.xz "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz" \
-	&& curl -fsSLo git.tar.sign "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign" \
-	&& curl -fsSLo patchelf.tar.bz2 "https://github.com/NixOS/patchelf/releases/download/${PATCHELF_VERSION}/patchelf-${PATCHELF_VERSION}.tar.bz2" \
-	&& curl -fsSLo tar.tar.xz "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz" \
-	&& curl -fsSLo tar.tar.xz.sign "https://alpha.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig" \
-	&& curl -fsSLo pkgconf.tar.xz "https://distfiles.ariadne.space/pkgconf/pkgconf-${PKGCONF_VERSION}.tar.xz" \
-%%IF VARIANT=aarch64%%
-	&& curl -fsSLo openssl.tar.gz "https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VERSION//./_}/openssl-${OPENSSL_VERSION}.tar.gz" \
-	&& curl -fsSLo openssl.tar.gz.asc "https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VERSION//./_}/openssl-${OPENSSL_VERSION}.tar.gz.asc" \
-%%ENDIF%%
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& echo "disable-ipv6" >> "${GNUPGHOME}/dirmngr.conf" \
-    && for key in \
-      "${PYTHON_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${NODE_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${YARN_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${TAR_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${CMAKE_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-%%IF VARIANT=aarch64%%
-    && for key in \
-      "${OPENSSL_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-	&& gpg --batch --verify openssl.tar.gz.asc openssl.tar.gz \
-	&& rm -rf openssl.tar.gz.asc \
-	&& mkdir -p /usr/src/openssl \
-	&& tar -xzC /usr/src/openssl --strip-components=1 -f openssl.tar.gz \
-	&& rm openssl.tar.gz \
-%%ENDIF%%
-	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& rm -rf python.tar.xz.asc \
-	&& mkdir -p /usr/src/python \
-	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
-	&& rm python.tar.xz \
-	&& mkdir -p /usr/src/git \
-	&& tar -xJC /usr/src/git --strip-components=1 -f git.tar.xz \
-	&& rm git.tar.xz \
-	&& gpg --batch --verify tar.tar.xz.sign tar.tar.xz \
-	&& rm -rf tar.tar.xz.sign \
-	&& mkdir -p /usr/src/tar \
-	&& tar -xJC /usr/src/tar --strip-components=1 -f tar.tar.xz \
-	&& rm tar.tar.xz \
-	&& mkdir -p /usr/src/patchelf \
-	&& tar -xjC /usr/src/patchelf --strip-components=1 -f patchelf.tar.bz2 \
-	&& rm patchelf.tar.bz2 \
-	&& mkdir -p /usr/src/pkgconf \
-	&& tar -xJC /usr/src/pkgconf --strip-components=1 -f pkgconf.tar.xz \
-	&& rm pkgconf.tar.xz \
-%%IF VARIANT=aarch64%%
-	&& cd /usr/src/openssl \
-	&& ./config \
-		--prefix="/usr/local/openssl" \
-		--openssldir="/usr/local/openssl/etc/ssl" \
-		--libdir="/usr/local/openssl/lib" \
-		"no-ssl3" \
-		"shared" \
-	&& make -j "$(nproc)" \
-	&& make -j "$(nproc)" install_sw \
-	&& rm -rf /usr/src/openssl \
-%%ENDIF%%
-	&& cd /usr/src/python \
-%%IFNOT VARIANT=aarch64%%
-	&& sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure \
-%%ENDIF%%
-	\
-	&& gnuArch="$(gcc -dumpmachine)" \
-	&& ./configure \
-		--build="$gnuArch" \
-		--enable-loadable-sqlite-extensions \
-		--enable-shared \
-		--with-system-expat \
-		--with-system-ffi \
-		--without-ensurepip \
-%%IF VARIANT=aarch64%%
-		--with-openssl="/usr/local/openssl" \
-		--with-openssl-rpath="/usr/local/openssl/lib" \
-%%ENDIF%%
-	&& make -j "$(nproc)" \
-	&& make install \
-	&& ldconfig \
-	\
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& rm -rf /usr/src/python \
-	\
-	&& cd /usr/src/git \
-	&& make prefix=/usr/local V=1 -j $(nproc) all \
-	&& make prefix=/usr/local install \
-	&& rm -rf /usr/src/git \
-	&& cd /usr/src/tar \
-	&& env FORCE_UNSAFE_CONFIGURE=1 ./configure \
-		--bindir=/usr/local/bin/ \
-		--libexecdir=/usr/local/sbin/ \
-	&& make -j $(nproc) \
-	&& make install \
-	&& rm -rf /usr/src/tar \
-	&& cd /usr/src/patchelf \
-	&& ./configure \
-	&& make -j $(nproc) \
-	&& make install \
-	&& rm -rf /usr/src/patchelf \
-	&& cd /usr/src/pkgconf \
-	&& ./configure \
-	&& make -j $(nproc) \
-	&& make install \
-	&& rm -rf /usr/src/pkgconf \
-	&& ln -sf /usr/local/bin/pkgconf /usr/bin/pkg-config \
-	&& cd / \
-	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal \
-		--default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	\
-	&& dpkgArch="$(rpm --eval '%{_arch}')" \
-	&& case "${dpkgArch##*-}" in \
-		x86_64) \
-			NODE_ARCH='x64' \
-			GO_ARCH='amd64' \
-			CMAKE_ARCH='x86_64' \
-			NINJA_ARCH='' \
-			;; \
-		arm64) \
-			NODE_ARCH='arm64' \
-			GO_ARCH='arm64' \
-			CMAKE_ARCH='aarch64' \
-			NINJA_ARCH='aarch64' \
-			;; \
-		aarch64) \
-			NODE_ARCH='arm64' \
-			GO_ARCH='arm64' \
-			CMAKE_ARCH='aarch64' \
-			NINJA_ARCH='aarch64' \
-			;; \
-		*) echo "unsupported architecture"; exit 1 ;; \
-	esac \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
-	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-	&& grep " node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-	&& tar -xJf "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-	&& rm "node-v$NODE_VERSION-linux-${NODE_ARCH}.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
-	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
-	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& mkdir -p /opt \
-	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
-	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& curl --proto '=https' --tlsv1.2 -sSfL \
-		https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o /tmp/go.tgz \
-	&& tar -C /usr/local -xzf /tmp/go.tgz \
-	&& rm /tmp/go.tgz \
-	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
-	&& mkdir -p /usr/src/ninja \
-	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
-	&& rm /tmp/ninja.tar.gz \
-	&& cd /usr/src/ninja \
-	&& ./configure.py --bootstrap --verbose \
-	&& cp -a ./ninja /usr/local/bin/ninja \
-	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" \
-	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt" \
-	&& curl -fsSLO --compressed "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
-	&& gpg --batch --verify cmake-$CMAKE_VERSION-SHA-256.txt.asc cmake-$CMAKE_VERSION-SHA-256.txt \
-	&& grep " cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz\$" cmake-$CMAKE_VERSION-SHA-256.txt | sha256sum -c - \
-	&& if [ -n "$CMAKE_ARCH" ]; then \
-		echo $CMAKE_ARCH; \
-		tar -xzf "cmake-$CMAKE_VERSION-linux-$CMAKE_ARCH.tar.gz" -C /usr/local --strip-components=1 --no-same-owner; \
-	else \
-		mkdir cmake-build; \
-		tar -xzf "cmake-$CMAKE_VERSION.tar.gz" -C cmake-build --strip-components=1; \
-		cd cmake-build; \
-		./bootstrap --parallel="$(nproc)"; \
-		make -j "$(nproc)"; \
-		make install; \
-		cd ..; \
-		rm -rf cmake-build; \
-	fi \
-	&& rm "cmake-$CMAKE_VERSION${CMAKE_ARCH:+-linux-$CMAKE_ARCH}.tar.gz" "cmake-$CMAKE_VERSION-SHA-256.txt" "cmake-$CMAKE_VERSION-SHA-256.txt.asc" \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" \
-	\
-	&& gcc --version \
-	&& python3 --version \
-	&& rustc --version \
-	&& go version \
-	&& node --version \
-	&& npm --version \
-	&& yarn --version \
-	&& git --version \
-	&& tar --version \
-	&& cmake --version \
-	&& ninja --version \
-	&& pkg-config --version \
-	&& patchelf --version
-
-# make some useful symlinks that are expected to exist
-RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
-
-# if this is called "PIP_VERSION", pip explodes with "ValueError: invalid truth value '<VERSION>'"
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
-
-RUN set -ex; \
-	curl -fsSLo get-pip.py 'https://bootstrap.pypa.io/get-pip.py' \
-	&& python get-pip.py \
-		--disable-pip-version-check \
-		"pip==$PYTHON_PIP_VERSION" \
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& rm -f get-pip.py \
-%%IF VARIANT=aarch64%%
-	&& pip install certifi \
-	&& python -c 'import ssl, certifi, pathlib, shutil; ca = pathlib.Path(ssl.get_default_verify_paths().openssl_cafile); ca.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(certifi.where(), str(ca))' \
-%%ENDIF%%
-	&& pip --version
-
-%%WRITE_ENTRYPOINT%%
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/bin/sh", "--login", "-c", "/entrypoint.sh"]
+	&& /_bootstrap/openssl.sh \
+	&& /_bootstrap/python.sh \
+	&& /_bootstrap/git.sh \
+	&& /_bootstrap/patchelf.sh \
+	&& /_bootstrap/tar.sh \
+	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/node.sh \
+	&& /_bootstrap/yarn.sh \
+	&& /_bootstrap/go.sh \
+	&& /_bootstrap/meson.sh \
+	&& /_bootstrap/ninja.sh \
+	&& /_bootstrap/cmake.sh

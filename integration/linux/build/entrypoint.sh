@@ -74,7 +74,6 @@ if [ -z "${VIRTUAL_ENV}"]; then
     ${PYTHON} -m pip install -U pip setuptools wheel
 fi
 
-${PYTHON} -m pip install -U meson
 ${PYTHON} -m pip install -U git+https://github.com/edgedb/edgedb-pkg
 
 if [ -n "${METAPKG_PATH}" ]; then

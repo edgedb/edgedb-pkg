@@ -1,166 +1,71 @@
-FROM rockylinux:%%PLACEHOLDER%%
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}rockylinux:%%PLACEHOLDER%%
 
-# ensure local python is preferred over distribution python
-ENV PATH /usr/local/bin:$PATH
+ENTRYPOINT ["/entrypoint.sh"]
 
 ENV LANG C.UTF-8
 
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-RUN (echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
-    && source /etc/os-release; \
-     [ "$VERSION" = "8" ] && (cd /etc/yum.repos.d/ \
-    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y) || true)
-
-RUN dnf install --enablerepo=devel --enablerepo=crb -y \
-	'dnf-command(config-manager)' \
-    wget gcc gcc-c++ make patch zlib-devel openssl-devel sqlite-devel bzip2-devel \
-    expat-devel ncurses-devel gdbm-devel readline-devel libuuid-devel \
-	curl-devel xz-devel libffi-devel gettext glibc-langpack-en \
-    perl-Getopt-Long perl-File-Copy perl-IPC-Cmd perl-Data-Dumper perl-FindBin \
-	perl-File-Compare \
-	systemd-rpm-macros sudo ca-certificates \
-	git tar xz cmake tcl file unzip bzip2 zip
-
-RUN dnf config-manager --set-enabled devel,crb
-
-ENV PYTHON_VERSION %%PLACEHOLDER%%
-ENV GPG_KEY %%PLACEHOLDER%%
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV PATH /usr/local/cargo/bin:$PATH
-ENV RUST_VERSION %%PLACEHOLDER%%
-ENV NODE_VERSION %%PLACEHOLDER%%
-ENV YARN_VERSION %%PLACEHOLDER%%
-ENV NINJA_VERSION 1.12.1
+
+RUN echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf \
+	&& dnf install --enablerepo=devel --enablerepo=crb -y \
+		'dnf-command(config-manager)' \
+	&& dnf config-manager --set-enabled devel,crb
+
+RUN dnf install -y \
+		bison \
+		bzip2 \
+		bzip2-devel \
+		ca-certificates \
+		cmake \
+		curl-devel \
+		expat-devel \
+		file \
+		flex \
+		gcc \
+		gcc-c++ \
+		gdbm-devel \
+		gettext \
+		git \
+		glibc-langpack-en \
+		libffi-devel \
+		libuuid-devel \
+		make \
+		ncurses-devel \
+		nodejs \
+		openssl-devel \
+		patch \
+		perl-Data-Dumper \
+		perl-File-Compare \
+		perl-File-Copy \
+		perl-FindBin \
+		perl-Getopt-Long \
+		perl-IPC-Cmd \
+		readline-devel \
+		sqlite-devel \
+		sudo \
+		systemd-rpm-macros \
+		tar \
+		tcl \
+		unzip \
+		wget \
+		xz \
+		xz-devel \
+		zip \
+		zlib-devel \
+		zstd
+
+%%SCRIPTS%%
 
 RUN set -ex \
-	&& curl -fsSLo python.tar.xz "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz" \
-	&& curl -fsSLo python.tar.xz.asc "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc" \
-    && for key in \
-      "${PYTHON_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${NODE_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-    && for key in \
-      "${YARN_KEYS[@]}"
-    ; do \
-      gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" || \
-      gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key" ; \
-    done \
-	&& gpg --batch --verify python.tar.xz.asc python.tar.xz \
-	&& rm -rf python.tar.xz.asc \
-	&& mkdir -p /usr/src/python \
-	&& tar -xJC /usr/src/python --strip-components=1 -f python.tar.xz \
-	&& rm python.tar.xz \
-	&& cd /usr/src/python \
-	&& gnuArch="$(gcc -dumpmachine)" \
-	&& ./configure \
-		--build="$gnuArch" \
-		--enable-loadable-sqlite-extensions \
-		--enable-shared \
-		--with-system-expat \
-		--with-system-ffi \
-		--without-ensurepip \
-	&& make -j "$(nproc)" \
-	&& make install \
-	&& ldconfig \
-	\
-	&& find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' + \
-	&& rm -rf /usr/src/python \
-	\
-	&& cd / \
-	&& curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-		-y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION \
-	&& chmod -R a+w $RUSTUP_HOME $CARGO_HOME \
-	\
-	&& dpkgArch="$(rpm --eval '%{_arch}')" \
-	&& case "${dpkgArch##*-}" in \
-		x86_64) ARCH='x64';; \
-		ppc64el) ARCH='ppc64le';; \
-		s390x) ARCH='s390x';; \
-		arm64) ARCH='arm64';; \
-		aarch64) ARCH='arm64';; \
-		armhf) ARCH='armv7l';; \
-		i386) ARCH='x86';; \
-		*) echo "unsupported architecture"; exit 1 ;; \
-	esac \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
-	&& curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
-	&& gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc \
-	&& grep " node-v$NODE_VERSION-linux-$ARCH.tar.xz\$" SHASUMS256.txt | sha256sum -c - \
-	&& tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
-	&& rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt \
-	&& ln -s /usr/local/bin/node /usr/local/bin/nodejs \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
-	&& curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
-	&& gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& mkdir -p /opt \
-	&& tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
-	&& ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
-	&& rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
-	&& curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja.tar.gz \
-	&& mkdir -p /usr/src/ninja \
-	&& tar -xzC /usr/src/ninja --strip-components=1 -f /tmp/ninja.tar.gz \
-	&& rm /tmp/ninja.tar.gz \
-	&& cd /usr/src/ninja \
-	&& ./configure.py --bootstrap --verbose \
-	&& cp -a ./ninja /usr/local/bin/ninja \
-	&& { command -v gpgconf > /dev/null && gpgconf --kill all || :; } \
-	&& rm -rf "$GNUPGHOME" \
-	\
-	&& python3 --version \
-	&& rustc --version \
-	&& node --version \
-	&& npm --version \
-	&& yarn --version \
-	&& git --version \
-	&& tar --version \
-	&& ninja --version
-
-# make some useful symlinks that are expected to exist
-RUN cd /usr/local/bin \
-	&& ln -s idle3 idle \
-	&& ln -s pydoc3 pydoc \
-	&& ln -s python3 python \
-	&& ln -s python3-config python-config
-
-ENV PYTHON_PIP_VERSION %%PLACEHOLDER%%
-
-RUN set -ex; \
-	\
-	curl -fsSLo get-pip.py 'https://bootstrap.pypa.io/get-pip.py'; \
-	\
-	python get-pip.py \
-		--disable-pip-version-check \
-		"pip==$PYTHON_PIP_VERSION" \
-	; \
-	pip --version; \
-	\
-	find /usr/local -depth \
-		\( \
-			\( -type d -a \( -name test -o -name tests \) \) \
-			-o \
-			\( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
-		\) -exec rm -rf '{}' +; \
-	rm -f get-pip.py
-
-%%WRITE_ENTRYPOINT%%
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+	&& /_bootstrap/python.sh \
+	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/patchelf.sh \
+	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/yarn.sh \
+	&& /_bootstrap/go.sh \
+	&& /_bootstrap/meson.sh \
+	&& /_bootstrap/ninja.sh

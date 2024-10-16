@@ -1,7 +1,7 @@
 .PHONY: all
 
 DOCKERFILES = $(addsuffix /Dockerfile, $(shell ../find.sh))
-DEPS = ./update.sh ./entrypoint.sh
+DEPS = ./update.sh ./entrypoint.sh ./_bootstrap/*.sh
 
 all: $(DOCKERFILES)
 
