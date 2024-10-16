@@ -3,6 +3,7 @@ from __future__ import annotations
 import pathlib
 import platform
 import re
+import shlex
 import textwrap
 
 from poetry.core.constraints import version as poetry_version
@@ -168,8 +169,23 @@ class Python(packages.BundledCAutoconfPackage):
 
         python = f"python{exe_suffix}"
 
+        wrapper_env_args = dict(self.get_build_env(build, wd="${d}"))
+
+        openssl_pkg = build.get_package("openssl")
+        if build.is_bundled(openssl_pkg):
+            ssl_inst_dir = build.get_build_install_dir(
+                openssl_pkg, relative_to="pkgbuild"
+            )
+            ssldir = build.get_install_path(openssl_pkg, "sysconf") / "ssl"
+            cacert = ssl_inst_dir / ssldir.relative_to("/") / "cert.pem"
+            build.sh_replace_quoted_paths(
+                wrapper_env_args,
+                "SSL_CERT_FILE",
+                [f'"${{d}}"/{shlex.quote(str(cacert))}'],
+            )
+
         wrapper_env = build.sh_format_args(
-            self.get_build_env(build, wd="${d}"),
+            wrapper_env_args,
             force_args_eq=True,
             linebreaks=False,
         )
@@ -248,34 +264,9 @@ class Python(packages.BundledCAutoconfPackage):
         script = super().get_build_install_script(build)
         installdest = build.get_build_install_dir(self, relative_to="pkgbuild")
 
-        openssl_pkg = build.get_package("openssl")
-        if build.is_bundled(openssl_pkg):
-            # We must bundle the CA certificates if OpenSSL is bundled.
-            python = build.sh_get_command("python", package=self)
-            temp = build.get_temp_root(relative_to="pkgbuild")
-            sslpath = (
-                "import ssl; "
-                "print(ssl.get_default_verify_paths().openssl_cafile)"
-            )
-            certifipath = "import certifi; " "print(certifi.where())"
-            extra_install = textwrap.dedent(
-                f"""\
-                "{python}" -m pip install \\
-                    --upgrade --force-reinstall \\
-                    --root "{temp}" "certifi"
-                sslpath=$("{python}" -c "{sslpath}")
-                ssl_instpath="$(pwd)/{installdest}/${{sslpath}}"
-                mkdir -p "$(dirname ${{ssl_instpath}})"
-                certifipath=$("{python}" -c "{certifipath}")
-                cp "${{certifipath}}" "${{ssl_instpath}}"
-                """
-            )
-        else:
-            extra_install = ""
-
         bin_dir = build.get_install_path(self, "bin")
         minorv = self.version.minor
-        extra_install += textwrap.dedent(
+        extra_install = textwrap.dedent(
             f"""\
             rm $(pwd)/"{installdest}"/"{bin_dir}"/python3
             mv $(pwd)/"{installdest}"/"{bin_dir}"/python3.{minorv} \
@@ -288,19 +279,6 @@ class Python(packages.BundledCAutoconfPackage):
             {extra_install}
             """
         )
-
-        return script
-
-    def get_install_list_script(self, build: targets.Build) -> str:
-        script = super().get_install_list_script(build)
-        openssl_pkg = build.get_package("openssl")
-        python = build.sh_get_command("python", package=self)
-        if build.is_bundled(openssl_pkg):
-            sslpath = (
-                "import ssl; "
-                "print(ssl.get_default_verify_paths().openssl_cafile)"
-            )
-            script += f'\n"{python}" -c "{sslpath}"'
 
         return script
 

@@ -4,6 +4,7 @@ import pathlib
 import platform
 import re
 import shlex
+import textwrap
 
 from metapkg import packages
 from metapkg import targets
@@ -15,13 +16,18 @@ class OpenSSL(packages.BundledCPackage):
     aliases = ["openssl-dev"]
 
     _server = "https://www.openssl.org/source/"
+    _certifi = "https://raw.githubusercontent.com/certifi/python-certifi/"
 
     sources = [
         {
             "url": _server + "/openssl-{version}.tar.gz",
             "csum_url": _server + "/openssl-{version}.tar.gz.sha256",
             "csum_algo": "sha256",
-        }
+        },
+        {
+            "url": _certifi + "refs/heads/master/certifi/cacert.pem",
+            "extras": {"archive": False},
+        },
     ]
 
     @property
@@ -82,6 +88,21 @@ class OpenSSL(packages.BundledCPackage):
     def get_make_install_target(self, build: targets.Build) -> str:
         # Don't bother installing a gazillion of man pages.
         return "install_sw"
+
+    def get_build_install_script(self, build: targets.Build) -> str:
+        script = super().get_build_install_script(build)
+        destdir = build.get_build_install_dir(self, relative_to="pkgbuild")
+        ssldir = build.get_install_path(self, "sysconf") / "ssl"
+        srcdir = build.get_source_dir(self, relative_to="pkgbuild")
+        cacert = destdir / ssldir.relative_to("/") / "cert.pem"
+        extra_install = textwrap.dedent(
+            f"""\
+            mkdir -p "$(dirname "{cacert}")"
+            cp "{srcdir}/cacert.pem" "{cacert}"
+            """
+        )
+
+        return script + "\n" + extra_install
 
     @classmethod
     def from_upstream_version(cls, version: str) -> OpenSSL:
