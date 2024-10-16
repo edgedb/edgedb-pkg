@@ -805,21 +805,14 @@ def process_generic(
         }
 
         if website.error_document is not None:
-            website_config["ErrorDocument"] = cast(
-                s3types.ErrorDocumentTypeDef,
-                website.error_document,
-            )
+            website_config["ErrorDocument"] = website.error_document
 
         if website.index_document is not None:
-            website_config["IndexDocument"] = cast(
-                s3types.IndexDocumentTypeDef,
-                website.index_document,
-            )
+            website_config["IndexDocument"] = website.index_document
 
         if website.redirect_all_requests_to is not None:
-            website_config["RedirectAllRequestsTo"] = cast(
-                s3types.RedirectAllRequestsToTypeDef,
-                website.redirect_all_requests_to,
+            website_config["RedirectAllRequestsTo"] = (
+                website.redirect_all_requests_to
             )
 
         logger.info("updating bucket website config:")
