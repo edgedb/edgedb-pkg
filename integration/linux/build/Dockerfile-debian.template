@@ -30,7 +30,6 @@ RUN apt-get update \
 
 RUN set -ex \
 	&& /_bootstrap/python.sh \
-	&& /_bootstrap/pkgconf.sh \
 	&& /_bootstrap/rust.sh \
 	&& /_bootstrap/node.sh \
 	&& /_bootstrap/yarn.sh \

@@ -610,7 +610,6 @@ ln -s /usr/src/yarn/bin/yarnpkg /usr/local/bin/yarnpkg\n\' >/_bootstrap/yarn.sh;
 
 RUN set -ex \
 	&& /_bootstrap/python.sh \
-	&& /_bootstrap/pkgconf.sh \
 	&& /_bootstrap/rust.sh \
 	&& /_bootstrap/node.sh \
 	&& /_bootstrap/yarn.sh \
