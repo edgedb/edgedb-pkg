@@ -87,6 +87,10 @@ if [ -n "${PKG_TAGS}" ]; then\n\
     extraopts+=" --pkg-tags=${PKG_TAGS}"\n\
 fi\n\
 \n\
+if [ -n "${PKG_COMPRESSION}" ]; then\n\
+    extraopts+=" --pkg-compression=${PKG_COMPRESSION}"\n\
+fi\n\
+\n\
 if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
     extraopts+=" --extra-optimizations"\n\
 fi\n\

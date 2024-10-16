@@ -35,6 +35,10 @@ if [ -n "${PKG_TAGS}" ]; then
     extraopts+=" --pkg-tags=${PKG_TAGS}"
 fi
 
+if [ -n "${PKG_COMPRESSION}" ]; then
+    extraopts+=" --pkg-compression=${PKG_COMPRESSION}"
+fi
+
 if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then
     extraopts+=" --extra-optimizations"
 fi

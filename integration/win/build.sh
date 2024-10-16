@@ -32,6 +32,14 @@ if [ -n "${PKG_SUBDIST}" ]; then
     extraopts+=" --pkg-subdist=${PKG_SUBDIST}"
 fi
 
+if [ -n "${PKG_TAGS}" ]; then
+    extraopts+=" --pkg-tags=${PKG_TAGS}"
+fi
+
+if [ -n "${PKG_COMPRESSION}" ]; then
+    extraopts+=" --pkg-compression=${PKG_COMPRESSION}"
+fi
+
 if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi
