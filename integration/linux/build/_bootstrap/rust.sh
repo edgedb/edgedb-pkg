@@ -10,3 +10,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
     --default-toolchain "$RUST_VERSION"
 
 chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
+
+# Make everything use it.
+rustup override set "$RUST_VERSION" --path /

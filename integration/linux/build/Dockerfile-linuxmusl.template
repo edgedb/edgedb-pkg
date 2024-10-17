@@ -9,7 +9,6 @@ ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
-ENV RUSTUP_TOOLCHAIN stable
 
 RUN apk add --no-cache \
 		bash \
