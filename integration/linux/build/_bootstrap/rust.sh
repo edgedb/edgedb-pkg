@@ -6,7 +6,7 @@ set -ex
 
 cd /usr/src
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \
-    -y --no-modify-path --profile minimal \
+    -y --no-modify-path --profile default \
     --default-toolchain "$RUST_VERSION"
 
 chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"

@@ -3,12 +3,13 @@ FROM ${DOCKER_ARCH}alpine:3.16
 
 ENTRYPOINT ["/entrypoint.sh"]
 
+ENV LANG C.UTF-8
+
 ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-ENV LANG C.UTF-8
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
+ENV RUSTUP_TOOLCHAIN stable
 
 RUN apk add --no-cache \
 		bash \

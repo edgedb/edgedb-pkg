@@ -9,13 +9,14 @@ FROM ${DOCKER_ARCH}centos:8
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
 ENV LANG C
 
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
+ENV RUSTUP_TOOLCHAIN stable
+
 
 # rpm on centos 7 iterates over all fds up to the limit, which is
 # extremely slow. Force it to be small with ulimit.
@@ -571,7 +572,7 @@ set -ex\n\
 \n\
 cd /usr/src\n\
 curl --proto '\''=https'\'' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \\\n\
-    -y --no-modify-path --profile minimal \\\n\
+    -y --no-modify-path --profile default \\\n\
     --default-toolchain "$RUST_VERSION"\n\
 \n\
 chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"\n\' >/_bootstrap/rust.sh; chmod +x /_bootstrap/rust.sh

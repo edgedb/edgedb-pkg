@@ -9,12 +9,13 @@ FROM ${DOCKER_ARCH}alpine:3.16
 
 ENTRYPOINT ["/entrypoint.sh"]
 
+ENV LANG C.UTF-8
+
 ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
 ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-ENV LANG C.UTF-8
 ENV RUSTUP_HOME /usr/local/rustup
 ENV CARGO_HOME /usr/local/cargo
+ENV RUSTUP_TOOLCHAIN stable
 
 RUN apk add --no-cache \
 		bash \
@@ -559,7 +560,7 @@ set -ex\n\
 \n\
 cd /usr/src\n\
 curl --proto '\''=https'\'' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \\\n\
-    -y --no-modify-path --profile minimal \\\n\
+    -y --no-modify-path --profile default \\\n\
     --default-toolchain "$RUST_VERSION"\n\
 \n\
 chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"\n\' >/_bootstrap/rust.sh; chmod +x /_bootstrap/rust.sh
