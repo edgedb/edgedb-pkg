@@ -1,5 +1,6 @@
 {bindir}/initdb
 {bindir}/pg_basebackup
+{bindir}/pg_combinebackup
 {bindir}/pg_ctl
 {bindir}/pg_config
 {bindir}/pg_dump

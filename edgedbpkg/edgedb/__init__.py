@@ -70,10 +70,15 @@ class EdgeDB(packages.BundledPythonPackage):
             "python-edgedb (~= 3.11.0)",
             "pgext-pgvector (~= 0.4.0)",
         ],
-        ">=5.0.dev1": [
+        ">=5.0.dev1,<6.0.dev8898": [
             "postgresql-edgedb (~= 16.0)",
             "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
+        ],
+        ">=6.0.dev8898": [
+            "postgresql-edgedb (~= 17.0)",
+            "python-edgedb (~= 3.12.0)",
+            "pgext-pgvector (~= 0.7.0)",
         ],
     }
 
@@ -98,10 +103,17 @@ class EdgeDB(packages.BundledPythonPackage):
             "pyentrypoint (>=1.0.0)",
             "pypkg-setuptools (<70.2.0)",
         ],
-        ">=5.0.dev1": [
+        ">=5.0.dev1,<6.0.dev8898": [
             "postgresql-edgedb (~= 16.0)",
             "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+        ">=6.0.dev8898": [
+            "postgresql-edgedb (~= 17.0)",
+            "python-edgedb (~= 3.12.0)",
+            "pgext-pgvector (~= 0.7.0)",
             "pyentrypoint (>=1.0.0)",
             "pypkg-setuptools (<70.2.0)",
         ],
@@ -111,12 +123,14 @@ class EdgeDB(packages.BundledPythonPackage):
         postgresql.PostgreSQL(version="14.11"),
         postgresql.PostgreSQL(version="15.6"),
         postgresql.PostgreSQL(version="16.4"),
+        postgresql.PostgreSQL(version="17.0"),
         python_bundle.Python(version="3.10.11"),
         python_bundle.Python(version="3.11.8"),
         python_bundle.Python(version="3.12.2"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
         pgvector.PgVector("v0.4.2"),
         pgvector.PgVector("v0.6.0"),
+        pgvector.PgVector("v0.7.4"),
     ]
 
     @classmethod
