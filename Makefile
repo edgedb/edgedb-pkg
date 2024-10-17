@@ -13,6 +13,7 @@ SUPPORTED_TARGETS = \
 	centos-7 \
 	centos-8 \
 	rockylinux-9 \
+	amazonlinux-2023 \
 	fedora-40 \
 	linux-x86_64 \
 	linuxmusl-x86_64 \

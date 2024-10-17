@@ -1,0 +1,72 @@
+ARG DOCKER_ARCH=
+FROM ${DOCKER_ARCH}amazonlinux:2023.0.20230614.0
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+ENV LANG C.UTF-8
+
+ENV PATH /usr/local/bin:/usr/local/cargo/bin:/usr/local/go/bin:$PATH
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+ENV RUSTUP_HOME /usr/local/rustup
+ENV CARGO_HOME /usr/local/cargo
+
+RUN echo precedence ::ffff:0:0/96 100 >> /etc/gai.conf
+
+RUN dnf install -y \
+		'dnf-command(builddep)' \
+		bison \
+		bzip2 \
+		bzip2-devel \
+		ca-certificates \
+		cmake \
+		curl-devel \
+		expat-devel \
+		file \
+		flex \
+		gcc \
+		gcc-c++ \
+		gdbm-devel \
+		gettext \
+		git \
+		glibc-langpack-en \
+		libffi-devel \
+		libuuid-devel \
+		make \
+		ncurses-devel \
+		openssl-devel \
+		patch \
+		perl-Data-Dumper \
+		perl-File-Compare \
+		perl-File-Copy \
+		perl-FindBin \
+		perl-Getopt-Long \
+		perl-IPC-Cmd \
+		readline-devel \
+		rpm-build \
+		rpmlint \
+		sqlite-devel \
+		sudo \
+		systemd-rpm-macros \
+		tar \
+		tcl \
+		unzip \
+		wget \
+		xz \
+		xz-devel \
+		zip \
+		zlib-devel \
+		zstd \
+	&& dnf swap -y gnupg2-minimal gnupg2-full
+
+%%SCRIPTS%%
+
+RUN set -ex \
+	&& /_bootstrap/python.sh \
+	&& /_bootstrap/pkgconf.sh \
+	&& /_bootstrap/patchelf.sh \
+	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/node.sh \
+	&& /_bootstrap/yarn.sh \
+	&& /_bootstrap/go.sh \
+	&& /_bootstrap/meson.sh \
+	&& /_bootstrap/ninja.sh
