@@ -84,6 +84,7 @@ RUN set -ex \
 	&& /_bootstrap/python.sh \
 	&& /_bootstrap/git.sh \
 	&& /_bootstrap/patchelf.sh \
+	&& /_bootstrap/gzip.sh \
 	&& /_bootstrap/tar.sh \
 	&& /_bootstrap/pkgconf.sh \
 	&& /_bootstrap/rust.sh \

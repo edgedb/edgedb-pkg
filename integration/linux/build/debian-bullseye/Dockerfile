@@ -256,6 +256,41 @@ RUN mkdir -p '_bootstrap'; /bin/echo -e '#!/usr/bin/env bash\n\
 \n\
 set -ex\n\
 \n\
+: ${GZIP_VERSION:=1.13}\n\
+\n\
+GZIP_KEYS=(\n\
+    155D3FC500C834486D1EEA677FD9FCCB000BEEEE\n\
+)\n\
+\n\
+mkdir -p /usr/src/gzip\n\
+cd /usr/src\n\
+\n\
+curl -fsSLo gzip.tar.gz "https://ftp.gnu.org/gnu/gzip/gzip-${GZIP_VERSION}.tar.gz"\n\
+curl -fsSLo gzip.tar.gz.sign "https://ftp.gnu.org/gnu/gzip/gzip-${GZIP_VERSION}.tar.gz.sig"\n\
+\n\
+for key in "${GZIP_KEYS[@]}"; do\n\
+    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
+    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
+done\n\
+\n\
+gpg --batch --verify gzip.tar.gz.sign gzip.tar.gz\n\
+rm -f gzip.tar.gz.sign\n\
+\n\
+tar -xzC /usr/src/gzip --strip-components=1 -f gzip.tar.gz\n\
+rm -f gzip.tar.gz\n\
+\n\
+cd /usr/src/gzip\n\
+./configure \\\n\
+	--bindir=/usr/local/bin/ \\\n\
+	--libexecdir=/usr/local/sbin/\n\
+make -j $(nproc)\n\
+make install\n\
+cd /usr/src\n\
+rm -rf /usr/src/gzip\n\' >/_bootstrap/gzip.sh; chmod +x /_bootstrap/gzip.sh
+RUN mkdir -p '_bootstrap'; /bin/echo -e '#!/usr/bin/env bash\n\
+\n\
+set -ex\n\
+\n\
 : ${MESON_VERSION:=1.5.2}\n\
 \n\
 mkdir -p /usr/src/meson\n\
