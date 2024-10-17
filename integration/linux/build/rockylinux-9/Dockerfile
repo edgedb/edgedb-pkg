@@ -41,7 +41,6 @@ RUN dnf install -y \
 		libuuid-devel \
 		make \
 		ncurses-devel \
-		nodejs \
 		openssl-devel \
 		patch \
 		perl-Data-Dumper \
@@ -652,6 +651,7 @@ RUN set -ex \
 	&& /_bootstrap/pkgconf.sh \
 	&& /_bootstrap/patchelf.sh \
 	&& /_bootstrap/rust.sh \
+	&& /_bootstrap/node.sh \
 	&& /_bootstrap/yarn.sh \
 	&& /_bootstrap/go.sh \
 	&& /_bootstrap/meson.sh \
