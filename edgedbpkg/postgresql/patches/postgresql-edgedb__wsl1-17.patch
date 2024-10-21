@@ -1,7 +1,7 @@
-From 64541477f6cf5b2711b23018446c6e118ea8f8cc Mon Sep 17 00:00:00 2001
+From 39352d9d7494b6a22b263bcf68fea8ec0731a4e0 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@edgedb.com>
 Date: Fri, 15 Jul 2022 16:44:07 -0700
-Subject: [PATCH 1/5] Add a workaround for WSL1 signal mishandling
+Subject: [PATCH] Add a workaround for WSL1 signal mishandling
 
 WSL1 appears to mishandle `signal(..., SIG_IGN)` followed by
 `sigprocmask`, which leads to `SetLatch` being completely broken because
@@ -12,14 +12,14 @@ See https://github.com/microsoft/WSL/issues/8619
 ---
  configure                           |  2 +-
  configure.ac                        |  1 +
- src/backend/postmaster/postmaster.c | 34 +++++++++++++++++++++++++++++
+ src/backend/postmaster/postmaster.c | 35 +++++++++++++++++++++++++++++
  src/backend/storage/ipc/latch.c     |  4 ++++
  src/backend/utils/init/globals.c    |  5 +++++
  src/backend/utils/init/miscinit.c   |  1 +
  src/include/miscadmin.h             |  1 +
  src/include/pg_config.h.in          |  3 +++
  src/include/postmaster/postmaster.h |  1 +
- 9 files changed, 51 insertions(+), 1 deletion(-)
+ 9 files changed, 52 insertions(+), 1 deletion(-)
 
 diff --git a/configure b/configure
 index 6db03e4a22..78db894968 100755
@@ -47,7 +47,7 @@ index 7531366b75..791ec2579c 100644
  	ucred.h
  ]))
 diff --git a/src/backend/postmaster/postmaster.c b/src/backend/postmaster/postmaster.c
-index bf0241aed0..1ccd46754b 100644
+index bf0241aed0..157559c6e1 100644
 --- a/src/backend/postmaster/postmaster.c
 +++ b/src/backend/postmaster/postmaster.c
 @@ -77,6 +77,10 @@
@@ -61,7 +61,15 @@ index bf0241aed0..1ccd46754b 100644
  #ifdef USE_BONJOUR
  #include <dns_sd.h>
  #endif
-@@ -1080,6 +1084,11 @@ PostmasterMain(int argc, char *argv[])
+@@ -95,6 +99,7 @@
+ #include "common/file_utils.h"
+ #include "common/ip.h"
+ #include "common/pg_prng.h"
++#include "common/string.h"
+ #include "lib/ilist.h"
+ #include "libpq/libpq.h"
+ #include "libpq/pqsignal.h"
+@@ -1080,6 +1085,11 @@ PostmasterMain(int argc, char *argv[])
  	ereport(LOG,
  			(errmsg("starting %s", PG_VERSION_STR)));
  
@@ -73,7 +81,7 @@ index bf0241aed0..1ccd46754b 100644
  	/*
  	 * Establish input sockets.
  	 *
-@@ -2068,6 +2077,31 @@ InitProcessGlobals(void)
+@@ -2068,6 +2078,31 @@ InitProcessGlobals(void)
  }
  
  /*
