@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from edgedbpkg import pgext
 
+from metapkg import packages
+from metapkg import targets
 
 class PgVector(pgext.PostgresCExtension):
     title = "pgvector extension"
@@ -23,3 +25,8 @@ class PgVector(pgext.PostgresCExtension):
     @property
     def supports_out_of_tree_builds(self) -> bool:
         return False
+
+    def get_build_env(self, build: targets.Build, wd: str) -> packages.Args:
+        return super().get_build_env(build, wd=wd) | {
+            "OPTFLAGS": "",
+        }
