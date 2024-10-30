@@ -7,3 +7,7 @@
 {bindir}/edgedb-load-ext
 {bindir}/edgedb-server.py
 {bindir}/edgedb-load-ext.py
+{bindir}/gel-server
+{bindir}/gel-load-ext
+{bindir}/gel-server.py
+{bindir}/gel-load-ext.py
