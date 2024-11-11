@@ -1,0 +1,4 @@
+{prefix}/*.toml
+{prefix}/*.edgeql
+{datadir}/data/extensions/{name}-{version}/*.toml
+{datadir}/data/extensions/{name}-{version}/*.edgeql
