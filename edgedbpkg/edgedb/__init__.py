@@ -20,6 +20,7 @@ from edgedbpkg import postgresql
 from edgedbpkg.pgext import pgvector
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
+from edgedbpkg import libprotobuf_c
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
@@ -116,6 +117,7 @@ class EdgeDB(packages.BundledPythonPackage):
             "pgext-pgvector (~= 0.7.0)",
             "pyentrypoint (>=1.0.0)",
             "pypkg-setuptools (<70.2.0)",
+            "libprotobuf-c-dev (>=1.5.0)",  # for libpg_query
         ],
     }
 
@@ -131,6 +133,7 @@ class EdgeDB(packages.BundledPythonPackage):
         pgvector.PgVector("v0.4.2"),
         pgvector.PgVector("v0.6.0"),
         pgvector.PgVector("v0.7.4"),
+        libprotobuf_c.LibProtoBufC("1.5.0"),
     ]
 
     @classmethod
