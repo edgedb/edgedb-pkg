@@ -1,0 +1,45 @@
+From 18a6eea199beef0031dc8a1208e3228fd0abcc9c Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Wed, 21 Apr 2021 14:59:44 -0700
+Subject: [PATCH 3/4] Add ability to do pure arm64 builds
+
+---
+ configure    | 5 +++++
+ configure.ac | 5 +++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/configure b/configure
+index 55c3c570e3e..19b39b80a94 100755
+--- a/configure
++++ b/configure
+@@ -10232,6 +10232,11 @@ printf "%s\n" "$CC" >&6; }
+                LIPO_INTEL64_FLAGS="-extract x86_64"
+                ARCH_RUN_32BIT="true"
+                ;;
++            arm-64)
++               UNIVERSAL_ARCH_FLAGS="-arch arm64"
++               LIPO_32BIT_FLAGS=""
++               ARCH_RUN_32BIT="true"
++               ;;
+             intel)
+                UNIVERSAL_ARCH_FLAGS="-arch i386 -arch x86_64"
+                LIPO_32BIT_FLAGS="-extract i386"
+diff --git a/configure.ac b/configure.ac
+index 1ba455006ea..ddd0b80c991 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2672,6 +2672,11 @@ yes)
+                LIPO_INTEL64_FLAGS="-extract x86_64"
+                ARCH_RUN_32BIT="true"
+                ;;
++            arm-64)
++               UNIVERSAL_ARCH_FLAGS="-arch arm64"
++               LIPO_32BIT_FLAGS=""
++               ARCH_RUN_32BIT="true"
++               ;;
+             intel)
+                UNIVERSAL_ARCH_FLAGS="-arch i386 -arch x86_64"
+                LIPO_32BIT_FLAGS="-extract i386"
+-- 
+2.45.2
+
