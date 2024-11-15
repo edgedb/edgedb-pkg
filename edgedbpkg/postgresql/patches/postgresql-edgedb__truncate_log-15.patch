@@ -1,0 +1,75 @@
+From 38b74895b1dbbad3c6fa935cbb3f77f449b8d5ea Mon Sep 17 00:00:00 2001
+From: Fantix King <fantix.king@gmail.com>
+Date: Thu, 14 Nov 2024 19:44:01 -0500
+Subject: [PATCH 6/6] Truncate long STATEMENT/QUERY log
+
+---
+ src/backend/utils/error/elog.c | 31 +++++++++++++++++++++++++++++--
+ 1 file changed, 29 insertions(+), 2 deletions(-)
+
+diff --git a/src/backend/utils/error/elog.c b/src/backend/utils/error/elog.c
+index 01066832e18..4bad03460e4 100644
+--- a/src/backend/utils/error/elog.c
++++ b/src/backend/utils/error/elog.c
+@@ -180,6 +180,7 @@ static void log_line_prefix(StringInfo buf, ErrorData *edata);
+ static void send_message_to_server_log(ErrorData *edata);
+ static void send_message_to_frontend(ErrorData *edata);
+ static void append_with_tabs(StringInfo buf, const char *str);
++static void append_n_with_tabs(StringInfo buf, const char *str, int n);
+ 
+ 
+ /*
+@@ -2876,7 +2877,7 @@ send_message_to_server_log(ErrorData *edata)
+ 		{
+ 			log_line_prefix(&buf, edata);
+ 			appendStringInfoString(&buf, _("QUERY:  "));
+-			append_with_tabs(&buf, edata->internalquery);
++			append_n_with_tabs(&buf, edata->internalquery, 1024);
+ 			appendStringInfoChar(&buf, '\n');
+ 		}
+ 		if (edata->context && !edata->hide_ctx)
+@@ -2919,7 +2920,7 @@ send_message_to_server_log(ErrorData *edata)
+ 	{
+ 		log_line_prefix(&buf, edata);
+ 		appendStringInfoString(&buf, _("STATEMENT:  "));
+-		append_with_tabs(&buf, debug_query_string);
++		append_n_with_tabs(&buf, debug_query_string, 1024);
+ 		appendStringInfoChar(&buf, '\n');
+ 	}
+ 
+@@ -3365,6 +3366,32 @@ append_with_tabs(StringInfo buf, const char *str)
+ }
+ 
+ 
++/*
++ *	append_n_with_tabs
++ *
++ *	Append the string to the StringInfo buffer truncating at n characters,
++ *	inserting a tab after any newline, and `...` at the end if truncated.
++ */
++static void
++append_n_with_tabs(StringInfo buf, const char *str, int n)
++{
++	char		ch;
++
++	while ((ch = *str++) != '\0' && n > 0)
++	{
++		appendStringInfoCharMacro(buf, ch);
++		if (ch == '\n')
++			appendStringInfoCharMacro(buf, '\t');
++		n--;
++	}
++	if (ch != '\0') {
++		appendStringInfoCharMacro(buf, '.');
++		appendStringInfoCharMacro(buf, '.');
++		appendStringInfoCharMacro(buf, '.');
++	}
++}
++
++
+ /*
+  * Write errors to stderr (or by equal means when stderr is
+  * not available). Used before ereport/elog can be used
+-- 
+2.47.0
+
