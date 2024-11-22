@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import (
+    Any,
     TYPE_CHECKING,
 )
 
@@ -144,7 +145,7 @@ class EdgeDB(packages.BundledPythonPackage):
     ]
 
     def __init__(
-        self, version: str | poetry_version.Version, *args, **kwargs
+        self, version: str | poetry_version.Version, *args: Any, **kwargs: Any
     ) -> None:
         edb_stat_statements.StatStatements(version=version)
         super().__init__(version, *args, **kwargs)
