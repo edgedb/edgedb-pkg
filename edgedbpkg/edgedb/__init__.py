@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import (
+    Any,
     TYPE_CHECKING,
 )
 
@@ -18,6 +19,7 @@ from metapkg.packages import python
 
 from edgedbpkg import postgresql
 from edgedbpkg.pgext import pgvector
+from edgedbpkg.pgext import edb_stat_statements
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
 from edgedbpkg import libprotobuf_c
@@ -76,10 +78,16 @@ class EdgeDB(packages.BundledPythonPackage):
             "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
         ],
-        ">=6.0.dev8898": [
+        ">=6.0.dev8898,<6.0.dev9001": [
             "postgresql-edgedb (~= 17.0)",
             "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.7.0)",
+        ],
+        ">=6.0.dev9001": [
+            "postgresql-edgedb (~= 17.0)",
+            "python-edgedb (~= 3.12.0)",
+            "pgext-pgvector (~= 0.7.0)",
+            "pgext-edb-stat-statements",
         ],
     }
 
@@ -135,6 +143,12 @@ class EdgeDB(packages.BundledPythonPackage):
         pgvector.PgVector("v0.7.4"),
         libprotobuf_c.LibProtoBufC("1.5.0"),
     ]
+
+    def __init__(
+        self, version: str | poetry_version.Version, *args: Any, **kwargs: Any
+    ) -> None:
+        edb_stat_statements.StatStatements(version=version)
+        super().__init__(version, *args, **kwargs)
 
     @classmethod
     def get_vcs_source(
