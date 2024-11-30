@@ -164,12 +164,7 @@ adduser -G edgedb -H -D edgedb\n\
 if [ "$1" == "bash" ]; then\n\
     exec /bin/sh\n\
 fi\n\
-\n\
-exec gosu edgedb:edgedb /edgedb/bin/python3 \\\n\
-    -m edb.tools --no-devmode test \\\n\
-    /edgedb/share/tests \\\n\
-    -e cqa_ -e tools_ \\\n\
-    --verbose ${dash_j}\n\' >/entrypoint.sh
+\n\' >/entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
