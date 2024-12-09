@@ -60,7 +60,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
 
         edb = edgedb.EdgeDB.resolve(
             io,
-            version=str(edb_ver),
+            version=f"v{edb_ver}",
             is_release=edb_ver.dev is None,
             target=target,
         )
