@@ -1,0 +1,98 @@
+From f776c770cde68e2fd4002e51599f1480f8265096 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Fri, 6 Dec 2024 22:12:07 -0800
+Subject: [PATCH] Avoid table rewrite when adding nullable columns of
+ constrained domains (#3)
+
+Postgres has an optimization whereby it skips a full table rewrite if a
+default was specified or the column is nullable, however this
+optimization is skipped if a domain has constraints defined on it,
+because `CHECK` constraints get invoked on NULL values and there is no
+way for Postgres to know how that NULL value affects the constraint
+without evaluating it.  Unfortunatly, there's no direct way of
+evaluating domain constraints from that part of `ALTER TABLE`
+processing.  However, EdgeQL does not support checking for an empty
+value in scalar constraints, so we can safely skip the table rewrite on
+nullable columns even if there are constraints (but still keep it for
+domains marked as `NOT NULL` just in case).
+---
+ src/backend/commands/tablecmds.c   | 15 ++++++++++++---
+ src/backend/utils/cache/typcache.c | 15 +++++++++++++++
+ src/include/utils/typcache.h       |  2 ++
+ 3 files changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/src/backend/commands/tablecmds.c b/src/backend/commands/tablecmds.c
+index 36717ffcb0a..6300119c1bc 100644
+--- a/src/backend/commands/tablecmds.c
++++ b/src/backend/commands/tablecmds.c
+@@ -7291,6 +7291,18 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
+ 		else
+ 			defval = (Expr *) build_column_default(rel, attribute->attnum);
+ 
++		/*
++		 * EdgeQL does not allow for NULL checks in domain constraints,
++		 * so we can safely skip an expensive table rewrite (though keep
++		 * it for domains declared as NOT NULL just in case something
++		 * somewhere uses them outside of EdgeQL schema).
++		 */
++		if ((!defval && DomainIsStrict(attribute->atttypid))
++			|| (defval && DomainHasConstraints(attribute->atttypid)))
++		{
++			tab->rewrite |= AT_REWRITE_DEFAULT_VAL;
++		}
++
+ 		if (!defval && DomainHasConstraints(attribute->atttypid))
+ 		{
+ 			Oid			baseTypeId;
+@@ -7325,9 +7337,6 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
+ 			tab->newvals = lappend(tab->newvals, newval);
+ 		}
+ 
+-		if (DomainHasConstraints(attribute->atttypid))
+-			tab->rewrite |= AT_REWRITE_DEFAULT_VAL;
+-
+ 		if (!TupleDescAttr(rel->rd_att, attribute->attnum - 1)->atthasmissing)
+ 		{
+ 			/*
+diff --git a/src/backend/utils/cache/typcache.c b/src/backend/utils/cache/typcache.c
+index aa4720cb598..c539853e056 100644
+--- a/src/backend/utils/cache/typcache.c
++++ b/src/backend/utils/cache/typcache.c
+@@ -1410,6 +1410,21 @@ DomainHasConstraints(Oid type_id)
+ 	return (typentry->domainData != NULL);
+ }
+ 
++/*
++ * DomainIsStrict --- routine to check if a domain has a NOT NULL constraint
++ */
++bool
++DomainIsStrict(Oid type_id)
++{
++	HeapTuple	tup;
++	Form_pg_type typTup;
++
++	tup = SearchSysCacheCopy1(TYPEOID, ObjectIdGetDatum(type_id));
++	if (!HeapTupleIsValid(tup))
++		elog(ERROR, "cache lookup failed for type %u", type_id);
++	typTup = (Form_pg_type) GETSTRUCT(tup);
++	return typTup->typnotnull;
++}
+ 
+ /*
+  * array_element_has_equality and friends are helper routines to check
+diff --git a/src/include/utils/typcache.h b/src/include/utils/typcache.h
+index f506cc4aa35..174a946f79b 100644
+--- a/src/include/utils/typcache.h
++++ b/src/include/utils/typcache.h
+@@ -184,6 +184,8 @@ extern void UpdateDomainConstraintRef(DomainConstraintRef *ref);
+ 
+ extern bool DomainHasConstraints(Oid type_id);
+ 
++extern bool DomainIsStrict(Oid type_id);
++
+ extern TupleDesc lookup_rowtype_tupdesc(Oid type_id, int32 typmod);
+ 
+ extern TupleDesc lookup_rowtype_tupdesc_noerror(Oid type_id, int32 typmod,
+-- 
+2.45.2
+
