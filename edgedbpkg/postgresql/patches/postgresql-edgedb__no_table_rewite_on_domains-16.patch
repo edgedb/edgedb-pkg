@@ -1,4 +1,4 @@
-From 4ee9a1380c1f8e6060bbbe5888a25eee8c049cf8 Mon Sep 17 00:00:00 2001
+From a41fdc97b36e821e2ad3b9c03f7b6c44862af7a9 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@magic.io>
 Date: Fri, 6 Dec 2024 22:12:07 -0800
 Subject: [PATCH] Avoid table rewrite when adding nullable columns of
@@ -17,9 +17,9 @@ nullable columns even if there are constraints (but still keep it for
 domains marked as `NOT NULL` just in case).
 ---
  src/backend/commands/tablecmds.c   | 15 ++++++++++++---
- src/backend/utils/cache/typcache.c | 15 +++++++++++++++
+ src/backend/utils/cache/typcache.c | 18 ++++++++++++++++++
  src/include/utils/typcache.h       |  2 ++
- 3 files changed, 29 insertions(+), 3 deletions(-)
+ 3 files changed, 32 insertions(+), 3 deletions(-)
 
 diff --git a/src/backend/commands/tablecmds.c b/src/backend/commands/tablecmds.c
 index 90a5238c4d4..37c27f395a1 100644
@@ -55,10 +55,10 @@ index 90a5238c4d4..37c27f395a1 100644
  		{
  			/*
 diff --git a/src/backend/utils/cache/typcache.c b/src/backend/utils/cache/typcache.c
-index 608cd5e8e43..c00c6ec12dc 100644
+index 608cd5e8e43..eba1944a274 100644
 --- a/src/backend/utils/cache/typcache.c
 +++ b/src/backend/utils/cache/typcache.c
-@@ -1407,6 +1407,21 @@ DomainHasConstraints(Oid type_id)
+@@ -1407,6 +1407,24 @@ DomainHasConstraints(Oid type_id)
  	return (typentry->domainData != NULL);
  }
  
@@ -70,12 +70,15 @@ index 608cd5e8e43..c00c6ec12dc 100644
 +{
 +	HeapTuple	tup;
 +	Form_pg_type typTup;
++	bool notnull;
 +
-+	tup = SearchSysCacheCopy1(TYPEOID, ObjectIdGetDatum(type_id));
++	tup = SearchSysCache1(TYPEOID, ObjectIdGetDatum(type_id));
 +	if (!HeapTupleIsValid(tup))
 +		elog(ERROR, "cache lookup failed for type %u", type_id);
 +	typTup = (Form_pg_type) GETSTRUCT(tup);
-+	return typTup->typnotnull;
++	notnull = typTup->typnotnull;
++	ReleaseSysCache(tup);
++	return notnull;
 +}
  
  /*
