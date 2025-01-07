@@ -14,16 +14,22 @@ class StatStatements(pgext.PostgresCExtension):
     license_id = "PostgreSQL"
     group = "Applications/Databases"
 
-    sources = []  # reuses edgedb-server source, see get_prepare_script
+    sources = [
+        {
+            "url": "git+https://github.com/edgedb/edgedb.git",
+            "extras": {
+                "exclude_submodules": ["postgres"],
+                "clone_depth": 0,
+            },
+        },
+    ]
 
     artifact_build_requirements = [
         "postgresql-edgedb (>=17)",
     ]
 
     def get_prepare_script(self, build: targets.Build) -> str:
-        source_dir = build.get_source_dir(
-            build.get_package("edgedb-server"), relative_to="pkgbuild"
-        )
+        source_dir = build.get_source_dir(self, relative_to="pkgbuild")
         sdir = shlex.quote(str(source_dir / "edb_stat_statements"))
         return f"test ./ -ef {sdir} || cp -a {sdir}/* ./\n"
 
