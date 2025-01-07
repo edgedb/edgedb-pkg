@@ -142,13 +142,8 @@ class EdgeDB(packages.BundledPythonPackage):
         pgvector.PgVector("v0.6.0"),
         pgvector.PgVector("v0.7.4"),
         libprotobuf_c.LibProtoBufC("1.5.0"),
+        edb_stat_statements.StatStatements("v6.0b1"),
     ]
-
-    def __init__(
-        self, version: str | poetry_version.Version, *args: Any, **kwargs: Any
-    ) -> None:
-        edb_stat_statements.StatStatements(version=version)
-        super().__init__(version, *args, **kwargs)
 
     @classmethod
     def get_vcs_source(
