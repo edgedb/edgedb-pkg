@@ -1,0 +1,77 @@
+From 45ed5a5cb57ff2cb8c8365ceae11b02906066593 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Mon, 23 Sep 2024 11:37:32 -0700
+Subject: [PATCH 1/4] Look for protoc-c in directories provided by `pkg-config`
+
+---
+ configure    | 41 +++++++++++++++++++++++++++++++++++++++++
+ configure.ac |  1 +
+ 2 files changed, 42 insertions(+)
+
+diff --git a/configure b/configure
+index a14fa80ce..469d28b52 100755
+--- a/configure
++++ b/configure
+@@ -19494,6 +19494,47 @@ $as_echo "yes" >&6; }
+ 				PROTOBUF_CPPFLAGS="$PROTOBUFC_CFLAGS";
+ 				PROTOBUF_LDFLAGS="$PROTOBUFC_LIBS";
+ 				PROTOC_VERSION=`$PKG_CONFIG libprotobuf-c --modversion | sed 's/\([0-9]\).*\([0-9]\).*\([0-9]\)/\100\200\3/'`
++				# Extract the first word of "protoc-c", so it can be a program name with args.
++set dummy protoc-c; ac_word=$2
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
++$as_echo_n "checking for $ac_word... " >&6; }
++if ${ac_cv_path_PROTOCC+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  case $PROTOCC in
++  [\\/]* | ?:[\\/]*)
++  ac_cv_path_PROTOCC="$PROTOCC" # Let the user override the test with a path.
++  ;;
++  *)
++  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
++as_dummy="`$PKG_CONFIG --variable=exec_prefix libprotobuf-c`/bin:$PATH"
++for as_dir in $as_dummy
++do
++  IFS=$as_save_IFS
++  test -z "$as_dir" && as_dir=.
++    for ac_exec_ext in '' $ac_executable_extensions; do
++  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
++    ac_cv_path_PROTOCC="$as_dir/$ac_word$ac_exec_ext"
++    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
++    break 2
++  fi
++done
++  done
++IFS=$as_save_IFS
++
++  ;;
++esac
++fi
++PROTOCC=$ac_cv_path_PROTOCC
++if test -n "$PROTOCC"; then
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PROTOCC" >&5
++$as_echo "$PROTOCC" >&6; }
++else
++  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
++$as_echo "no" >&6; }
++fi
++
++
+ 
+ fi
+ 	fi
+diff --git a/configure.ac b/configure.ac
+index ed5d17255..8b60a672e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1173,6 +1173,7 @@ if test "$CHECK_PROTOBUF" != "no"; then
+ 				PROTOBUF_CPPFLAGS="$PROTOBUFC_CFLAGS";
+ 				PROTOBUF_LDFLAGS="$PROTOBUFC_LIBS";
+ 				PROTOC_VERSION=`$PKG_CONFIG libprotobuf-c --modversion | sed 's/\([[0-9]]\).*\([[0-9]]\).*\([[0-9]]\)/\100\200\3/'`
++				AC_PATH_PROG(PROTOCC, protoc-c, [], [`$PKG_CONFIG --variable=exec_prefix libprotobuf-c`/bin:$PATH])
+ 			], [
+ 				AC_MSG_RESULT([libprotobuf-c not found in pkg-config])
+ 			])
+-- 
+2.45.2
+

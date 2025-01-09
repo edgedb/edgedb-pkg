@@ -25,7 +25,7 @@ class PostGIS(edgedb_ext.EdgeDBExtension):
 
     @classmethod
     def get_pgext_ver(cls) -> str | None:
-        return "3.4.3"
+        return edgedb_ext.PGEXT_VERSION_AUTO
 
     def get_make_install_destdir_subdir(
         self,
@@ -35,3 +35,16 @@ class PostGIS(edgedb_ext.EdgeDBExtension):
             return build.get_rel_install_prefix(self)
         else:
             return super().get_make_install_destdir_subdir(build)
+
+
+# EdgeQL-only version of the above
+class PostGISEdgeQL(PostGIS):
+    ident = "edbext-postgis-edgeql"
+
+    @classmethod
+    def get_pgext_ver(cls) -> str | None:
+        return None
+
+    @classmethod
+    def is_universal(cls) -> bool:
+        return True

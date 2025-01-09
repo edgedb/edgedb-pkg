@@ -24,11 +24,13 @@ EXTS_MK = (
     + "/tests/extension-testing/exts.mk"
 )
 
+PGEXT_VERSION_AUTO = "auto"
+
 
 class EdgeDBExtension(packages.BuildSystemMakePackage):
     # Populated in resolve() when this is built as top-level package.
     bundle_deps: list[packages.BundledPackage] = []
-    _edb: edgedb.EdgeDB
+    _edb: edgedb.EdgeDB | None
     _pgext: poetry_dep.Dependency
 
     @classmethod
@@ -48,34 +50,62 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
             server_slot, _, version = version.rpartition("!")
 
         if not server_slot:
-            raise RuntimeError(
-                "must specify EdgeDB version as epoch, eg 5!1.0"
-            )
+            if cls.is_universal():
+                edb = None
+            else:
+                raise RuntimeError(
+                    "must specify EdgeDB version as epoch, eg 5!1.0"
+                )
+        else:
+            edb_ver = poetry_version.Version.parse(server_slot)
+            if edb_ver.minor is None:
+                edb_ver = edb_ver.replace(
+                    release=dataclasses.replace(edb_ver.release, minor=0),
+                )
 
-        edb_ver = poetry_version.Version.parse(server_slot)
-        if edb_ver.minor is None:
-            edb_ver = edb_ver.replace(
-                release=dataclasses.replace(edb_ver.release, minor=0),
+            edb = edgedb.EdgeDB.resolve(
+                io,
+                version=f"v{edb_ver}",
+                is_release=edb_ver.dev is None,
+                target=target,
             )
-
-        edb = edgedb.EdgeDB.resolve(
-            io,
-            version=f"v{edb_ver}",
-            is_release=edb_ver.dev is None,
-            target=target,
-        )
 
         if requires is None:
             requires = []
         else:
             requires = list(requires)
 
+        if name is None:
+            pkgname = cls.ident.removeprefix("edbext-")
+        else:
+            pkgname = str(name)
+
+        if edb is not None:
+            name = packages.canonicalize_name(f"{edb.name_slot}-{pkgname}")
+        else:
+            name = packages.canonicalize_name(pkgname)
+
+        ext = super().resolve(
+            io,
+            name=name,
+            version=version,
+            revision=revision,
+            is_release=is_release,
+            target=target,
+            requires=requires,
+        )
+        ext._edb = edb
+
         pgext_ver = cls.get_pgext_ver()
+        if pgext_ver is PGEXT_VERSION_AUTO:
+            self_ver = ext.version.without_local().without_postrelease()
+            pgext_ver = self_ver.to_string()
 
         pg_ext: pgext.PostgresCExtension | None
         if pgext_ver:
             # Find the postgres version
-            for dep in edb.get_requirements():
+            reqs = edb.get_requirements() if edb is not None else []
+            for dep in reqs:
                 if dep.name == "postgresql-edgedb":
                     pg = packages.get_bundled_pkg(dep)
                     break
@@ -102,25 +132,8 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         else:
             pg_ext = None
 
-        if name is None:
-            pkgname = cls.ident.removeprefix("edbext-")
-        else:
-            pkgname = str(name)
-
-        name = packages.canonicalize_name(f"{edb.name_slot}-{pkgname}")
-
-        ext = super().resolve(
-            io,
-            name=name,
-            version=version,
-            revision=revision,
-            is_release=is_release,
-            target=target,
-            requires=requires,
-        )
-        ext._edb = edb
-
         if pg_ext is not None:
+            ext.add_dependency(pg_ext.to_dependency())
             ext.bundle_deps.append(pg_ext)
 
         return ext
@@ -136,6 +149,10 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
     @classmethod
     def get_pgext_ver(cls) -> str | None:
         return None
+
+    @classmethod
+    def is_universal(cls) -> bool:
+        return False
 
     @property
     def supports_out_of_tree_builds(self) -> bool:
@@ -171,7 +188,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         }
 
     def get_root_install_subdir(self, build: targets.Build) -> pathlib.Path:
-        if build.target.is_portable():
+        if build.target.is_portable() or self._edb is None:
             return pathlib.Path(self.name_slot)
         else:
             return pathlib.Path(self._edb.name_slot)
@@ -180,7 +197,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         self,
         build: targets.Build,
     ) -> pathlib.Path:
-        if build.target.is_portable():
+        if build.target.is_portable() or self._edb is None:
             return pathlib.Path("")
         else:
             return (
