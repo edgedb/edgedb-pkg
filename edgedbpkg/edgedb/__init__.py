@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import (
-    Any,
+    Self,
     TYPE_CHECKING,
 )
 
@@ -37,7 +37,7 @@ python.set_python_runtime_dependency(
 )
 
 
-class EdgeDB(packages.BundledPythonPackage):
+class EdgeDBNoPostgres(packages.BundledPythonPackage):
     title = "EdgeDB"
     ident = "edgedb-server"
     description = "Next generation graph-relational database"
@@ -58,76 +58,68 @@ class EdgeDB(packages.BundledPythonPackage):
         },
     ]
 
-    artifact_requirements = {
+    # PostgreSQL versions used for each server version range
+    # VERSION CONSTRAINTS MUST NOT OVERLAP
+    postgres_requirements: packages.RequirementsSpec = {
         ">=2.0,<3.0.rc1": [
             "postgresql-edgedb (~= 14.0)",
-            "python-edgedb (~= 3.10.0)",
         ],
         ">=3.0rc1,<4.0.dev1": [
             "postgresql-edgedb (~= 14.0)",
-            "python-edgedb (~= 3.11.0)",
             "pgext-pgvector (~= 0.4.0)",
         ],
         ">=4.0.dev1,<5.0.dev1": [
             "postgresql-edgedb (~= 15.0)",
-            "python-edgedb (~= 3.11.0)",
             "pgext-pgvector (~= 0.4.0)",
         ],
         ">=5.0.dev1,<6.0.dev8898": [
             "postgresql-edgedb (~= 16.0)",
-            "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.6.0)",
         ],
         ">=6.0.dev8898,<6.0.dev9001": [
             "postgresql-edgedb (~= 17.0)",
-            "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.7.0)",
         ],
         ">=6.0.dev9001": [
             "postgresql-edgedb (~= 17.0)",
-            "python-edgedb (~= 3.12.0)",
             "pgext-pgvector (~= 0.7.0)",
             "pgext-edb-stat-statements",
         ],
     }
 
-    artifact_build_requirements = {
+    # Python versions used for each server version range
+    # VERSION CONSTRAINTS MUST NOT OVERLAP
+    python_requirements: packages.RequirementsSpec = {
         ">=2.0,<3.0.rc1": [
-            "postgresql-edgedb (~= 14.0)",
             "python-edgedb (~= 3.10.0)",
-            "pyentrypoint (>=1.0.0)",
-            "pypkg-setuptools (<70.2.0)",
         ],
-        ">=3.0rc1,<4.0.dev1": [
-            "postgresql-edgedb (~= 14.0)",
+        ">=3.0rc1,<5.0.dev1": [
             "python-edgedb (~= 3.11.0)",
-            "pgext-pgvector (~= 0.4.0)",
-            "pyentrypoint (>=1.0.0)",
-            "pypkg-setuptools (<70.2.0)",
         ],
-        ">=4.0.dev1,<5.0.dev1": [
-            "postgresql-edgedb (~= 15.0)",
-            "python-edgedb (~= 3.11.0)",
-            "pgext-pgvector (~= 0.4.0)",
-            "pyentrypoint (>=1.0.0)",
-            "pypkg-setuptools (<70.2.0)",
-        ],
-        ">=5.0.dev1,<6.0.dev8898": [
-            "postgresql-edgedb (~= 16.0)",
+        ">=5.0.dev1": [
             "python-edgedb (~= 3.12.0)",
-            "pgext-pgvector (~= 0.6.0)",
-            "pyentrypoint (>=1.0.0)",
-            "pypkg-setuptools (<70.2.0)",
-        ],
-        ">=6.0.dev8898": [
-            "postgresql-edgedb (~= 17.0)",
-            "python-edgedb (~= 3.12.0)",
-            "pgext-pgvector (~= 0.7.0)",
-            "pyentrypoint (>=1.0.0)",
-            "pypkg-setuptools (<70.2.0)",
-            "libprotobuf-c-dev (>=1.5.0)",  # for libpg_query
         ],
     }
+
+    artifact_requirements = packages.merge_requirements(python_requirements)
+
+    common_build_reqs = [
+        "pyentrypoint (>=1.0.0)",
+        "pypkg-setuptools (<70.2.0)",
+    ]
+
+    libpg_query_reqs = [
+        "libprotobuf-c-dev (>=1.5.0)",
+    ]
+
+    artifact_build_requirements = packages.merge_requirements(
+        {
+            ">=2.0,<6.0.dev8898": list(common_build_reqs),
+            ">=6.0.dev8898": common_build_reqs + libpg_query_reqs,
+        },
+        python_requirements,
+        postgres_requirements,
+    )
 
     bundle_deps = [
         postgresql.PostgreSQL(version="14.11"),
@@ -183,7 +175,7 @@ class EdgeDB(packages.BundledPythonPackage):
         is_release: bool = False,
         target: targets.Target,
         requires: list[poetry_dep.Dependency] | None = None,
-    ) -> EdgeDB:
+    ) -> Self:
         os.environ["EDGEDB_BUILD_OFFICIAL"] = "yes"
         os.environ["EDGEDB_BUILD_TARGET"] = (
             base64.b32encode(target.triple.encode())
@@ -647,6 +639,13 @@ class EdgeDB(packages.BundledPythonPackage):
     ) -> list[tuple[str, str]]:
         catver = self._get_edgedb_catalog_version(build)
         return [("edgedb-server-catalog", catver)]
+
+
+class EdgeDB(EdgeDBNoPostgres):
+    artifact_requirements = packages.merge_requirements(
+        EdgeDBNoPostgres.artifact_requirements,
+        EdgeDBNoPostgres.postgres_requirements,
+    )
 
 
 class Cryptography(packages.PythonPackage):
