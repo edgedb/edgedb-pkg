@@ -21,6 +21,10 @@ if [ -n "${BUILD_IS_RELEASE}" ]; then
     extraopts+=" --release"
 fi
 
+if [ -n "${DEBUG_SYMBOLS}" ]; then
+    extraopts+=" --build-debug"
+fi
+
 if [ -n "${PKG_REVISION}" ]; then
     if [ "${PKG_REVISION}" = "<current-date>" ]; then
         PKG_REVISION="$(date -u +%Y%m%d%H%M)"
