@@ -43,6 +43,10 @@ if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then
     extraopts+=" --extra-optimizations"
 fi
 
+if [ -n "${DEBUG_SYMBOLS}" ]; then
+    extraopts+=" --build-debug"
+fi
+
 if [ -n "${BUILD_GENERIC}" ]; then
     extraopts+=" --generic"
 fi

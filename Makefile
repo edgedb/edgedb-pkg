@@ -90,6 +90,10 @@ ifneq ($(EXTRA_OPTIMIZATIONS),)
 	EXTRAENV += -e EXTRA_OPTIMIZATIONS=true
 endif
 
+ifneq ($(DEBUG_SYMBOLS),)
+	EXTRAENV += -e DEBUG_SYMBOLS=true
+endif
+
 ifneq ($(PACKAGE),)
     EXTRAENV += -e PACKAGE="$(PACKAGE)"
 endif
