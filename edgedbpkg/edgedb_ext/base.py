@@ -83,7 +83,9 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         if edb is not None:
             name = packages.canonicalize_name(f"{edb.name_slot}-{pkgname}")
         else:
-            name = packages.canonicalize_name(pkgname)
+            name = packages.canonicalize_name(
+                f"{edgedb.EdgeDB.ident}-{pkgname}"
+            )
 
         ext = super().resolve(
             io,
