@@ -120,6 +120,10 @@ if [ -n "${EXTRA_OPTIMIZATIONS}" ]; then\n\
     extraopts+=" --extra-optimizations"\n\
 fi\n\
 \n\
+if [ -n "${DEBUG_SYMBOLS}" ]; then\n\
+    extraopts+=" --build-debug"\n\
+fi\n\
+\n\
 if [ -n "${BUILD_GENERIC}" ]; then\n\
     extraopts+=" --generic"\n\
 fi\n\
