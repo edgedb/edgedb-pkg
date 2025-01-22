@@ -25,7 +25,7 @@ class StatStatements(pgext.PostgresCExtension):
     ]
 
     artifact_build_requirements = [
-        "postgresql-edgedb (>=17)",
+        "postgresql-edgedb (>=16)",
     ]
 
     def get_prepare_script(self, build: targets.Build) -> str:
