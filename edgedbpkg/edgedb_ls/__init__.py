@@ -15,6 +15,7 @@ from metapkg.packages import python
 from edgedbpkg import python as python_bundle
 from edgedbpkg import pyentrypoint
 from edgedbpkg import edgedb as edgedb_server
+from edgedbpkg import libprotobuf_c
 
 if TYPE_CHECKING:
     from cleo.io import io as cleo_io
@@ -65,6 +66,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
 
     artifact_build_requirements = [
         "pyentrypoint (>=1.0.0)",
+        "libprotobuf-c-dev (>=1.5.0)",  # for libpg_query
     ]
 
     bundle_deps = [
@@ -72,6 +74,7 @@ class EdgeDBLanguageServer(packages.BundledPythonPackage):
         python_bundle.Python(version="3.11.8"),
         python_bundle.Python(version="3.12.2"),
         pyentrypoint.PyEntryPoint(version="1.0.0"),
+        libprotobuf_c.LibProtoBufC("1.5.0"),
     ]
 
     @classmethod

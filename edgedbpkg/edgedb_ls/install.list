@@ -1,1 +1,4 @@
+{bindir}/edgedb-ls
 {bindir}/edgedb-ls.py
+{bindir}/gel-ls
+{bindir}/gel-ls.py
