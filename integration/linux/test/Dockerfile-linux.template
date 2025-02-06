@@ -2,7 +2,7 @@ ARG DOCKER_ARCH=
 FROM ${DOCKER_ARCH}alpine:3.16 AS builder
 
 ENV CURL_VERSION 7.84.0
-ENV JQ_VERSION cff5336ec71b6fee396a95bb0e4bea365e0cd1e8
+ENV JQ_VERSION fa6a2ff6888f27648c703688f1a973588406d92a
 
 RUN apk add --no-cache \
     busybox-static \
