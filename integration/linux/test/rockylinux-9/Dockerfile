@@ -47,6 +47,12 @@ for pack in ${dest}/*.tar; do\n\
                | jq -r ".version_slot")\n\
         rpm=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
               | jq -r ".contents | keys[]" \\\n\
+              | grep "^gel-server.*\\.rpm$")\n\
+        if [ -n "${rpm}" ]; then\n\
+            break\n\
+        fi\n\
+        rpm=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+              | jq -r ".contents | keys[]" \\\n\
               | grep "^edgedb-server.*\\.rpm$")\n\
         if [ -n "${rpm}" ]; then\n\
             break\n\
@@ -55,7 +61,7 @@ for pack in ${dest}/*.tar; do\n\
 done\n\
 \n\
 if [ -z "${rpm}" ]; then\n\
-    echo "${dest} does not seem to contain an edgedb-server .rpm" >&2\n\
+    echo "${dest} does not seem to contain an {edgedb|gel}-server .rpm" >&2\n\
     exit 1\n\
 fi\n\
 \n\
@@ -69,28 +75,33 @@ tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"\n\
 yum install -y "${tmpdir}/${rpm}"\n\
 rm -rf "${tmpdir}"\n\
 \n\
-edgedb-server-${slot} --version\n\
+if type "gel-server-${slot}" >/dev/null; then\n\
+    user="gel"\n\
+    server="gel-server-${slot}"\n\
+else\n\
+    user="edgedb"\n\
+    server="edgedb-server-${slot}"\n\
+fi\n\
+\n\
+"$server" --version\n\
+\n\
+if [ -n "${PKG_TEST_JOBS}" ]; then\n\
+    dash_j="-j${PKG_TEST_JOBS}"\n\
+else\n\
+    dash_j=""\n\
+fi\n\
+\n\
+cmd="/usr/lib64/${server}/bin/python3 \\\n\
+     -m edb.tools --no-devmode test \\\n\
+     /usr/share/${server}/tests \\\n\
+     -e cqa_ -e tools_ \\\n\
+     --verbose ${dash_j}"\n\
 \n\
 if [ "$1" == "bash" ]; then\n\
-    echo su edgedb -c \\\n\
-        "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
-        -m edb.tools --no-devmode test \\\n\
-        /usr/share/edgedb-server-${slot}/tests \\\n\
-        -e cqa_ -e tools_ \\\n\
-        --verbose"\n\
+    echo su "$user" -c "$cmd"\n\
     exec /bin/bash\n\
 else\n\
-    if [ -n "${PKG_TEST_JOBS}" ]; then\n\
-        dash_j="-j${PKG_TEST_JOBS}"\n\
-    else\n\
-        dash_j=""\n\
-    fi\n\
-    su edgedb -c \\\n\
-        "/usr/lib64/edgedb-server-${slot}/bin/python3 \\\n\
-        -m edb.tools --no-devmode test \\\n\
-        /usr/share/edgedb-server-${slot}/tests \\\n\
-        -e cqa_ -e tools_ \\\n\
-        --verbose ${dash_j}"\n\
+    su "$user" -c "$cmd"\n\
     echo "Success!"\n\
 fi\n\' >/entrypoint.sh
 

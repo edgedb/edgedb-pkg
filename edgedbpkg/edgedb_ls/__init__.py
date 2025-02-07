@@ -1,5 +1,8 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Self,
+)
 
 import pathlib
 
@@ -24,11 +27,10 @@ python.set_python_runtime_dependency(
 )
 
 
-class EdgeDBLanguageServer(edgedb_server.EdgeDBNoPostgres):
-    title = "EdgeDBLanguageServer"
-    ident = "edgedb-ls"
-    description = "Language server for EdgeDB"
-    identifier = "com.edgedb.edgedb-ls"
+class GelLanguageServer(edgedb_server.EdgeDBNoPostgres):
+    title = "GelLanguageServer"
+    ident = "gel-ls"
+    description = "Language server for Gel"
 
     # We don't need Postgres at all even at the build stage.
     artifact_build_requirements = packages.merge_requirements(
@@ -48,7 +50,7 @@ class EdgeDBLanguageServer(edgedb_server.EdgeDBNoPostgres):
         is_release: bool = False,
         target: targets.Target,
         requires: list[poetry_dep.Dependency] | None = None,
-    ) -> EdgeDBLanguageServer:
+    ) -> Self:
         return (
             super()
             .resolve(
@@ -90,12 +92,24 @@ class EdgeDBLanguageServer(edgedb_server.EdgeDBNoPostgres):
         bindir = build.get_install_path(self, "bin")
 
         return [
+            bindir / "gel-ls",
+        ]
+
+    def get_transition_packages(self, build: targets.Build) -> list[str]:
+        return ["edgedb-ls"]
+
+
+class EdgeDBLanguageServer(GelLanguageServer):
+    title = "EdgeDBLanguageServer"
+    ident = "edgedb-ls"
+    description = "Language server for EdgeDB"
+
+    def get_exposed_commands(self, build: targets.Build) -> list[pathlib.Path]:
+        bindir = build.get_install_path(self, "bin")
+
+        return [
             bindir / "edgedb-ls",
         ]
 
-    def get_conflict_packages(
-        self,
-        build: targets.Build,
-        root_version: str,
-    ) -> list[str]:
-        return ["edgedb-common"]
+    def get_transition_packages(self, build: targets.Build) -> list[str]:
+        return []

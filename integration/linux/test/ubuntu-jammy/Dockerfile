@@ -58,6 +58,12 @@ for pack in ${dest}/*.tar; do\n\
                | jq -r ".version_slot")\n\
         deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
               | jq -r ".contents | keys[]" \\\n\
+              | grep "^gel-server.*\\.deb$")\n\
+        if [ -n "${deb}" ]; then\n\
+            break\n\
+        fi\n\
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
+              | jq -r ".contents | keys[]" \\\n\
               | grep "^edgedb-server.*\\.deb$")\n\
         if [ -n "${deb}" ]; then\n\
             break\n\
@@ -66,7 +72,7 @@ for pack in ${dest}/*.tar; do\n\
 done\n\
 \n\
 if [ -z "${deb}" ]; then\n\
-    echo "${dest} does not seem to contain an edgedb-server .deb" >&2\n\
+    echo "${dest} does not seem to contain an {edgedb|gel}-server .deb" >&2\n\
     exit 1\n\
 fi\n\
 \n\
@@ -81,13 +87,21 @@ tar -x -C "${tmpdir}" -f "${pack}" "${deb}"\n\
 apt-get install -y "${tmpdir}/${deb}"\n\
 rm -rf "${tmpdir}"\n\
 \n\
-edgedb-server-${slot} --version\n\
+if type "gel-server-${slot}" >/dev/null; then\n\
+    user="gel"\n\
+    server="gel-server-${slot}"\n\
+else\n\
+    user="edgedb"\n\
+    server="edgedb-server-${slot}"\n\
+fi\n\
+\n\
+"$server" --version\n\
 \n\
 if [ "$1" == "bash" ]; then\n\
-    echo su edgedb -c \\\n\
-        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+    echo su "$user" -c \\\n\
+        "/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \\\n\
          -m edb.tools --no-devmode test \\\n\
-         /usr/share/edgedb-server-${slot}/tests \\\n\
+         /usr/share/${server}/tests \\\n\
          -e cqa_ -e tools_ \\\n\
          --verbose"\n\
     exec "$@"\n\
@@ -97,10 +111,10 @@ else\n\
     else\n\
         dash_j=""\n\
     fi\n\
-    su edgedb -c \\\n\
-        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \\\n\
+    su "$user" -c \\\n\
+        "/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \\\n\
          -m edb.tools --no-devmode test \\\n\
-         /usr/share/edgedb-server-${slot}/tests \\\n\
+         /usr/share/${server}/tests \\\n\
          -e cqa_ -e tools_ \\\n\
          --verbose ${dash_j}"\n\
     echo "Success!"\n\

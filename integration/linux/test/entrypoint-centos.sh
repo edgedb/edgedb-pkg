@@ -39,6 +39,12 @@ for pack in ${dest}/*.tar; do
                | jq -r ".version_slot")
         rpm=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
+              | grep "^gel-server.*\\.rpm$")
+        if [ -n "${rpm}" ]; then
+            break
+        fi
+        rpm=$(tar -xOf "${pack}" "build-metadata.json" \
+              | jq -r ".contents | keys[]" \
               | grep "^edgedb-server.*\\.rpm$")
         if [ -n "${rpm}" ]; then
             break
@@ -47,7 +53,7 @@ for pack in ${dest}/*.tar; do
 done
 
 if [ -z "${rpm}" ]; then
-    echo "${dest} does not seem to contain an edgedb-server .rpm" >&2
+    echo "${dest} does not seem to contain an {edgedb|gel}-server .rpm" >&2
     exit 1
 fi
 
@@ -61,27 +67,32 @@ tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"
 yum install -y "${tmpdir}/${rpm}"
 rm -rf "${tmpdir}"
 
-edgedb-server-${slot} --version
+if type "gel-server-${slot}" >/dev/null; then
+    user="gel"
+    server="gel-server-${slot}"
+else
+    user="edgedb"
+    server="edgedb-server-${slot}"
+fi
+
+"$server" --version
+
+if [ -n "${PKG_TEST_JOBS}" ]; then
+    dash_j="-j${PKG_TEST_JOBS}"
+else
+    dash_j=""
+fi
+
+cmd="/usr/lib64/${server}/bin/python3 \
+     -m edb.tools --no-devmode test \
+     /usr/share/${server}/tests \
+     -e cqa_ -e tools_ \
+     --verbose ${dash_j}"
 
 if [ "$1" == "bash" ]; then
-    echo su edgedb -c \
-        "/usr/lib64/edgedb-server-${slot}/bin/python3 \
-        -m edb.tools --no-devmode test \
-        /usr/share/edgedb-server-${slot}/tests \
-        -e cqa_ -e tools_ \
-        --verbose"
+    echo su "$user" -c "$cmd"
     exec /bin/bash
 else
-    if [ -n "${PKG_TEST_JOBS}" ]; then
-        dash_j="-j${PKG_TEST_JOBS}"
-    else
-        dash_j=""
-    fi
-    su edgedb -c \
-        "/usr/lib64/edgedb-server-${slot}/bin/python3 \
-        -m edb.tools --no-devmode test \
-        /usr/share/edgedb-server-${slot}/tests \
-        -e cqa_ -e tools_ \
-        --verbose ${dash_j}"
+    su "$user" -c "$cmd"
     echo "Success!"
 fi

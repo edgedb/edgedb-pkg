@@ -38,10 +38,23 @@ while [ $try -le 30 ]; do\n\
     sleep 30\n\
 done\n\
 \n\
-if [ "${PKG_NAME}" == "edgedb-cli" ]; then\n\
+if [ "${PKG_NAME}" == "gel-cli" ]; then\n\
+    gel --help\n\
+    gel --version\n\
+elif [ "${PKG_NAME}" == "edgedb-cli" ]; then\n\
     edgedb --help\n\
     edgedb --version\n\
-else\n\
+elif [ "${PKG_NAME}" == "gel-server" ]; then\n\
+    slot="${PKG_VERSION_SLOT}"\n\
+\n\
+    if [ -z "${slot}" ]; then\n\
+        echo ::error "Cannot determine package version slot."\n\
+        exit 1\n\
+    fi\n\
+\n\
+    gel-server-${slot} --help\n\
+    gel-server-${slot} --version\n\
+elif [ "${PKG_NAME}" == "edgedb-server" ]; then\n\
     slot="${PKG_VERSION_SLOT}"\n\
 \n\
     if [ -z "${slot}" ]; then\n\

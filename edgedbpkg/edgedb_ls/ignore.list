@@ -1,0 +1,13 @@
+{bindir}/*
+{libdir}/**/edb/pgsql/parser/**
+{libdir}/**/edb/pgsql/resolver/**
+{libdir}/**/edb/pgsql/dbops/**
+{libdir}/**/edb/server/dbview/**
+{libdir}/**/edb/server/pgcon/**
+{libdir}/**/edb/server/protocol/**
+{libdir}/**/edb/server/pgproto/**
+{libdir}/**/edb/graphql/**
+{libdir}/**/edb/graphql-rewrite/**
+{libdir}/**/edb/_graphql_rewrite.*.so
+{libdir}/**/edb/testbase/**
+{libdir}/**/edb/protocol/**
