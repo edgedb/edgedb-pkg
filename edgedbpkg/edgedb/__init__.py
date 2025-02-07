@@ -103,20 +103,22 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
 
     artifact_requirements = packages.merge_requirements(python_requirements)
 
-    common_build_reqs = [
-        "pyentrypoint (>=1.0.0)",
-        "pypkg-setuptools (<70.2.0)",
-    ]
+    common_build_reqs: packages.RequirementsSpec = {
+        "*": [
+            "pyentrypoint (>=1.0.0)",
+            "pypkg-setuptools (<70.2.0)",
+        ],
+    }
 
-    libpg_query_reqs = [
-        "libprotobuf-c-dev (>=1.5.0)",
-    ]
+    libpg_query_reqs: packages.RequirementsSpec = {
+        ">=6.0.dev8898": [
+            "libprotobuf-c-dev (>=1.5.0)",
+        ],
+    }
 
     artifact_build_requirements = packages.merge_requirements(
-        {
-            ">=2.0,<6.0.dev8898": list(common_build_reqs),
-            ">=6.0.dev8898": common_build_reqs + libpg_query_reqs,
-        },
+        common_build_reqs,
+        libpg_query_reqs,
         python_requirements,
         postgres_requirements,
     )
@@ -404,6 +406,10 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
                 f"for the stable channel"
             )
 
+        stdlib_bootstrap = self.get_stdlib_bootstrap_script(build)
+        return f"{common_script}\n{stdlib_bootstrap}"
+
+    def get_stdlib_bootstrap_script(self, build: targets.Build) -> str:
         pg_pkg = build.get_package("postgresql-edgedb")
 
         build_python = build.sh_get_command("python")
@@ -491,7 +497,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         """
         )
 
-        return f"{common_script}\n{data_cache_script}"
+        return data_cache_script
 
     def get_extra_python_build_commands(
         self,
@@ -516,20 +522,8 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
 
     def get_build_install_script(self, build: targets.Build) -> str:
         script = super().get_build_install_script(build)
-        srcdir = build.get_source_dir(self, relative_to="pkgbuild")
-        dest = build.get_build_install_dir(self, relative_to="pkgbuild")
 
-        datadir = build.get_install_path(self, "data")
-        script += textwrap.dedent(
-            f"""\
-            mkdir -p "{dest}/{datadir}"
-            cp -a "{srcdir}/tests" "{dest}/{datadir}"
-            mkdir -p "{dest}/{datadir}/data/"
-            cp -a ./share/* "{dest}/{datadir}/data/"
-            chmod -R u+w,g+r,o+r "{dest}/{datadir}/data/"*
-            """
-        )
-
+        script += self.get_stdlib_install_script(build)
         bindir = build.get_install_path(self, "bin").relative_to("/")
 
         ep_helper_pkg = build.get_package("pyentrypoint")
@@ -539,6 +533,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
             / "pyentrypoint"
         )
 
+        dest = build.get_build_install_dir(self, relative_to="pkgbuild")
         script += textwrap.dedent(
             f"""\
             for p in "{dest}/{bindir}"/*; do
@@ -552,6 +547,22 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
             """
         )
 
+        return script
+
+    def get_stdlib_install_script(self, build: targets.Build) -> str:
+        srcdir = build.get_source_dir(self, relative_to="pkgbuild")
+        dest = build.get_build_install_dir(self, relative_to="pkgbuild")
+
+        datadir = build.get_install_path(self, "data")
+        script = textwrap.dedent(
+            f"""\
+            mkdir -p "{dest}/{datadir}"
+            cp -a "{srcdir}/tests" "{dest}/{datadir}"
+            mkdir -p "{dest}/{datadir}/data/"
+            cp -a ./share/* "{dest}/{datadir}/data/"
+            chmod -R u+w,g+r,o+r "{dest}/{datadir}/data/"*
+            """
+        )
         return script
 
     def get_private_libraries(self, build: targets.Build) -> list[str]:
