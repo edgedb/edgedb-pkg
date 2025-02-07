@@ -606,7 +606,7 @@ RUN mkdir -p '_bootstrap'; /bin/echo -e '#!/usr/bin/env bash\n\
 \n\
 set -ex\n\
 \n\
-: ${RUST_VERSION:=1.80.1}\n\
+: ${RUST_VERSION:=1.81.0}\n\
 \n\
 cd /usr/src\n\
 curl --proto '\''=https'\'' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \\\n\
@@ -616,7 +616,8 @@ curl --proto '\''=https'\'' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- \\\
 chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"\n\
 \n\
 # Make everything use it.\n\
-rustup override set "$RUST_VERSION" --path /\n\' >/_bootstrap/rust.sh; chmod +x /_bootstrap/rust.sh
+toolchain="$(rustup show active-toolchain | cut -f1 -d'\'' '\'')"\n\
+echo export RUSTUP_TOOLCHAIN="$toolchain" > /etc/profile.d/99-rustup-toolchain-override.sh\n\' >/_bootstrap/rust.sh; chmod +x /_bootstrap/rust.sh
 RUN mkdir -p '_bootstrap'; /bin/echo -e '#!/usr/bin/env bash\n\
 \n\
 set -ex\n\
