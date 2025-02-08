@@ -613,6 +613,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
     ) -> list[packages.MetaPackage]:
         return [
             packages.MetaPackage(
+                base_name="edgedb",
                 name=f"edgedb-{self.slot}",
                 description=f"{self.description} (server and client tools)",
                 dependencies={
