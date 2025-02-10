@@ -82,7 +82,7 @@ tar -x -C "${tmpdir}" -f "${pack}" "${deb}"
 apt-get install -y "${tmpdir}/${deb}"
 rm -rf "${tmpdir}"
 
-if type "gel-server-${slot}" >/dev/null; then
+if [[ $deb == *gel-server* ]]; then
     user="gel"
     server="gel-server-${slot}"
 else

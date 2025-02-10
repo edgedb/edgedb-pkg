@@ -69,7 +69,7 @@ tar -x -C "${tmpdir}" -f "${pack}" "${rpm}"
 yum install -y "${tmpdir}/${rpm}"
 rm -rf "${tmpdir}"
 
-if type "gel-server-${slot}" >/dev/null; then
+if [[ $rpm == *gel-server* ]]; then
     user="gel"
     server="gel-server-${slot}"
 else
