@@ -725,29 +725,35 @@ def process_generic(
         put(bucket, blake2b_path, archive_dir, cache=True)
         put(bucket, metadata_path, archive_dir, cache=True)
 
-        if metadata.get("publish_link_to_latest"):
-            # And record a copy of it in the dist/ directory as an
-            # unversioned key for ease of reference in download
-            # scripts.  Note: the archive/ entry is cached, but the
-            # dist/ entry MUST NOT be cached for obvious reasons.
-            # However, we still want the benefit of CDN for it, so
-            # we generate a bucket-wide redirect policy for the
-            # dist/ object to point to the archive/ object.  See
-            # below for details.
-            target_dir = DIST / pkg_dir
-            dist_name = f"{basename}{slot_suf}{ext}"
-            put(bucket, b"", target_dir, name=dist_name)
+        links = metadata.get("publish_link_to_latest")
+        if links:
+            if isinstance(links, bool):
+                links = [basename]
+            else:
+                assert isinstance(links, list)
+            for link in links:
+                # And record a copy of it in the dist/ directory as an
+                # unversioned key for ease of reference in download
+                # scripts.  Note: the archive/ entry is cached, but the
+                # dist/ entry MUST NOT be cached for obvious reasons.
+                # However, we still want the benefit of CDN for it, so
+                # we generate a bucket-wide redirect policy for the
+                # dist/ object to point to the archive/ object.  See
+                # below for details.
+                target_dir = DIST / pkg_dir
+                dist_name = f"{link}{slot_suf}{ext}"
+                put(bucket, b"", target_dir, name=dist_name)
 
-            asc_name = f"{dist_name}.asc"
-            put(bucket, b"", target_dir, name=asc_name)
+                asc_name = f"{dist_name}.asc"
+                put(bucket, b"", target_dir, name=asc_name)
 
-            sha_name = f"{dist_name}.sha256"
-            put(bucket, b"", target_dir, name=sha_name)
+                sha_name = f"{dist_name}.sha256"
+                put(bucket, b"", target_dir, name=sha_name)
 
-            sha_name = f"{dist_name}.blake2b"
-            put(bucket, b"", target_dir, name=sha_name)
+                sha_name = f"{dist_name}.blake2b"
+                put(bucket, b"", target_dir, name=sha_name)
 
-            rrules[target_dir / dist_name] = archive_dir / leaf
+                rrules[target_dir / dist_name] = archive_dir / leaf
 
     for pkg_dir in pkg_directories:
         remove_old(bucket, ARCHIVE / pkg_dir, keep=1, channel="nightly")

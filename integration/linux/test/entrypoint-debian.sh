@@ -51,6 +51,12 @@ for pack in ${dest}/*.tar; do
                | jq -r ".version_slot")
         deb=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
+              | grep "^gel-server.*\\.deb$")
+        if [ -n "${deb}" ]; then
+            break
+        fi
+        deb=$(tar -xOf "${pack}" "build-metadata.json" \
+              | jq -r ".contents | keys[]" \
               | grep "^edgedb-server.*\\.deb$")
         if [ -n "${deb}" ]; then
             break
@@ -59,7 +65,7 @@ for pack in ${dest}/*.tar; do
 done
 
 if [ -z "${deb}" ]; then
-    echo "${dest} does not seem to contain an edgedb-server .deb" >&2
+    echo "${dest} does not seem to contain an {edgedb|gel}-server .deb" >&2
     exit 1
 fi
 
@@ -74,27 +80,32 @@ tar -x -C "${tmpdir}" -f "${pack}" "${deb}"
 apt-get install -y "${tmpdir}/${deb}"
 rm -rf "${tmpdir}"
 
-edgedb-server-${slot} --version
+if type "gel-server-${slot}" >/dev/null; then
+    user="gel"
+    server="gel-server-${slot}"
+else
+    user="edgedb"
+    server="edgedb-server-${slot}"
+fi
+
+"$server" --version
+
+if [ -n "${PKG_TEST_JOBS}" ]; then
+    dash_j="-j${PKG_TEST_JOBS}"
+else
+    dash_j=""
+fi
+
+cmd="/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \
+     -m edb.tools --no-devmode test \
+     /usr/share/${server}/tests \
+     -e cqa_ -e tools_ \
+     --verbose ${dash_j}"
 
 if [ "$1" == "bash" ]; then
-    echo su edgedb -c \
-        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \
-         -m edb.tools --no-devmode test \
-         /usr/share/edgedb-server-${slot}/tests \
-         -e cqa_ -e tools_ \
-         --verbose"
-    exec "$@"
+    echo su "$user" -c "$cmd"
+    exec /bin/bash
 else
-    if [ -n "${PKG_TEST_JOBS}" ]; then
-        dash_j="-j${PKG_TEST_JOBS}"
-    else
-        dash_j=""
-    fi
-    su edgedb -c \
-        "/usr/lib/${machine}-linux-gnu/edgedb-server-${slot}/bin/python3 \
-         -m edb.tools --no-devmode test \
-         /usr/share/edgedb-server-${slot}/tests \
-         -e cqa_ -e tools_ \
-         --verbose ${dash_j}"
+    su "$user" -c "$cmd"
     echo "Success!"
 fi

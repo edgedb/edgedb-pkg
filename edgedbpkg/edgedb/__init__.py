@@ -37,14 +37,14 @@ python.set_python_runtime_dependency(
 )
 
 
-class EdgeDBNoPostgres(packages.BundledPythonPackage):
-    title = "EdgeDB"
-    ident = "edgedb-server"
+class GelNoPostgres(packages.BundledPythonPackage):
+    title = "Gel"
+    ident = "gel-server"
     description = "Next generation graph-relational database"
     license_id = "Apache-2.0"
     group = "Applications/Databases"
-    identifier = "com.edgedb.edgedb-server"
-    url = "https://edgedb.com/"
+    identifier = "com.geldata.gel-server"
+    url = "https://geldata.com/"
 
     sources = [
         {
@@ -265,7 +265,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         repo.register_package_impl("cryptography", Cryptography)
         repo.register_package_impl("cffi", Cffi)
         repo.register_package_impl("jwcrypto", JWCrypto)
-        repo.register_package_impl("edgedb", EdgeDBPython)
+        repo.register_package_impl("gel", EdgeDBPython)
         repo.register_package_impl("maturin", Maturin)
         return repo
 
@@ -300,6 +300,14 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
             else:
                 return f"{self.base_slot}-dev{self.get_catalog_version()}"
 
+    @property
+    def marketing_name(self) -> str:
+        return "Gel"
+
+    @property
+    def marketing_slug(self) -> str:
+        return "gel"
+
     def version_includes_revision(self) -> bool:
         return ".s" in self.pretty_version
 
@@ -310,7 +318,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
                 return entry[2:]
 
         raise RuntimeError(
-            f"no catalog version in EdgeDB version: {self.pretty_version}"
+            f"no catalog version in Gel version: {self.pretty_version}"
         )
 
     def get_version_metadata_fields(self) -> dict[str, str]:
@@ -334,7 +342,9 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         if build.target.is_portable():
             runstate = ""
         else:
-            runstate = str(build.get_install_path(self, "runstate") / "edgedb")
+            runstate = str(
+                build.get_install_path(self, "runstate") / self.marketing_slug
+            )
         shared_dir = (
             build.get_install_path(self, "data") / "data"
         ).relative_to("/")
@@ -396,13 +406,13 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         return env
 
     def get_build_script(self, build: targets.Build) -> str:
-        # Run edgedb-server --bootstrap to produce stdlib cache
+        # Run gel-server --bootstrap to produce stdlib cache
         # for the benefit of faster bootstrap in the package.
         common_script = super().get_build_script(build)
 
         if build.channel == "stable" and not self.version.is_stable():
             raise AssertionError(
-                f"cannot build non-stable edgedb-server=={self.version} "
+                f"cannot build non-stable gel-server=={self.version} "
                 f"for the stable channel"
             )
 
@@ -583,18 +593,20 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
 
     def get_before_install_script(self, build: targets.Build) -> str:
         dataroot = (
-            build.get_install_path(self, "localstate") / "lib" / "edgedb"
+            build.get_install_path(self, "localstate")
+            / "lib"
+            / self.marketing_slug
         )
 
         action = build.target.get_action("adduser", build)
         assert isinstance(action, targets.AddUserAction)
         user_script = action.get_script(
-            name="edgedb",
-            group="edgedb",
+            name=self.marketing_slug,
+            group=self.marketing_slug,
             homedir=str(dataroot),
             shell=True,
             system=True,
-            description="EdgeDB Server",
+            description=f"{self.marketing_name} Server",
         )
 
         return user_script
@@ -604,6 +616,7 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
 
         return [
             bindir / "edgedb-server",
+            bindir / "gel-server",
         ]
 
     def get_meta_packages(
@@ -611,14 +624,15 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         build: targets.Build,
         root_version: str,
     ) -> list[packages.MetaPackage]:
+        ms = self.marketing_slug
         return [
             packages.MetaPackage(
-                base_name="edgedb",
-                name=f"edgedb-{self.slot}",
+                base_name=ms,
+                name=f"{ms}-{self.slot}",
                 description=f"{self.description} (server and client tools)",
                 dependencies={
-                    f"edgedb-server-{self.slot}": f"= {root_version}",
-                    "edgedb-cli": "",
+                    f"{ms}-server-{self.slot}": f"= {root_version}",
+                    f"{ms}-cli": "",
                 },
             )
         ]
@@ -629,6 +643,12 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         root_version: str,
     ) -> list[str]:
         return ["edgedb-common"]
+
+    def get_transition_packages(
+        self,
+        build: targets.Build,
+    ) -> list[str]:
+        return [f"edgedb-server{self.slot_suffix}"]
 
     def _get_edgedb_catalog_version(self, build: targets.Build) -> str:
         source = pathlib.Path(build.get_source_dir(self, relative_to="fsroot"))
@@ -650,7 +670,38 @@ class EdgeDBNoPostgres(packages.BundledPythonPackage):
         root_version: str,
     ) -> list[tuple[str, str]]:
         catver = self._get_edgedb_catalog_version(build)
-        return [("edgedb-server-catalog", catver)]
+        return [(f"{self.marketing_slug}-server-catalog", catver)]
+
+
+class Gel(GelNoPostgres):
+    artifact_requirements = packages.merge_requirements(
+        GelNoPostgres.artifact_requirements,
+        GelNoPostgres.postgres_requirements,
+    )
+
+
+class EdgeDBNoPostgres(GelNoPostgres):
+    title = "EdgeDB"
+    ident = "edgedb-server"
+    description = "Next generation graph-relational database"
+    license_id = "Apache-2.0"
+    group = "Applications/Databases"
+    identifier = "com.edgedb.edgedb-server"
+    url = "https://edgedb.com/"
+
+    @property
+    def marketing_name(self) -> str:
+        return "EdgeDB"
+
+    @property
+    def marketing_slug(self) -> str:
+        return "edgedb"
+
+    def get_transition_packages(
+        self,
+        build: targets.Build,
+    ) -> list[str]:
+        return []
 
 
 class EdgeDB(EdgeDBNoPostgres):
