@@ -32,13 +32,13 @@ fi
 
 try=1
 while [ $try -le 30 ]; do
-    apt-get update && apt-get install -y edgedb-cli && s=0 break || s=$?
+    apt-get update && apt-get install -y edgedb-cli && break || true
     try=$(( $try + 1 ))
     echo "Retrying in 10 seconds (try #${try})" >&2
     sleep 10
 done
 
-if [ $s -ne 0 ]; then
+if ! type edgedb >/dev/null; then
     echo "could not install edgedb-cli" >&2
     exit $s
 fi
@@ -51,13 +51,15 @@ for pack in ${dest}/*.tar; do
                | jq -r ".version_slot")
         deb=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
-              | grep "^gel-server.*\\.deb$")
+              | grep "^gel-server.*\\.deb$" \
+              || true)
         if [ -n "${deb}" ]; then
             break
         fi
         deb=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
-              | grep "^edgedb-server.*\\.deb$")
+              | grep "^edgedb-server.*\\.deb$" \
+              || true)
         if [ -n "${deb}" ]; then
             break
         fi

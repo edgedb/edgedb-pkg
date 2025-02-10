@@ -39,13 +39,15 @@ for pack in ${dest}/*.tar; do
                | jq -r ".version_slot")
         rpm=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
-              | grep "^gel-server.*\\.rpm$")
+              | grep "^gel-server.*\\.rpm$" \
+              || true)
         if [ -n "${rpm}" ]; then
             break
         fi
         rpm=$(tar -xOf "${pack}" "build-metadata.json" \
               | jq -r ".contents | keys[]" \
-              | grep "^edgedb-server.*\\.rpm$")
+              | grep "^edgedb-server.*\\.rpm$" \
+              || true)
         if [ -n "${rpm}" ]; then
             break
         fi

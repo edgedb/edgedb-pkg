@@ -39,13 +39,13 @@ fi\n\
 \n\
 try=1\n\
 while [ $try -le 30 ]; do\n\
-    apt-get update && apt-get install -y edgedb-cli && s=0 break || s=$?\n\
+    apt-get update && apt-get install -y edgedb-cli && break || true\n\
     try=$(( $try + 1 ))\n\
     echo "Retrying in 10 seconds (try #${try})" >&2\n\
     sleep 10\n\
 done\n\
 \n\
-if [ $s -ne 0 ]; then\n\
+if ! type edgedb >/dev/null; then\n\
     echo "could not install edgedb-cli" >&2\n\
     exit $s\n\
 fi\n\
@@ -58,13 +58,15 @@ for pack in ${dest}/*.tar; do\n\
                | jq -r ".version_slot")\n\
         deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
               | jq -r ".contents | keys[]" \\\n\
-              | grep "^gel-server.*\\.deb$")\n\
+              | grep "^gel-server.*\\.deb$" \\\n\
+              || true)\n\
         if [ -n "${deb}" ]; then\n\
             break\n\
         fi\n\
         deb=$(tar -xOf "${pack}" "build-metadata.json" \\\n\
               | jq -r ".contents | keys[]" \\\n\
-              | grep "^edgedb-server.*\\.deb$")\n\
+              | grep "^edgedb-server.*\\.deb$" \\\n\
+              || true)\n\
         if [ -n "${deb}" ]; then\n\
             break\n\
         fi\n\
@@ -97,26 +99,23 @@ fi\n\
 \n\
 "$server" --version\n\
 \n\
-if [ "$1" == "bash" ]; then\n\
-    echo su "$user" -c \\\n\
-        "/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \\\n\
-         -m edb.tools --no-devmode test \\\n\
-         /usr/share/${server}/tests \\\n\
-         -e cqa_ -e tools_ \\\n\
-         --verbose"\n\
-    exec "$@"\n\
+if [ -n "${PKG_TEST_JOBS}" ]; then\n\
+    dash_j="-j${PKG_TEST_JOBS}"\n\
 else\n\
-    if [ -n "${PKG_TEST_JOBS}" ]; then\n\
-        dash_j="-j${PKG_TEST_JOBS}"\n\
-    else\n\
-        dash_j=""\n\
-    fi\n\
-    su "$user" -c \\\n\
-        "/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \\\n\
-         -m edb.tools --no-devmode test \\\n\
-         /usr/share/${server}/tests \\\n\
-         -e cqa_ -e tools_ \\\n\
-         --verbose ${dash_j}"\n\
+    dash_j=""\n\
+fi\n\
+\n\
+cmd="/usr/lib/${machine}-linux-gnu/${server}/bin/python3 \\\n\
+     -m edb.tools --no-devmode test \\\n\
+     /usr/share/${server}/tests \\\n\
+     -e cqa_ -e tools_ \\\n\
+     --verbose ${dash_j}"\n\
+\n\
+if [ "$1" == "bash" ]; then\n\
+    echo su "$user" -c "$cmd"\n\
+    exec /bin/bash\n\
+else\n\
+    su "$user" -c "$cmd"\n\
     echo "Success!"\n\
 fi\n\' >/entrypoint.sh
 
