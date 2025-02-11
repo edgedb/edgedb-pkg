@@ -4,6 +4,8 @@ set -ex
 
 : ${NODE_VERSION:=16.16.0}
 
+source "${BASH_SOURCE%/*}/_helpers.sh"
+
 NODE_KEYS=(
     4ED778F539E3634C779C87C6D7062848A1AB005C
     141F07595B7B3FFE74309A937405533BE57C7D57
@@ -18,6 +20,7 @@ NODE_KEYS=(
     108F52B48DB57BB0CC439B2997B01419BD92F80A
     B9E2F5981AA6E0CD28160D9FF13993A75599653C
 )
+fetch_keys "${NODE_KEYS[@]}"
 
 if getconf GNU_LIBC_VERSION 2>&1 >/dev/null; then
     libc="glibc"
@@ -68,11 +71,6 @@ esac
 
 curl -fsSLO "${node_server}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
 curl -fsSLO "${node_server}/SHASUMS256.txt.asc"
-
-for key in "${NODE_KEYS[@]}"; do
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"
-done
 
 gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc
 grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\$" SHASUMS256.txt | sha256sum -c -

@@ -5,11 +5,14 @@ set -ex
 : ${PYTHON_VERSION:=3.12.7}
 : ${PYTHON_PIP_VERSION:=24.2}
 
+source "${BASH_SOURCE%/*}/_helpers.sh"
+
 PYTHON_KEYS=(
     E3FF2839C048B25C084DEBE9B26995E310250568
     a035c8c19219ba821ecea86b64e628f8d684696d
     7169605F62C751356D054A26A821E680E5FA6305
 )
+fetch_keys "${PYTHON_KEYS[@]}"
 
 mkdir -p /usr/src/python
 cd /usr/src
@@ -18,11 +21,6 @@ curl -fsSLo python.tar.xz \
     "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz"
 curl -fsSLo python.tar.xz.asc \
     "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc"
-
-for key in "${PYTHON_KEYS[@]}"; do
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"
-done
 
 gpg --batch --verify python.tar.xz.asc python.tar.xz
 rm -f python.tar.xz.asc

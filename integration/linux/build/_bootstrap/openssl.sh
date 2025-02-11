@@ -4,10 +4,13 @@ set -ex
 
 : ${OPENSSL_VERSION:=3.3.2}
 
+source "${BASH_SOURCE%/*}/_helpers.sh"
+
 OPENSSL_KEYS=(
     BA5473A2B0587B07FB27CF2D216094DFD0CB81EF
     EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5
 )
+fetch_keys "${OPENSSL_KEYS[@]}"
 
 mkdir -p /usr/src/openssl
 cd /usr/src
@@ -19,11 +22,6 @@ else
     curl -fsSLo openssl.tar.gz "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"
     curl -fsSLo openssl.tar.gz.asc "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz.asc"
 fi
-
-for key in "${OPENSSL_KEYS[@]}"; do
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"
-done
 
 gpg --batch --verify openssl.tar.gz.asc openssl.tar.gz
 rm -f openssl.tar.gz.asc
