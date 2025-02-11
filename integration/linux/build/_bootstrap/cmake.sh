@@ -4,9 +4,12 @@ set -ex
 
 : ${CMAKE_VERSION:=3.30.2}
 
+source "${BASH_SOURCE%/*}/_helpers.sh"
+
 CMAKE_KEYS=(
     CBA23971357C2E6590D9EFD3EC8FEF3A7BFB4EDA
 )
+fetch_keys "${CMAKE_KEYS[@]}"
 
 
 CMAKE_ARCH=
@@ -31,11 +34,6 @@ cd /usr/src
 _server="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}"
 curl -fsSLO "${_server}/cmake-${CMAKE_VERSION}-SHA-256.txt"
 curl -fsSLO "${_server}/cmake-${CMAKE_VERSION}-SHA-256.txt.asc"
-
-for key in "${CMAKE_KEYS[@]}"; do
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"
-done
 
 gpg --batch --verify "cmake-${CMAKE_VERSION}-SHA-256.txt.asc" "cmake-${CMAKE_VERSION}-SHA-256.txt"
 rm -f "cmake-${CMAKE_VERSION}-SHA-256.txt.asc"

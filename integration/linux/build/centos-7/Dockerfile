@@ -166,15 +166,26 @@ else\n\
     ${PYTHON} -m metapkg build -vvv --dest="${dest}" ${extraopts} "${PACKAGE}"\n\
     ls -al "${dest}"\n\
 fi\n\' >/entrypoint.sh; chmod +x /entrypoint.sh
+RUN mkdir -p '_bootstrap'; /bin/echo -e 'function fetch_keys() {\n\
+    for key in "${@}"; do\n\
+        gpg --batch --keyserver pgp.mit.edu --recv-keys "$key" \\\n\
+        || gpg --batch --keyserver keyserver.pgp.com --recv-keys "$key" \\\n\
+        || gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key" \\\n\
+        || gpg --batch --keyserver keys.openpgp.org --recv-keys "$key"\n\
+    done\n\
+}\n\' >/_bootstrap/_helpers.sh; chmod +x /_bootstrap/_helpers.sh
 RUN mkdir -p '_bootstrap'; /bin/echo -e '#!/usr/bin/env bash\n\
 \n\
 set -ex\n\
 \n\
 : ${CMAKE_VERSION:=3.30.2}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 CMAKE_KEYS=(\n\
     CBA23971357C2E6590D9EFD3EC8FEF3A7BFB4EDA\n\
 )\n\
+fetch_keys "${CMAKE_KEYS[@]}"\n\
 \n\
 \n\
 CMAKE_ARCH=\n\
@@ -199,11 +210,6 @@ cd /usr/src\n\
 _server="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}"\n\
 curl -fsSLO "${_server}/cmake-${CMAKE_VERSION}-SHA-256.txt"\n\
 curl -fsSLO "${_server}/cmake-${CMAKE_VERSION}-SHA-256.txt.asc"\n\
-\n\
-for key in "${CMAKE_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify "cmake-${CMAKE_VERSION}-SHA-256.txt.asc" "cmake-${CMAKE_VERSION}-SHA-256.txt"\n\
 rm -f "cmake-${CMAKE_VERSION}-SHA-256.txt.asc"\n\
@@ -236,20 +242,18 @@ set -ex\n\
 \n\
 : ${GIT_VERSION:=2.33.1}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 GIT_KEYS=(\n\
     E1F036B1FEE7221FC778ECEFB0B5E88696AFE6CB\n\
 )\n\
+fetch_keys "${GIT_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/git\n\
 cd /usr/src\n\
 \n\
 curl -fsSLo git.tar.xz "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.xz"\n\
 curl -fsSLo git.tar.sign "https://www.kernel.org/pub/software/scm/git/git-${GIT_VERSION}.tar.sign"\n\
-\n\
-for key in "${GIT_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 # gpg --batch --verify git.tar.sign git.tar.xz\n\
 rm -f git.tar.sign\n\
@@ -296,20 +300,18 @@ set -ex\n\
 \n\
 : ${GZIP_VERSION:=1.13}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 GZIP_KEYS=(\n\
     155D3FC500C834486D1EEA677FD9FCCB000BEEEE\n\
 )\n\
+fetch_keys "${GZIP_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/gzip\n\
 cd /usr/src\n\
 \n\
 curl -fsSLo gzip.tar.gz "https://ftp.gnu.org/gnu/gzip/gzip-${GZIP_VERSION}.tar.gz"\n\
 curl -fsSLo gzip.tar.gz.sign "https://ftp.gnu.org/gnu/gzip/gzip-${GZIP_VERSION}.tar.gz.sig"\n\
-\n\
-for key in "${GZIP_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify gzip.tar.gz.sign gzip.tar.gz\n\
 rm -f gzip.tar.gz.sign\n\
@@ -361,6 +363,8 @@ set -ex\n\
 \n\
 : ${NODE_VERSION:=16.16.0}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 NODE_KEYS=(\n\
     4ED778F539E3634C779C87C6D7062848A1AB005C\n\
     141F07595B7B3FFE74309A937405533BE57C7D57\n\
@@ -375,6 +379,7 @@ NODE_KEYS=(\n\
     108F52B48DB57BB0CC439B2997B01419BD92F80A\n\
     B9E2F5981AA6E0CD28160D9FF13993A75599653C\n\
 )\n\
+fetch_keys "${NODE_KEYS[@]}"\n\
 \n\
 if getconf GNU_LIBC_VERSION 2>&1 >/dev/null; then\n\
     libc="glibc"\n\
@@ -426,11 +431,6 @@ esac\n\
 curl -fsSLO "${node_server}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"\n\
 curl -fsSLO "${node_server}/SHASUMS256.txt.asc"\n\
 \n\
-for key in "${NODE_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
-\n\
 gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc\n\
 grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\\$" SHASUMS256.txt | sha256sum -c -\n\
 tar -xJf "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -C /usr/local --strip-components=1 --no-same-owner\n\
@@ -443,10 +443,13 @@ set -ex\n\
 \n\
 : ${OPENSSL_VERSION:=3.3.2}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 OPENSSL_KEYS=(\n\
     BA5473A2B0587B07FB27CF2D216094DFD0CB81EF\n\
     EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5\n\
 )\n\
+fetch_keys "${OPENSSL_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/openssl\n\
 cd /usr/src\n\
@@ -458,11 +461,6 @@ else\n\
     curl -fsSLo openssl.tar.gz "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz"\n\
     curl -fsSLo openssl.tar.gz.asc "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz.asc"\n\
 fi\n\
-\n\
-for key in "${OPENSSL_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify openssl.tar.gz.asc openssl.tar.gz\n\
 rm -f openssl.tar.gz.asc\n\
@@ -532,11 +530,14 @@ set -ex\n\
 : ${PYTHON_VERSION:=3.12.7}\n\
 : ${PYTHON_PIP_VERSION:=24.2}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 PYTHON_KEYS=(\n\
     E3FF2839C048B25C084DEBE9B26995E310250568\n\
     a035c8c19219ba821ecea86b64e628f8d684696d\n\
     7169605F62C751356D054A26A821E680E5FA6305\n\
 )\n\
+fetch_keys "${PYTHON_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/python\n\
 cd /usr/src\n\
@@ -545,11 +546,6 @@ curl -fsSLo python.tar.xz \\\n\
     "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz"\n\
 curl -fsSLo python.tar.xz.asc \\\n\
     "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc"\n\
-\n\
-for key in "${PYTHON_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify python.tar.xz.asc python.tar.xz\n\
 rm -f python.tar.xz.asc\n\
@@ -628,21 +624,19 @@ set -ex\n\
 \n\
 : ${TAR_VERSION:=1.35}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 TAR_KEYS=(\n\
     7E3792A9D8ACF7D633BC1588ED97E90E62AA7E34\n\
     325F650C4C2B6AD58807327A3602B07F55D0C732\n\
 )\n\
+fetch_keys "${TAR_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/tar\n\
 cd /usr/src\n\
 \n\
 curl -fsSLo tar.tar.xz "https://ftp.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz"\n\
 curl -fsSLo tar.tar.xz.sign "https://ftp.gnu.org/gnu/tar/tar-${TAR_VERSION}.tar.xz.sig"\n\
-\n\
-for key in "${TAR_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify tar.tar.xz.sign tar.tar.xz\n\
 rm -f tar.tar.xz.sign\n\
@@ -664,20 +658,18 @@ set -ex\n\
 \n\
 : ${YARN_VERSION:=1.22.19}\n\
 \n\
+source "${BASH_SOURCE%/*}/_helpers.sh"\n\
+\n\
 YARN_KEYS=(\n\
     6A010C5166006599AA17F08146C2130DFD2497F5\n\
 )\n\
+fetch_keys "${YARN_KEYS[@]}"\n\
 \n\
 mkdir -p /usr/src/yarn\n\
 cd /usr/src\n\
 \n\
 curl -fsSLO --compressed "https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz"\n\
 curl -fsSLO --compressed "https://yarnpkg.com/downloads/${YARN_VERSION}/yarn-v${YARN_VERSION}.tar.gz.asc"\n\
-\n\
-for key in "${YARN_KEYS[@]}"; do\n\
-    gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$key" \\\n\
-    || gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$key"\n\
-done\n\
 \n\
 gpg --batch --verify "yarn-v${YARN_VERSION}.tar.gz.asc" "yarn-v${YARN_VERSION}.tar.gz"\n\
 rm "yarn-v${YARN_VERSION}.tar.gz.asc"\n\
