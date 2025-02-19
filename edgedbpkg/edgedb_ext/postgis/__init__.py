@@ -25,7 +25,10 @@ class PostGIS(edgedb_ext.EdgeDBExtension):
 
     @classmethod
     def get_pgext_ver(cls) -> str | None:
-        return edgedb_ext.PGEXT_VERSION_AUTO
+        # FIXME: We should base it on the pinned version in edgedb-postgis,
+        # or something like that. auto is broken on non-tagged builds currently.
+        return '3.5.1'
+        # return edgedb_ext.PGEXT_VERSION_AUTO
 
     def get_make_install_destdir_subdir(
         self,
