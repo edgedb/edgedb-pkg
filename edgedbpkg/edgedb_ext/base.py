@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
+    Self,
 )
 
 import dataclasses
@@ -27,10 +28,10 @@ EXTS_MK = (
 PGEXT_VERSION_AUTO = "auto"
 
 
-class EdgeDBExtension(packages.BuildSystemMakePackage):
+class GelServerExtension(packages.BuildSystemMakePackage):
     # Populated in resolve() when this is built as top-level package.
     bundle_deps: list[packages.BundledPackage] = []
-    _edb: edgedb.EdgeDB | None
+    _edb: edgedb.Gel | None
     _pgext: poetry_dep.Dependency
 
     @classmethod
@@ -44,7 +45,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
         is_release: bool = False,
         target: targets.Target,
         requires: list[poetry_dep.Dependency] | None = None,
-    ) -> EdgeDBExtension:
+    ) -> Self:
         server_slot = ""
         if version is not None:
             server_slot, _, version = version.rpartition("!")
@@ -54,7 +55,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
                 edb = None
             else:
                 raise RuntimeError(
-                    "must specify EdgeDB version as epoch, eg 5!1.0"
+                    "must specify Gel version as epoch, eg 5!1.0"
                 )
         else:
             edb_ver = poetry_version.Version.parse(server_slot)
@@ -63,7 +64,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
                     release=dataclasses.replace(edb_ver.release, minor=0),
                 )
 
-            edb = edgedb.EdgeDB.resolve(
+            edb = edgedb.Gel.resolve(
                 io,
                 version=f"v{edb_ver}",
                 is_release=edb_ver.dev is None,
@@ -84,7 +85,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
             name = packages.canonicalize_name(f"{edb.name_slot}-ext-{pkgname}")
         else:
             name = packages.canonicalize_name(
-                f"{edgedb.EdgeDB.ident}-ext-{pkgname}"
+                f"{edgedb.Gel.ident}-ext-{pkgname}"
             )
 
         ext = super().resolve(
@@ -114,7 +115,7 @@ class EdgeDBExtension(packages.BuildSystemMakePackage):
             else:
                 raise RuntimeError(
                     "could not determine version of PostgreSQL used "
-                    "by the specified EdgeDB version"
+                    "by the specified Gel version"
                 )
 
             pgextname = cls.ident.replace("edbext-", "pgext-")

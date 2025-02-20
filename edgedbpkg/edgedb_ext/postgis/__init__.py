@@ -7,8 +7,8 @@ from metapkg import targets
 from edgedbpkg import edgedb_ext
 
 
-class PostGIS(edgedb_ext.EdgeDBExtension):
-    title = "edgedb postgis extension"
+class PostGIS(edgedb_ext.GelServerExtension):
+    title = "gel postgis extension"
     ident = "edbext-postgis"
     description = "Geographic Objects for EdgeDB"
     license_id = "GPL-3"
@@ -27,7 +27,7 @@ class PostGIS(edgedb_ext.EdgeDBExtension):
     def get_pgext_ver(cls) -> str | None:
         # FIXME: We should base it on the pinned version in edgedb-postgis,
         # or something like that. auto is broken on non-tagged builds currently.
-        return '3.5.1'
+        return "3.5.1"
         # return edgedb_ext.PGEXT_VERSION_AUTO
 
     def get_make_install_destdir_subdir(

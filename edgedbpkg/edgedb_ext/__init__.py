@@ -1,3 +1,3 @@
-from .base import EdgeDBExtension, PGEXT_VERSION_AUTO
+from .base import GelServerExtension, PGEXT_VERSION_AUTO
 
-__all__ = ("EdgeDBExtension", "PGEXT_VERSION_AUTO")
+__all__ = ("GelServerExtension", "PGEXT_VERSION_AUTO")
