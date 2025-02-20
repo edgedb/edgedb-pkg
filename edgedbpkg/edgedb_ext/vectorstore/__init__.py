@@ -5,11 +5,11 @@ from metapkg import targets
 from edgedbpkg import edgedb_ext
 
 
-class Vectorstore(edgedb_ext.EdgeDBExtension):
-    title = "edgedb vectorstore extension"
+class Vectorstore(edgedb_ext.GelServerExtension):
+    title = "gel vectorstore extension"
     ident = "edbext-vectorstore"
     description = (
-        "Premade types to use EdgeDB as a vectorstore with AI frameworks"
+        "Premade types to use Gel as a vectorstore with AI frameworks"
     )
     license_id = "Apache-2.0"
     group = "Applications/Databases"
